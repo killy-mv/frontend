@@ -1,0 +1,1 @@
+# This project capture my frontend learning journey 
