@@ -1,3 +1,7 @@
+# How to run preview
+
+## Open terminal, cd to this folder as root directory and type 'npm run dev' there and hit enter
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
