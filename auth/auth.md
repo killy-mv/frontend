@@ -12,6 +12,20 @@
 - **Reacting to the answer** — 401 means refresh or log out, 403 means show the "not allowed" state, 200 means render.
 - **Managing the session lifecycle** — refresh before expiry, logout, sync across tabs.
 
+## Capture, custody, choreography
+- Those five responsibilities are not equal. Sorted by how much damage getting them wrong does, they collapse into three jobs — and only the first two have any security weight at all.
+- **Capture — where the credential is typed.** Any script running on the page can read any input in it. Not through your `onChange`; it attaches its own listener, reads `.value`, or redefines the prototype getter:
+
+```js
+// any script on the page — including one you didn't write
+passwordInput.addEventListener('input', e => sendSomewhereElse(e.target.value))
+```
+
+- There is no browser primitive that isolates an input from same-page script, so nothing you do *inside* the document helps. The only real defense is for the field to not be in your document: a redirect to a hosted login page, an iframe, or a passkey (where the ceremony happens in browser UI the page cannot read). Note that an embedded vendor component — a `<SignIn/>` rendered inline — is in your DOM like anything else, and buys no isolation whatever the logo says. The precedent is card numbers: Stripe Elements iframes the field for exactly this reason, and PCI DSS prices the difference into its compliance tiers.
+- **Custody — where the proof sits between requests.** The frontend cannot make a session more secure, but it decides the blast radius when a script does get in. `localStorage` turns one XSS into permanent account takeover; in-memory plus an `HttpOnly` refresh cookie, or a plain cookie session, keeps it to the current page. The same script hygiene the login page needs applies to every page holding a session — since credentials got hard to steal, attackers moved to stealing sessions instead.
+- **Choreography — everything else.** The state machine, guards, loading states, deep links, clearing cache on logout, cross-tab sync. This is 95% of the code and 0% of the security. Worth doing well because it *is* the product, not because it protects anything.
+- The rule underneath all three: **the frontend can never grant access, so its entire security job is to avoid leaking.** Capture and custody are the only two places it can leak. Everything else is arrangement.
+
 ## Auth state is a state machine, not a boolean
 - The mistake is modelling it as `isLoggedIn: boolean`, because on a page reload the app doesn't know yet — it has to ask the server (`GET /me` or `POST /refresh`) and that takes a moment. With a boolean, that moment renders as `false`, so the user sees a flash of the login page on every refresh before being thrown back to where they were.
 - Three states minimum: `loading | authenticated | anonymous`. `loading` renders a skeleton or nothing at all. Only `anonymous` redirects.
