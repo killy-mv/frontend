@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mini-site — the thing being cached</title>
+    <link rel="stylesheet" href="/mini-site/style.css" />
+  </head>
+  <body>
+    <main>
+      <img src="/mini-site/logo.svg" alt="" width="72" height="72" />
+      <h1>Mini-site</h1>
+      <p>
+        Four files — this page, a stylesheet, an SVG and a JSON file. Small enough to hold in your
+        head, real enough to be cached as genuine HTTP responses.
+      </p>
+
+      <p id="status" class="status">checking where this page came from…</p>
+
+      <dl id="data"></dl>
+
+      <p class="back"><a href="/">← back to the storage demo</a></p>
+    </main>
+
+    <script>
+      // data.json is fetched at runtime rather than inlined, so that when the
+      // service worker is active you can watch a second request get answered
+      // from the cache too.
+      fetch('/mini-site/data.json')
+        .then((r) => r.json())
+        .then((data) => {
+          const dl = document.getElementById('data')
+          for (const [key, value] of Object.entries(data)) {
+            dl.insertAdjacentHTML('beforeend', `<dt>${key}</dt><dd>${value}</dd>`)
+          }
+        })
+        .catch(() => {
+          document.getElementById('data').textContent = 'data.json could not be loaded'
+        })
+
+      // navigator.onLine is a coarse hint, but it is enough to make the point:
+      // if this text says "offline" and you are still reading the page, the
+      // bytes came from the Cache API rather than the network.
+      const status = document.getElementById('status')
+      const render = () => {
+        const controlled = Boolean(navigator.serviceWorker?.controller)
+        status.textContent = navigator.onLine
+          ? controlled
+            ? 'online — but a service worker is in control, so this came from the cache'
+            : 'online — served straight from the server'
+          : 'OFFLINE — and yet here it is. Every byte came out of the Cache API.'
+        status.className = 'status ' + (navigator.onLine ? (controlled ? 'cached' : 'live') : 'offline')
+      }
+      render()
+      addEventListener('online', render)
+      addEventListener('offline', render)
+    </script>
+  </body>
+</html>

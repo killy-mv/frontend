@@ -10,6 +10,10 @@ The useful reframe is that a browser is an operating system that happens to rend
 
 ### Store things
 
+> **Runnable demo → [`browser-storage/`](./browser-storage/README.md)** — one page, four panels, a
+> button for every action, and step-by-step instructions for watching each write land in DevTools.
+> `npm start`, no dependencies.
+
 The browser gives a site several storage systems with different shapes rather than one general one. Cookies are small, are attached to outgoing requests automatically, and exist mainly so the server can recognise a returning client. `localStorage` holds roughly 5MB of strings and is synchronous, which makes it convenient and easy to misuse — a large read blocks the main thread. IndexedDB is the real database: asynchronous, transactional, holds structured objects and hundreds of megabytes. The Cache API stores whole HTTP responses keyed by request, which is what makes offline work possible. And the Origin Private File System (OPFS) gives a site an actual private filesystem with file handles and streaming writes. In practice you can ship a database inside a tab.
 
 ### Talk to the network beyond request/response

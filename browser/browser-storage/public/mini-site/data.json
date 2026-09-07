@@ -1,0 +1,7 @@
+{
+  "name": "mini-site",
+  "purpose": "something real to put in the Cache API",
+  "files": "index.html, style.css, logo.svg, data.json",
+  "cache": "mini-site-v1",
+  "served-by": "node server/index.mjs on port 5180"
+}

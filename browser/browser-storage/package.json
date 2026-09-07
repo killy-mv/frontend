@@ -1,0 +1,10 @@
+{
+  "name": "browser-storage",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Hands-on demo of the browser's storage capabilities: cookies, localStorage, IndexedDB and the Cache API",
+  "scripts": {
+    "start": "node server/index.mjs"
+  }
+}

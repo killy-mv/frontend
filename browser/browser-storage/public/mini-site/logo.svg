@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="A stack of cached layers">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7aa2f7" />
+      <stop offset="1" stop-color="#9ece6a" />
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#g)" stroke-width="4" stroke-linejoin="round">
+    <path d="M48 12 84 30 48 48 12 30Z" />
+    <path d="M12 48 48 66 84 48" />
+    <path d="M12 66 48 84 84 66" />
+  </g>
+</svg>

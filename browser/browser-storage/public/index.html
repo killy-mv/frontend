@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser capabilities — Store things</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Store things</h1>
+        <p>
+          Four storage systems, four different shapes. Press a button, then follow the
+          <strong>How to see it</strong> steps to watch the browser actually write to disk.
+        </p>
+        <p class="what">
+          Keep DevTools open on the <code>Application</code> tab while you work
+          (<code>F12</code> → Application; Firefox calls it Storage).
+        </p>
+      </header>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="cookies">
+        <h2><span class="badge">1</span> Cookies</h2>
+        <p class="what">
+          A few kilobytes of text that the browser <em>attaches to every request on its own</em>.
+          That automatic attachment is the whole point — it is how a stateless protocol remembers
+          who you are. The interesting part of this demo is the <code>HttpOnly</code> cookie: the
+          browser stores it and sends it, but <code>document.cookie</code> cannot see it.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Open DevTools → <code>Application</code> → <code>Storage</code> → <code>Cookies</code> → <code>http://localhost:5180</code>.</li>
+            <li>Press <strong>Ask the server to set cookies</strong>. Three rows appear that you never wrote — the server sent <code>Set-Cookie</code> headers and the browser filed them away.</li>
+            <li>Look at the <code>HttpOnly</code> column. <code>session</code> is ticked; the other two are not.</li>
+            <li>Press <strong>Read with JavaScript</strong> — only two come back. Then press <strong>Ask the server what it sees</strong> — all three. Same jar, two different views.</li>
+            <li>Open the <code>Network</code> tab, press <strong>Ask the server what it sees</strong> again, click the request and look at the <code>Cookie:</code> request header. You never wrote that header.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="cookie-js-set">Set one from JavaScript</button>
+          <button data-act="cookie-server-set">Ask the server to set cookies</button>
+          <button data-act="cookie-js-read">Read with JavaScript</button>
+          <button data-act="cookie-server-read">Ask the server what it sees</button>
+          <button data-act="cookie-clear" class="danger">Clear all</button>
+        </div>
+        <pre class="log" id="log-cookies"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="localstorage">
+        <h2><span class="badge">2</span> localStorage</h2>
+        <p class="what">
+          A synchronous key–value map holding roughly 5&nbsp;MB of <em>strings only</em>. Everything
+          else has to be encoded first — an object becomes JSON, and a file becomes a base64 data
+          URL, which is what the file button below does. Storing a file here is possible but wasteful:
+          base64 inflates bytes by about a third, so a 4&nbsp;MB image will not fit.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>DevTools → <code>Application</code> → <code>Local Storage</code> → <code>http://localhost:5180</code>.</li>
+            <li>Press <strong>Save a note</strong> and watch the row appear in the table <em>live</em>. You are watching a write to disk.</li>
+            <li>Pick a small image with <strong>Choose file</strong>, then press <strong>Store the file</strong>. The value column fills with <code>data:image/png;base64,…</code> — the file as one very long string.</li>
+            <li>Press <strong>Restore the file</strong> to turn that string back into a picture.</li>
+            <li>Now the persistence proof: <strong>quit the whole browser</strong>, not just the tab. Reopen it, come back here and press <strong>List everything</strong>. It all survived, because it was written to a LevelDB file in your browser profile.</li>
+            <li>Press <strong>Fill until full</strong> to hit the quota and see the <code>QuotaExceededError</code> that a real app has to handle.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="ls-save-note">Save a note</button>
+          <input type="text" id="ls-note" placeholder="anything you like" />
+          <button data-act="ls-list">List everything</button>
+          <button data-act="ls-usage">Measure usage</button>
+          <button data-act="ls-fill">Fill until full</button>
+          <button data-act="ls-clear" class="danger">Clear</button>
+        </div>
+        <div class="actions">
+          <input type="file" id="ls-file" />
+          <button data-act="ls-store-file">Store the file</button>
+          <button data-act="ls-restore-file">Restore the file</button>
+        </div>
+        <pre class="log" id="log-localstorage"></pre>
+        <div class="preview" id="ls-preview"></div>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="indexeddb">
+        <h2><span class="badge">3</span> IndexedDB</h2>
+        <p class="what">
+          The real database: asynchronous, transactional, hundreds of megabytes, and it stores
+          structured objects rather than strings. Its vocabulary is slightly different from SQL —
+          an <strong>object store</strong> is the table, a <strong>key path</strong> is the primary
+          key, and an <strong>index</strong> is the field you want to search by. Schema changes only
+          happen inside <code>onupgradeneeded</code>, which fires when you open the database with a
+          higher version number. That is a real migration, and the buttons below run one.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>DevTools → <code>Application</code> → <code>IndexedDB</code>.</li>
+            <li>Press <strong>Create v1</strong>, then expand <code>browser-storage-demo</code> in the sidebar. A <code>books</code> store appears with indexes <code>by_author</code> and <code>by_year</code> under it. Those are your tables and fields.</li>
+            <li>Press <strong>Add 3 books</strong> and click <code>books</code> in the sidebar — the records are listed as expandable objects, not text.</li>
+            <li>Press <strong>Migrate to v2</strong>. A second store <code>authors</code> appears and <code>books</code> gains a <code>by_title</code> index. The version number next to the database name changes from 1 to 2. (Hit the refresh icon in the DevTools panel if the tree looks stale.)</li>
+            <li>Press <strong>Query by index</strong> to fetch records by author without scanning the store.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="idb-v1">Create v1</button>
+          <button data-act="idb-add">Add 3 books</button>
+          <button data-act="idb-v2">Migrate to v2</button>
+          <button data-act="idb-schema">Show schema</button>
+          <button data-act="idb-query">Query by index</button>
+          <button data-act="idb-all">Read everything</button>
+          <button data-act="idb-delete" class="danger">Delete database</button>
+        </div>
+        <pre class="log" id="log-indexeddb"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="cache">
+        <h2><span class="badge">4</span> Cache API</h2>
+        <p class="what">
+          The only storage that holds whole <em>HTTP responses</em> — status, headers and body —
+          keyed by the request that produced them. This server hosts a small four-file site at
+          <a href="/mini-site/" target="_blank">/mini-site/</a>; the buttons below fetch it over the
+          network and keep a copy. Register the service worker afterwards and the site loads with
+          your network switched off entirely.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Open <a href="/mini-site/" target="_blank">/mini-site/</a> once so you know what it looks like, then come back.</li>
+            <li>DevTools → <code>Application</code> → <code>Cache Storage</code>.</li>
+            <li>Press <strong>Fetch &amp; cache the mini-site</strong>. A cache named <code>mini-site-v1</code> appears with four entries. Click one — you get the response headers and body, not just a value.</li>
+            <li>Press <strong>Read from cache</strong>. The content is returned with no network request at all — check the <code>Network</code> tab and you will see nothing new.</li>
+            <li><strong>The payoff:</strong> press <strong>Register service worker</strong>, then set <code>Network</code> → throttling to <strong>Offline</strong>, then open <a href="/mini-site/" target="_blank">/mini-site/</a>. It loads normally. You can even stop the server (<code>Ctrl+C</code>) and it still loads.</li>
+            <li>Press <strong>Unregister &amp; delete</strong>, go back online, and reload to return to normal.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="cache-put">Fetch &amp; cache the mini-site</button>
+          <button data-act="cache-list">List what's stored</button>
+          <button data-act="cache-read">Read from cache</button>
+          <button data-act="cache-sw">Register service worker</button>
+          <button data-act="cache-clear" class="danger">Unregister &amp; delete</button>
+        </div>
+        <pre class="log" id="log-cache"></pre>
+      </section>
+
+      <footer>
+        <p>
+          All four are partitioned per origin — nothing here is visible to any other site. Press
+          <strong>Measure usage</strong> in panel 2 to see the shared quota they draw from.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
