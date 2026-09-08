@@ -1,0 +1,10 @@
+{
+  "name": "browser-networking",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Hands-on demo of how a browser talks to the network: fetch and streams, WebSocket, and a WebRTC data channel",
+  "scripts": {
+    "start": "node server/index.mjs"
+  }
+}

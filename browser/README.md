@@ -18,6 +18,10 @@ The browser gives a site several storage systems with different shapes rather th
 
 ### Talk to the network beyond request/response
 
+> **Runnable demo → [`browser-networking/`](./browser-networking/README.md)** — one page, three
+> panels, and a WebSocket implemented by hand so the upgrade handshake is visible. The payoff is
+> panel 3: kill the server and the two tabs keep talking. `npm start`, no dependencies.
+
 `fetch` is the ordinary case: the page asks, the server answers. Beyond it, WebSocket opens a persistent duplex channel so either side can send at any time; Server-Sent Events is the cheaper one-way version, a server-to-client stream over plain HTTP; WebTransport is the newer alternative built on HTTP/3. The genuinely surprising one is WebRTC, which establishes a peer-to-peer connection directly between two browsers — after a signalling handshake, the audio, video or data flows between the two clients with no server in the path at all.
 
 ### Draw and compute at native-ish speed

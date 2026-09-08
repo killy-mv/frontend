@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser capabilities — Talk to the network</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Talk to the network</h1>
+        <p>
+          Three ways a page can move bytes, in order of how much freedom they give it: ask and wait,
+          keep a channel open, or cut the server out altogether. Press a button, then follow the
+          <strong>How to see it</strong> steps.
+        </p>
+        <p class="what">
+          Keep DevTools open on the <code>Network</code> tab (<code>F12</code> → Network), and keep the
+          terminal running <code>npm start</code> visible — half of what happens here is only observable
+          from the server side.
+        </p>
+        <p class="what" id="conn-strip">signalling socket: <span class="pill" id="ws-state">connecting…</span></p>
+      </header>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="fetch">
+        <h2><span class="badge">1</span> fetch</h2>
+        <p class="what">
+          One request, one response, and the connection is finished. The parts worth knowing are the
+          ones that are easy to never use: a response body is a <strong>stream</strong>, not a lump,
+          so you can read it while it is still arriving; and a request is
+          <strong>cancellable</strong>, which really does close the socket rather than just ignoring
+          the answer. Note the asymmetry at the end — <code>fetch</code> can report download progress
+          but not upload progress, which is the one reason <code>XMLHttpRequest</code> is still
+          written in 2026.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Press <strong>Plain fetch</strong>, then look at the <code>Network</code> tab: one row, request and response, done.</li>
+            <li>Press <strong>What did the browser send?</strong>. You set none of those headers — <code>User-Agent</code>, <code>Accept</code>, <code>Sec-Fetch-*</code> were all added under you.</li>
+            <li>Press <strong>Read the body as it arrives</strong> and watch the lines appear one at a time. Compare with <strong>Wait for the whole body</strong>, which prints nothing for three seconds then everything at once. Same endpoint, same bytes.</li>
+            <li>Press <strong>Download 4 MB with progress</strong>. The percentage only exists because the server sent <code>Content-Length</code>; the bar is <code>received / total</code>, counted by hand from the stream.</li>
+            <li>Press <strong>Start a slow request</strong>, then <strong>Abort it</strong> — and now look at the <em>terminal</em>. The server prints that the socket closed. Cancelling is not "ignore the reply", it tears the connection down.</li>
+            <li>Press <strong>Abort after 1s (timeout)</strong> — same mechanism, but <code>AbortSignal.timeout()</code> instead of a manual controller.</li>
+            <li>Press <strong>Upload 4 MB with progress</strong> twice: once as <code>fetch</code>, once as <code>XHR</code>. Only one of them can tell you how far it got.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="f-hello">Plain fetch</button>
+          <button data-act="f-headers">What did the browser send?</button>
+          <button data-act="f-stream">Read the body as it arrives</button>
+          <button data-act="f-buffered">Wait for the whole body</button>
+        </div>
+        <div class="actions">
+          <button data-act="f-download">Download 4 MB with progress</button>
+          <button data-act="f-upload-xhr">Upload 4 MB with progress (XHR)</button>
+          <button data-act="f-upload-fetch">Same upload with fetch</button>
+        </div>
+        <div class="actions">
+          <button data-act="f-slow">Start a slow request</button>
+          <button data-act="f-abort" class="danger">Abort it</button>
+          <button data-act="f-timeout">Abort after 1s (timeout)</button>
+        </div>
+        <div class="bar" id="f-bar"><span></span></div>
+        <pre class="log" id="log-fetch"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="websocket">
+        <h2><span class="badge">2</span> WebSocket</h2>
+        <p class="what">
+          The connection stays open and <em>either side</em> may send at any time. It begins as an
+          ordinary HTTP request carrying <code>Upgrade: websocket</code>; the server answers
+          <code>101 Switching Protocols</code> and from that instant there is no more HTTP on the
+          socket, just frames. The capability that has no equivalent above is <strong>server
+          push</strong>: press <strong>Start the ticker</strong> and messages arrive that this page
+          never asked for.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>DevTools → <code>Network</code> → filter <code>WS</code> → click the <code>ws</code> row. The <code>Headers</code> tab shows the <code>101</code> handshake, and <code>Messages</code> shows every frame live, green for sent and white for received.</li>
+            <li>Press <strong>Echo</strong> a few times, then <strong>Start the ticker</strong> and stop clicking. Frames keep arriving. Nothing on this page requested them.</li>
+            <li><strong>Open this page in a second tab</strong>, then press <strong>Broadcast to other tabs</strong>. The message appears in the other tab's log — through the server, to a different browsing context.</li>
+            <li>Press <strong>Send binary</strong>. The server reverses the bytes and sends them back; the log shows both directions as hex. No JSON, no base64.</li>
+            <li>Press <strong>Server ping</strong>. Nothing appears in <code>Messages</code> for the ping itself and no event fires here — the browser answers the pong on its own, the same way it attaches cookies. The RTT comes back afterwards as a normal message.</li>
+            <li>Press <strong>Flood 10 MB</strong> and watch <code>bufferedAmount</code> climb and drain. <code>send()</code> never blocks and never fails when you are too fast; it queues, in memory, forever. That number is the only warning you get.</li>
+            <li>Press <strong>Ask the server to close</strong>. The close code is <code>4000</code> with a reason string — application close codes start at 4000 and are yours to define.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="ws-connect">Connect</button>
+          <button data-act="ws-echo">Echo</button>
+          <input type="text" id="ws-text" placeholder="anything you like" />
+          <button data-act="ws-broadcast">Broadcast to other tabs</button>
+          <button data-act="ws-binary">Send binary</button>
+        </div>
+        <div class="actions">
+          <button data-act="ws-ticker-start">Start the ticker</button>
+          <button data-act="ws-ticker-stop">Stop the ticker</button>
+          <button data-act="ws-ping">Server ping</button>
+          <button data-act="ws-flood">Flood 10 MB</button>
+          <button data-act="ws-bye" class="danger">Ask the server to close</button>
+          <button data-act="ws-disconnect" class="danger">Disconnect</button>
+        </div>
+        <pre class="log" id="log-websocket"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="webrtc">
+        <h2><span class="badge">3</span> WebRTC data channel</h2>
+        <p class="what">
+          The one that is genuinely different in kind: after a handshake brokered by the server, the
+          two browsers connect <strong>directly to each other</strong> and the server leaves the
+          path. It is not a protocol you send messages over — it is a negotiation. Each side
+          describes itself in an <code>SDP</code> offer or answer, then both collect
+          <code>ICE candidates</code> (every address they might be reachable at) and try them in
+          pairs until one works.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li><strong>Open this page in a second tab.</strong> Nothing here works with one. The strip at the top must say <code>connected</code> in both — the WebSocket from panel 2 is the signalling channel.</li>
+            <li>In <em>this</em> tab press <strong>Start the connection</strong>. The other tab answers by itself. Read both logs side by side: offer → answer → candidates → <code>connected</code>.</li>
+            <li>Type something and press <strong>Send</strong>. It appears in the other tab. Check the <code>Network</code> tab — <em>nothing was requested</em>. There is no row, because there is no server involved.</li>
+            <li><strong>The payoff.</strong> Press <strong>Disconnect</strong> in panel 2 — or stop the server entirely with <code>Ctrl+C</code> — and keep sending. It still works. The signalling server was only ever needed for the introduction.</li>
+            <li>Press <strong>Send 8 MB</strong> and read the throughput. Those bytes never touched Node.</li>
+            <li>Press <strong>Show the chosen route</strong> for the candidate pair that won. On one machine both ends are <code>host</code> candidates — your loopback and LAN addresses.</li>
+            <li>Tick <strong>Use a STUN server</strong> and start over. New candidates appear of type <code>srflx</code> — that is your public IP, discovered by asking a stranger. Which is also why WebRTC is a fingerprinting concern.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="rtc-start">Start the connection</button>
+          <button data-act="rtc-send">Send</button>
+          <input type="text" id="rtc-text" placeholder="peer-to-peer message" />
+          <button data-act="rtc-bulk">Send 8 MB</button>
+        </div>
+        <div class="actions">
+          <button data-act="rtc-stats">Show the chosen route</button>
+          <button data-act="rtc-hangup" class="danger">Hang up</button>
+          <label class="check"><input type="checkbox" id="rtc-stun" /> Use a STUN server</label>
+        </div>
+        <div class="bar" id="rtc-bar"><span></span></div>
+        <pre class="log" id="log-webrtc"></pre>
+      </section>
+
+      <footer>
+        <p>
+          The ladder is about who is allowed to speak first. With <code>fetch</code> only the page can;
+          with a WebSocket either end can; with WebRTC there is no longer an "end" in the middle at
+          all. Each step costs something — a held-open connection, then a negotiation that can fail
+          for reasons no server log will explain.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
