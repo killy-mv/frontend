@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Browser capabilities — Reach hardware</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <h1>Reach hardware</h1>
+        <p>
+          A page can open your camera, read your GPS, talk to a USB device and flash a
+          microcontroller. What stops it is not a missing API — it is three gates it has to pass
+          first. Panel 1 is those gates; panels 2 to 5 are what lies behind them.
+        </p>
+        <p class="what">
+          Most of this needs actual hardware. Every panel degrades honestly: if the API is missing or
+          the device is not there, the log says which of the two it was. Start with
+          <strong>What will this browser let me touch?</strong> — it tells you which of the panels
+          below are worth pressing in the browser you are using right now.
+        </p>
+        <p class="what" id="context-strip">
+          secure context: <span class="pill" id="secure-pill">…</span>
+          engine: <span class="pill" id="engine-pill">…</span>
+        </p>
+      </header>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="gate">
+        <h2><span class="badge">1</span> The three gates</h2>
+        <p class="what">
+          Every powerful capability is gated by a <strong>secure context</strong> (HTTPS, or
+          localhost), a <strong>user gesture</strong>, and an <strong>explicit permission</strong> —
+          and on top of that a <strong>Permissions-Policy</strong> that the containing document
+          controls. The design stance is that a page is untrusted code from a stranger, so nothing is
+          assumed and everything is earned. In practice the permission UX, not the API, is what
+          decides whether an idea ships at all.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Press <strong>What will this browser let me touch?</strong>. Then open the same page in Firefox or Safari and compare. The bottom half of that list is where the engines part company.</li>
+            <li>Press <strong>Ask for the screen (from your click)</strong> — the picker appears. Then press <strong>Ask 1 second after the click</strong> and watch it fail without ever showing UI. The call is identical; only the fact that a click was in progress changed.</li>
+            <li>Press <strong>What am I already allowed?</strong> to read permission states without triggering a single prompt. Grant the camera in panel 2 and press it again.</li>
+            <li>Press <strong>Load the three frames</strong> below. All three run byte-identical code from the same server. Press <strong>Try the camera</strong> in each and read the verdicts.</li>
+            <li>Open <a href="/locked/" target="_blank">/locked/</a> — the same file again, served with <code>Permissions-Policy: camera=(), geolocation=()</code>. It is a top-level page you navigated to yourself, and it still cannot ask. A header took the capability away from the whole document.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="g-support">What will this browser let me touch?</button>
+          <button data-act="g-permissions">What am I already allowed?</button>
+        </div>
+        <div class="actions">
+          <button data-act="g-gesture-ok">Ask for the screen (from your click)</button>
+          <button data-act="g-gesture-bad" class="danger">Ask 1 second after the click</button>
+          <button data-act="g-frames">Load the three frames</button>
+        </div>
+        <pre class="log" id="log-gate"></pre>
+
+        <div class="frames" id="frames" hidden>
+          <figure>
+            <figcaption>same origin, no <code>allow</code></figcaption>
+            <iframe title="same origin" data-src="/sandbox/"></iframe>
+            <p class="dim">Default allowlist is <code>self</code>, so a same-origin frame inherits.</p>
+          </figure>
+          <figure>
+            <figcaption>other origin, no <code>allow</code></figcaption>
+            <iframe title="cross origin, blocked" data-cross="1" data-src="/sandbox/"></iframe>
+            <p class="dim">The realistic case: a third-party embed. Denied, and never prompted.</p>
+          </figure>
+          <figure>
+            <figcaption>other origin, <code>allow="camera; geolocation"</code></figcaption>
+            <iframe title="cross origin, delegated" data-cross="1" data-src="/sandbox/" allow="camera; geolocation"></iframe>
+            <p class="dim">The embedding page chose to hand its permission down.</p>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="camera">
+        <h2><span class="badge">2</span> Camera and microphone</h2>
+        <p class="what">
+          The one capability every engine ships, and the one where the privacy design is easiest to
+          watch working. Two things to look for: device <em>labels are blank</em> until you grant
+          access, because a list of your hardware is a fingerprint; and what you ask for in
+          <code>getUserMedia</code> constraints is a request, not a command — the camera answers with
+          what it actually has.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Press <strong>List devices</strong> <em>before</em> granting anything. You get the right number of entries with empty <code>label</code> fields — enough to know a camera exists, not enough to know which one.</li>
+            <li>Press <strong>Turn on the camera</strong>, accept the prompt, then press <strong>List devices</strong> again. The names appeared. That is the trade the prompt bought.</li>
+            <li>Press <strong>What did I actually get?</strong> and compare <code>getSettings()</code> with <code>getCapabilities()</code> — what you were given against what the hardware can do.</li>
+            <li>Press <strong>Ask for 4K</strong>. Unless you own a 4K webcam you will be handed something else and no error is raised. Constraints negotiate; only <code>exact:</code> ones fail loudly.</li>
+            <li>Press <strong>Turn on the microphone</strong> and speak — the meter moves. Then press <strong>Turn everything off</strong> and watch the camera light on your machine go out. Forgetting <code>track.stop()</code> is the reason so many sites leave that light on.</li>
+            <li>On a phone, <strong>Flip camera</strong> switches to the front lens by re-requesting with <code>facingMode</code>.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="c-list">List devices</button>
+          <button data-act="c-camera">Turn on the camera</button>
+          <button data-act="c-mic">Turn on the microphone</button>
+          <button data-act="c-flip">Flip camera</button>
+        </div>
+        <div class="actions">
+          <button data-act="c-settings">What did I actually get?</button>
+          <button data-act="c-4k">Ask for 4K</button>
+          <button data-act="c-stop" class="danger">Turn everything off</button>
+        </div>
+        <div class="media">
+          <video id="cam-video" autoplay playsinline muted></video>
+          <div class="meter" id="mic-meter"><span></span></div>
+        </div>
+        <pre class="log" id="log-camera"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="screen">
+        <h2><span class="badge">3</span> The screen itself</h2>
+        <p class="what">
+          <code>getDisplayMedia</code> returns a video track of a monitor, a window or a tab. The
+          interesting part is what the page is <em>not</em> allowed to do: it cannot enumerate your
+          windows, cannot preselect one, cannot style the picker, and cannot stop the browser from
+          showing a "you are sharing" bar. Every screen-share tool you have used is this API plus a
+          WebRTC connection.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Press <strong>Share a screen or window</strong>. The picker is drawn by the browser, outside the page — no site can restyle or fake it.</li>
+            <li>Press <strong>What am I sharing?</strong>. You get <code>displaySurface</code>: <code>monitor</code>, <code>window</code> or <code>browser</code>. That is roughly all the page learns.</li>
+            <li>Press <strong>Grab a still</strong> to pull a frame into a canvas. The pixels are ordinary <code>ImageData</code> from there on.</li>
+            <li>Now press the browser's own <strong>Stop sharing</strong> button rather than the one on this page. The log reports it: the track fired <code>ended</code> and the page found out afterwards. The user is in charge of ending it, not the site.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="s-share">Share a screen or window</button>
+          <button data-act="s-info">What am I sharing?</button>
+          <button data-act="s-shot">Grab a still</button>
+          <button data-act="s-stop" class="danger">Stop sharing</button>
+        </div>
+        <div class="media">
+          <video id="screen-video" autoplay playsinline muted></video>
+        </div>
+        <div class="shots" id="screen-shots"></div>
+        <pre class="log" id="log-screen"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="sensors">
+        <h2><span class="badge">4</span> Sensors and input</h2>
+        <p class="what">
+          The rest of what the machine knows about itself. These are worth grouping because their
+          permission models are all different: geolocation prompts, orientation is free on desktop
+          but gated behind a gesture on iOS, the gamepad is hidden until you press a button on it,
+          and vibration silently does nothing rather than failing. Half of this panel only comes
+          alive on a phone — the server printed a LAN URL for that.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Press <strong>Where am I?</strong>. Look at <code>accuracy</code>: tens of metres means GPS, hundreds or thousands means it guessed from your IP or nearby Wi-Fi. Then press <strong>Watch me move</strong> — the callback fires again whenever the estimate improves.</li>
+            <li>Press <strong>Start orientation</strong> and tilt the device. On a laptop with no sensors nothing arrives, and the log says so rather than pretending.</li>
+            <li>Plug in a controller and press <strong>Find gamepads</strong>. It reports nothing until you press a button on the pad — the browser hides it until you prove it is yours. Then the readout updates via <code>requestAnimationFrame</code>, because there are no button events; the Gamepad API is poll-only.</li>
+            <li>Press <strong>Vibrate</strong> on a phone. On a desktop it returns without doing anything and without throwing, which is its own lesson about feature detection.</li>
+            <li>Press <strong>Battery</strong>. It works in Chromium and was <em>removed</em> from Firefox and Safari for fingerprinting — a capability that existed and was taken back.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="n-geo">Where am I?</button>
+          <button data-act="n-watch">Watch me move</button>
+          <button data-act="n-unwatch" class="danger">Stop watching</button>
+          <button data-act="n-orient">Start orientation</button>
+          <button data-act="n-unorient" class="danger">Stop orientation</button>
+        </div>
+        <div class="actions">
+          <button data-act="n-pads">Find gamepads</button>
+          <button data-act="n-vibrate">Vibrate</button>
+          <button data-act="n-battery">Battery</button>
+        </div>
+        <div class="readout" id="sensor-readout">no live sensor running</div>
+        <pre class="log" id="log-sensors"></pre>
+      </section>
+
+      <!-- ================================================================= -->
+      <section class="panel" id="devices">
+        <h2><span class="badge">5</span> Devices, directly</h2>
+        <p class="what">
+          The Chromium-only tier: USB, serial ports, HID and Bluetooth, addressed from a web page.
+          The pattern is identical for all four and worth learning once — <code>requestDevice()</code>
+          takes filters, <em>the browser</em> runs the enumeration, and the page receives back exactly
+          the one device the user picked. A site can never list your hardware, which is precisely the
+          part a native program can. This is the boundary that makes "flash firmware from a web page"
+          acceptable at all.
+        </p>
+
+        <details class="how">
+          <summary>How to see it</summary>
+          <ol>
+            <li>Press any <strong>Ask for…</strong> button. Even with nothing plugged in, the picker appears — that dialog <em>is</em> the permission. There is no separate prompt.</li>
+            <li>Cancel it. The page gets <code>NotFoundError</code>, exactly the same error it gets when no device exists. The site cannot tell "the user refused" from "there was nothing there", and that is deliberate.</li>
+            <li>Pick something real, then press <strong>What was I granted?</strong>. Grants persist across reloads per origin and device, so a tool does not re-prompt every visit. Chrome lists them under <code>Settings → Privacy → Site settings → USB devices</code>.</li>
+            <li>In Firefox or Safari the buttons report a missing API. That is not an oversight — those engines treat this tier as a fingerprinting and safety risk and decline to ship it.</li>
+          </ol>
+        </details>
+
+        <div class="actions">
+          <button data-act="d-usb">Ask for a USB device</button>
+          <button data-act="d-serial">Ask for a serial port</button>
+          <button data-act="d-hid">Ask for a HID device</button>
+          <button data-act="d-bt">Ask for a Bluetooth device</button>
+          <button data-act="d-nfc">Read an NFC tag</button>
+        </div>
+        <div class="actions">
+          <button data-act="d-granted">What was I granted?</button>
+        </div>
+        <pre class="log" id="log-devices"></pre>
+      </section>
+
+      <footer>
+        <p>
+          The through-line: none of these APIs are dangerous on their own, and all of them are
+          dangerous without the gates. When a capability is missing in Safari or Firefox it is
+          usually not unimplemented but <em>declined</em> — so "the browser can do X" often means
+          "Chrome can do X", and checking that is part of the work.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

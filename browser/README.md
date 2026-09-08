@@ -30,6 +30,11 @@ Canvas gives a 2D drawing surface, WebGL exposes the GPU for 3D, and WebGPU goes
 
 ### Reach hardware
 
+> **Runnable demo → [`browser-hardware/`](./browser-hardware/README.md)** — five panels covering the
+> camera, the screen, sensors and the USB/serial/HID tier. Panel 1 is the one to read first: it
+> demonstrates all three gates, including a `Permissions-Policy` header served from a second origin.
+> `npm start`, no dependencies.
+
 Camera and microphone through `getUserMedia`, screen capture, geolocation, gamepads, device orientation and vibration are broadly available. Chromium goes considerably further with Web Bluetooth, WebUSB, Web Serial, WebHID and Web NFC, to the point where flashing firmware onto a microcontroller from a web page is a normal thing to do.
 
 ### Behave like an installed app

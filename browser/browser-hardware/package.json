@@ -1,0 +1,10 @@
+{
+  "name": "browser-hardware",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Hands-on demo of what a web page can reach: camera, screen, sensors, and USB/serial/HID devices — and the gates in front of them",
+  "scripts": {
+    "start": "node server/index.mjs"
+  }
+}

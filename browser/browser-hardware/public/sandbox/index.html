@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>sandbox — can this document reach the camera?</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        padding: .7rem .8rem;
+        background: #0b0d11;
+        color: #c8d0dc;
+        font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      h1 { margin: 0 0 .5rem; font-size: 12.5px; color: #e6e8ec; }
+      .row { display: flex; gap: .4rem; margin-bottom: .5rem; flex-wrap: wrap; }
+      button {
+        font: inherit;
+        color: #e6e8ec;
+        background: #1e222b;
+        border: 1px solid #2a2f3a;
+        border-radius: 6px;
+        padding: .3rem .6rem;
+        cursor: pointer;
+      }
+      button:hover { border-color: #7aa2f7; }
+      dl { margin: 0 0 .5rem; display: grid; grid-template-columns: max-content 1fr; gap: 0 .6rem; }
+      dt { color: #9aa3b2; }
+      dd { margin: 0; }
+      .ok { color: #9ece6a; }
+      .err { color: #f7768e; }
+      .dim { color: #9aa3b2; }
+      pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+    </style>
+  </head>
+  <body>
+    <h1 id="title">sandbox</h1>
+
+    <dl>
+      <dt>origin</dt><dd id="origin"></dd>
+      <dt>context</dt><dd id="context"></dd>
+      <dt>secure</dt><dd id="secure"></dd>
+      <dt>camera policy</dt><dd id="policy">checking…</dd>
+    </dl>
+
+    <div class="row">
+      <button id="try-camera">Try the camera</button>
+      <button id="try-geo">Try geolocation</button>
+    </div>
+
+    <pre id="out" class="dim">press a button</pre>
+
+    <script>
+      const $ = (id) => document.getElementById(id)
+      const framed = window.top !== window.self
+
+      $('title').textContent = framed ? `iframe · ${location.port}` : `top-level page · ${location.pathname}`
+      $('origin').textContent = location.origin
+      $('context').textContent = framed ? 'nested in an iframe' : 'top-level document'
+      $('secure').innerHTML = window.isSecureContext
+        ? '<span class="ok">yes</span>'
+        : '<span class="err">no — hardware APIs are unavailable</span>'
+
+      function say(text, cls = 'dim') {
+        const out = $('out')
+        out.className = cls
+        out.textContent = text
+      }
+
+      // The Permissions API answers without prompting, so a document blocked by
+      // policy can be identified without bothering the user at all.
+      navigator.permissions
+        ?.query({ name: 'camera' })
+        .then(({ state }) => {
+          $('policy').innerHTML =
+            state === 'denied'
+              ? '<span class="err">denied</span> — blocked before any prompt'
+              : `<span class="ok">${state}</span> — this document may ask`
+        })
+        .catch(() => {
+          $('policy').innerHTML = '<span class="dim">this browser will not answer for "camera"</span>'
+        })
+
+      $('try-camera').onclick = async () => {
+        say('calling getUserMedia({ video: true })…')
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+          const [track] = stream.getVideoTracks()
+          say(`✓ got "${track.label || 'a camera'}" — stopping it again immediately`, 'ok')
+          for (const t of stream.getTracks()) t.stop()
+        } catch (err) {
+          say(`✗ ${err.name}: ${err.message}`, 'err')
+        }
+      }
+
+      $('try-geo').onclick = () => {
+        say('calling getCurrentPosition()…')
+        if (!navigator.geolocation) return say('✗ no geolocation object at all', 'err')
+        navigator.geolocation.getCurrentPosition(
+          (pos) => say(`✓ ${pos.coords.latitude.toFixed(3)}, ${pos.coords.longitude.toFixed(3)}`, 'ok'),
+          (err) => say(`✗ ${err.code === 1 ? 'PERMISSION_DENIED' : err.code === 2 ? 'POSITION_UNAVAILABLE' : 'TIMEOUT'}: ${err.message}`, 'err'),
+          { timeout: 8000 },
+        )
+      }
+    </script>
+  </body>
+</html>
