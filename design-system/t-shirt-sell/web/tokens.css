@@ -1,0 +1,75 @@
+/*
+ * Loom tokens, in the format the web consumes them.
+ *
+ * Mirror of ../tokens.ts. Tailwind v4 reads the @theme block and generates
+ * utilities from it, so `--color-brand` becomes `bg-brand` / `text-brand`.
+ *
+ * Tier 1 (primitives) is prefixed `--loom-` so it stays out of Tailwind's
+ * namespace — you cannot write `bg-loom-ink-500`, and that is deliberate.
+ * Only the semantic tier is reachable from a class name.
+ */
+
+@import "tailwindcss";
+
+@theme {
+  /* ---- Tier 1: primitives (not addressable as utilities) ---- */
+  --loom-ink-0: #FFFFFF;
+  --loom-ink-50: #F7F7F7;
+  --loom-ink-100: #EDEDED;
+  --loom-ink-200: #D6D6D6;
+  --loom-ink-300: #B5B5B5;
+  --loom-ink-500: #6E6E6E;
+  --loom-ink-700: #3D3D3D;
+  --loom-ink-900: #111111;
+  --loom-sale: #A0261A;
+  --loom-moss-600: #2F6F4F;
+
+  /* ---- Tier 2: semantic (this is what components use) ---- */
+  --color-bg: var(--loom-ink-0);
+  --color-surface: var(--loom-ink-0);
+  --color-surface-muted: var(--loom-ink-50);
+  --color-border: var(--loom-ink-200);
+  --color-border-strong: var(--loom-ink-900);
+
+  --color-text: var(--loom-ink-900);
+  --color-text-muted: var(--loom-ink-500);
+
+  --color-brand: var(--loom-ink-900);
+  --color-brand-hover: var(--loom-ink-700);
+  --color-brand-fg: var(--loom-ink-0);
+  --color-brand-subtle: var(--loom-ink-100);
+
+  --color-price: var(--loom-ink-900);
+  --color-price-compare: var(--loom-ink-500);
+  --color-sale: var(--loom-sale);
+  --color-in-stock: var(--loom-moss-600);
+  --color-sold-out: var(--loom-ink-300);
+
+  --color-disabled: var(--loom-ink-100);
+  --color-disabled-fg: var(--loom-ink-300);
+
+  /* Spacing is Tailwind's default 4px multiplier, matching tokens.ts. */
+
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+
+  /* No --shadow-* on purpose. Elevation is a 1px border in this system, so
+     there is no shadow utility to reach for by accident. */
+  --tracking-label: 0.08em;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
