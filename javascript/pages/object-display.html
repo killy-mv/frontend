@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Display — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-display">
+
+<h1>Object Display</h1>
+<p class="lede">Putting an object straight into a page gives you
+<code>[object Object]</code>. Here is what to do instead.</p>
+
+<section>
+  <h2>Why [object Object]</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { name: 'Ada', age: 36 };
+
+    log('String(person)  →', String(person));
+    log('person + ""     →', person + '');
+    log('`${person}`     →', `${person}`);
+    log('');
+    log('all three call Object.prototype.toString, which knows nothing');
+    log('about your properties.');
+  }</script>
+</section>
+
+<section>
+  <h2>Naming the properties</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { name: 'Ada', age: 36, city: 'London' };
+
+    log('one by one:', person.name + ', ' + person.age);
+    log('template:  ', `${person.name} is ${person.age}`);
+
+    log('');
+    log('a loop, for unknown shapes:');
+    let out = '';
+    for (const key in person) out += key + ': ' + person[key] + '\n';
+    log(out.trim());
+
+    log('');
+    log('with entries:');
+    log(Object.entries(person).map(([k, v]) => `${k}=${v}`).join(', '));
+  }</script>
+</section>
+
+<section>
+  <h2>Values and keys as arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { name: 'Ada', age: 36, city: 'London' };
+
+    log('Object.values →', Object.values(person).join(', '));
+    log('Object.keys   →', Object.keys(person).join(', '));
+
+    // Lined up as a table:
+    const width = Math.max(...Object.keys(person).map(k => k.length));
+    Object.entries(person).forEach(([k, v]) => log('  ' + k.padEnd(width + 2) + v));
+  }</script>
+</section>
+
+<section>
+  <h2>JSON.stringify</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { name: 'Ada', age: 36, address: { city: 'London' }, tags: ['x', 'y'] };
+
+    log('compact:', JSON.stringify(person));
+    log('');
+    log('indented:');
+    log(JSON.stringify(person, null, 2));
+    log('');
+    log('selected keys only:', JSON.stringify(person, ['name', 'age']));
+
+    log('');
+    log('what it drops:');
+    log(JSON.stringify({ fn() {}, un: undefined, sym: Symbol('s'), ok: 1 }));
+    log('what it converts:');
+    log(JSON.stringify({ when: new Date(0), inf: Infinity, nan: NaN }));
+  }</script>
+</section>
+
+<section>
+  <h2>A custom toString</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const money = {
+      amount: 42.5,
+      currency: 'EUR',
+      toString() {
+        return this.amount.toFixed(2) + ' ' + this.currency;
+      },
+      toJSON() {
+        return { value: this.amount, code: this.currency };
+      }
+    };
+
+    log('in a template:', `${money}`);
+    log('String():     ', String(money));
+    log('JSON:         ', JSON.stringify(money), '← toJSON took over');
+    log('a wrapper:    ', JSON.stringify({ total: money }));
+  }</script>
+</section>
+
+<section>
+  <h2>Rendering into the page</h2>
+
+  <div class="stage">
+    <button id="text">As text</button>
+    <button id="list">As a list</button>
+    <button id="table">As a table</button>
+    <div id="target" style="flex:1;min-height:60px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:6px"></div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const users = [
+      { name: 'Ada', role: 'dev', active: true },
+      { name: 'Alan', role: 'ops', active: false }
+    ];
+
+    const target = $('#target');
+    const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+    $('#text').onclick = function () {
+      target.textContent = JSON.stringify(users, null, 2);
+      log('textContent with indented JSON — safe, no parsing');
+    };
+
+    $('#list').onclick = function () {
+      target.innerHTML = '<ul style="margin:0;padding-left:18px">' +
+        users.map(u => `<li>${esc(u.name)} — ${esc(u.role)}</li>`).join('') + '</ul>';
+      log('innerHTML built from a template, with values escaped');
+    };
+
+    $('#table').onclick = function () {
+      const columns = Object.keys(users[0]);
+      target.innerHTML =
+        '<table class="ref" style="margin:0"><tr>' +
+        columns.map(c => `<th>${esc(c)}</th>`).join('') + '</tr>' +
+        users.map(u => '<tr>' + columns.map(c => `<td>${esc(u[c])}</td>`).join('') + '</tr>').join('') +
+        '</table>';
+      log('a generated table from Object.keys');
+    };
+
+    log('pick a rendering');
+  }</script>
+</section>
+
+<section>
+  <h2>In the console</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const data = [{ id: 1, name: 'Ada' }, { id: 2, name: 'Alan' }];
+
+    console.log(data);          // expandable, and LIVE
+    console.table(data);        // a real table
+    console.dir(data[0]);       // properties, not a rendered node
+
+    log('three views were sent to the browser console (F12)');
+    log('');
+    log('remember: console.log keeps a reference, so expanding it later shows');
+    log('the object as it is NOW. Log a JSON string for a snapshot.');
+  }</script>
+</section>
+
+</body>
+</html>

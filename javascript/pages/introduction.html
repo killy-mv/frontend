@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Introduction — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="introduction">
+
+<h1>Introduction</h1>
+<p class="lede">JavaScript is the programming language of the web. HTML gives a page its
+content, CSS gives it a look, and JavaScript gives it behaviour — it can change both of
+the other two while the page is open.</p>
+
+<div class="note">
+  Every example on this site is a real <code>&lt;script&gt;</code> tag in the page. The dark box
+  shows that script's own source, and the panel underneath shows what it printed when the
+  page loaded. Nothing is faked.
+</div>
+
+<section>
+  <h2>JavaScript can change HTML content</h2>
+  <p><code>document.getElementById()</code> finds an element, and its <code>innerHTML</code>
+  property is the HTML inside it. Assigning to that property replaces it.</p>
+
+  <div class="stage">
+    <p id="headline" style="margin:0;flex:1">I am the original text.</p>
+    <button id="change">Change the text</button>
+    <button id="restore">Put it back</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const headline = $('#headline');
+    const original = headline.innerHTML;
+
+    $('#change').onclick = function () {
+      headline.innerHTML = 'JavaScript rewrote this at ' + new Date().toLocaleTimeString();
+      log('innerHTML is now:', headline.innerHTML);
+    };
+
+    $('#restore').onclick = function () {
+      headline.innerHTML = original;
+      log('restored');
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>JavaScript can change styles</h2>
+  <p>Every element has a <code>style</code> object holding its inline CSS. The property
+  names are the CSS names in camelCase: <code>background-color</code> becomes
+  <code>backgroundColor</code>.</p>
+
+  <div class="stage">
+    <div id="box" style="width:70px;height:70px;border-radius:8px;background:#2563eb"></div>
+    <button id="paint">Random colour</button>
+    <button id="grow">Grow</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const box = $('#box');
+
+    $('#paint').onclick = function () {
+      const hue = Math.floor(Math.random() * 360);
+      box.style.backgroundColor = 'hsl(' + hue + ' 70% 50%)';
+      log('backgroundColor =', box.style.backgroundColor);
+    };
+
+    $('#grow').onclick = function () {
+      box.style.width = box.offsetWidth + 20 + 'px';
+      log('width =', box.style.width);
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>JavaScript can change attributes</h2>
+  <p>Attributes written in the HTML — <code>src</code>, <code>href</code>, <code>disabled</code>,
+  <code>hidden</code> — can all be read and written from script.</p>
+
+  <div class="stage">
+    <input id="secret" type="password" value="hunter2">
+    <button id="peek">Show / hide</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const field = $('#secret');
+
+    $('#peek').onclick = function () {
+      field.type = field.type === 'password' ? 'text' : 'password';
+      log('the type attribute is now', field.type);
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>JavaScript can calculate</h2>
+  <p>Most of what a program does has nothing to do with the page. This runs the moment the
+  browser reaches the script tag.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const prices = [12.5, 3.99, 45, 8.25];
+    let total = 0;
+
+    for (let i = 0; i < prices.length; i++) {
+      total = total + prices[i];
+    }
+
+    log('items:', prices.length);
+    log('total:', total.toFixed(2));
+    log('average:', (total / prices.length).toFixed(2));
+  }</script>
+</section>
+
+<section>
+  <h2>Where it runs</h2>
+  <ul>
+    <li><b>In the browser</b> — every browser has a JavaScript engine built in; that is what
+    these pages use.</li>
+    <li><b>On a server</b> — the same language runs outside the browser under Node.js, Deno or Bun.</li>
+    <li><b>Elsewhere</b> — mobile apps, desktop apps, databases, build tools.</li>
+  </ul>
+  <p>JavaScript is not Java. The name was a marketing decision in 1995; the languages are
+  unrelated. The official name of the standard is <b>ECMAScript</b>, which is why you see
+  versions called ES6, ES2020 and so on.</p>
+</section>
+
+</body>
+</html>

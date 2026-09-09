@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>window.screen — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="screen">
+
+<h1>window.screen</h1>
+<p class="lede">Information about the display, not the page. It is rarely the right thing to
+measure — but it is useful for placing windows and for detecting a very small device.</p>
+
+<section>
+  <h2>Everything it reports</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('width       →', screen.width, 'px  — the whole display');
+    log('height      →', screen.height, 'px');
+    log('availWidth  →', screen.availWidth, 'px  — minus taskbars and docks');
+    log('availHeight →', screen.availHeight, 'px');
+    log('colorDepth  →', screen.colorDepth, 'bits per pixel');
+    log('pixelDepth  →', screen.pixelDepth, 'bits');
+
+    if (screen.orientation) {
+      log('');
+      log('orientation.type  →', screen.orientation.type);
+      log('orientation.angle →', screen.orientation.angle + '°');
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Screen vs window vs document</h2>
+  <p>Three different rectangles, and mixing them up is the usual source of layout bugs.</p>
+
+  <div class="stage">
+    <button id="again">measure again</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function measure() {
+      log.clear();
+      const rows = [
+        ['screen.width × height', screen.width + ' × ' + screen.height,
+         'the physical display'],
+        ['screen.avail…', screen.availWidth + ' × ' + screen.availHeight,
+         'usable desktop area'],
+        ['outerWidth × outerHeight', window.outerWidth + ' × ' + window.outerHeight,
+         'the browser window, chrome included'],
+        ['innerWidth × innerHeight', window.innerWidth + ' × ' + window.innerHeight,
+         'the viewport'],
+        ['documentElement.clientWidth', document.documentElement.clientWidth + '',
+         'viewport without the scrollbar'],
+        ['documentElement.scrollHeight', document.documentElement.scrollHeight + '',
+         'the full page height']
+      ];
+      rows.forEach(([name, value, note]) =>
+        log(name.padEnd(30), String(value).padEnd(14), note));
+
+      log('');
+      log('for CSS decisions, use innerWidth or — better — matchMedia.');
+    }
+
+    $('#again').addEventListener('click', measure);
+    window.addEventListener('resize', measure);
+    measure();
+  }</script>
+</section>
+
+<section>
+  <h2>devicePixelRatio</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const dpr = window.devicePixelRatio;
+
+    log('devicePixelRatio →', dpr);
+    log('');
+    log('one CSS pixel is', dpr, 'device pixel' + (dpr === 1 ? '' : 's') + ' wide.');
+    log('A 300×150 canvas at this ratio needs a backing store of',
+        300 * dpr + '×' + 150 * dpr, 'to look sharp:');
+    log('');
+    log('  canvas.width  = 300 * devicePixelRatio;');
+    log('  canvas.height = 150 * devicePixelRatio;');
+    log('  canvas.style.width  = "300px";');
+    log('  ctx.scale(devicePixelRatio, devicePixelRatio);');
+
+    log('');
+    log('screen.width is in CSS pixels too, so the real panel is',
+        screen.width * dpr + '×' + screen.height * dpr, 'device pixels.');
+  }</script>
+</section>
+
+<section>
+  <h2>matchMedia — the better tool</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const queries = [
+      '(max-width: 700px)',
+      '(min-width: 1200px)',
+      '(orientation: landscape)',
+      '(prefers-color-scheme: dark)',
+      '(prefers-reduced-motion: reduce)',
+      '(pointer: coarse)',
+      '(hover: hover)',
+      '(display-mode: standalone)'
+    ];
+
+    queries.forEach(q => log(q.padEnd(34), matchMedia(q).matches ? '✔ matches' : '✘'));
+
+    log('');
+    const narrow = matchMedia('(max-width: 700px)');
+    narrow.addEventListener('change', e =>
+      log('crossed the 700px breakpoint →', e.matches ? 'narrow' : 'wide'));
+    log('resize the window past 700px to see the listener fire');
+
+    log('');
+    log('matchMedia asks the same question your CSS asks, so the two');
+    log('never disagree. screen.width can be wildly different from the');
+    log('window the user actually has open.');
+  }</script>
+</section>
+
+<section>
+  <h2>Placing a window</h2>
+
+  <div class="stage">
+    <button id="centre">open a centred window</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#centre').addEventListener('click', () => {
+      const w = 420, h = 260;
+
+      // Centre on the screen the browser window is actually on:
+      const left = Math.round(window.screenX + (window.outerWidth - w) / 2);
+      const top = Math.round(window.screenY + (window.outerHeight - h) / 2);
+
+      const popup = window.open('', 'centred',
+        `width=${w},height=${h},left=${left},top=${top}`);
+
+      if (!popup) return log('blocked by the popup blocker');
+
+      popup.document.body.style.font = '15px system-ui';
+      popup.document.body.textContent = `Placed at ${left},${top}`;
+      log('opened at', left + ',' + top);
+      log('using screenX/screenY handles multiple monitors;');
+      log('using screen.width alone does not.');
+    });
+
+    log('this is the one job screen is genuinely good for');
+  }</script>
+</section>
+
+<section>
+  <h2>Fullscreen</h2>
+
+  <div class="stage">
+    <div id="target" style="flex:1;background:#e2e8f0;border-radius:8px;padding:14px;
+         display:grid;place-items:center">this box</div>
+    <button id="full">go fullscreen</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const target = $('#target');
+
+    $('#full').addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) {
+          await document.exitFullscreen();
+          log('exited');
+        } else {
+          await target.requestFullscreen();
+          log('entered — press Escape to leave');
+        }
+      } catch (err) {
+        log('refused:', err.name + ':', err.message);
+      }
+    });
+
+    document.addEventListener('fullscreenchange', () => {
+      const on = Boolean(document.fullscreenElement);
+      target.textContent = on ? 'now fullscreen' : 'this box';
+      log('fullscreenchange →', on);
+      if (on) log('  screen:', screen.width + '×' + screen.height,
+                  '| viewport:', window.innerWidth + '×' + window.innerHeight);
+    });
+
+    log('requestFullscreen needs a user gesture, and returns a promise');
+  }</script>
+</section>
+
+<section>
+  <h2>A caution</h2>
+  <div class="note warn">Screen dimensions, colour depth and pixel ratio are a large part of
+  a browser fingerprint. Read them when you need them; do not collect and store them
+  routinely.</div>
+</section>
+
+</body>
+</html>

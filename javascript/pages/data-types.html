@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Types — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="data-types">
+
+<h1>Data Types</h1>
+<p class="lede">Seven primitive types, and one type for everything else. Primitives are
+immutable values; objects are mutable collections held by reference.</p>
+
+<section>
+  <h2>The seven primitives</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const values = [
+      'text',                 // string
+      42,                     // number
+      true,                   // boolean
+      undefined,              // undefined — declared but not set
+      null,                   // null — deliberately empty
+      9007199254740993n,      // bigint
+      Symbol('id')            // symbol — a guaranteed-unique key
+    ];
+
+    values.forEach(v => log(String(v).padEnd(20), '→', typeof v));
+  }</script>
+
+  <div class="note warn">
+    <code>typeof null</code> returns <code>"object"</code>. It is a bug from 1995 that can
+    never be fixed without breaking the web.
+  </div>
+</section>
+
+<section>
+  <h2>Objects: everything else</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const things = {
+      object: { a: 1 },
+      array: [1, 2, 3],
+      date: new Date(),
+      regexp: /ab+/g,
+      map: new Map(),
+      set: new Set(),
+      fn: function () {},
+      error: new Error('x')
+    };
+
+    Object.entries(things).forEach(([name, value]) => {
+      log(name.padEnd(8), 'typeof:', String(typeof value).padEnd(9),
+          'constructor:', value.constructor.name);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>undefined vs null</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let notSet;
+    let emptied = null;
+
+    log('notSet  =', notSet,  '| typeof', typeof notSet);
+    log('emptied =', emptied, '| typeof', typeof emptied);
+
+    log('null == undefined  →', null == undefined,  '(loose: both "empty")');
+    log('null === undefined →', null === undefined, '(strict: different types)');
+
+    // A missing property and a missing array slot are undefined, not null:
+    log('({}).missing →', ({}).missing);
+    log('[1,,3][1]    →', [1, , 3][1]);
+  }</script>
+</section>
+
+<section>
+  <h2>Primitives are immutable</h2>
+  <p>String methods never change the string; they return a new one. Only the variable can be
+  repointed.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let word = 'hello';
+    word.toUpperCase();                 // result thrown away
+    log('after calling toUpperCase:', word);
+
+    word = word.toUpperCase();          // reassigned
+    log('after assigning it back:  ', word);
+
+    word[0] = 'J';                      // silently does nothing
+    log('after word[0] = "J":       ', word);
+  }</script>
+</section>
+
+<section>
+  <h2>Value vs reference</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Primitives compare by value:
+    log("'abc' === 'abc' →", 'abc' === 'abc');
+
+    // Objects compare by identity:
+    log('[1,2] === [1,2]  →', [1, 2] === [1, 2], '(two different arrays)');
+
+    const a = [1, 2];
+    const b = a;
+    log('a === b          →', a === b, '(the same array)');
+
+    b.push(3);
+    log('a is now', a, '— changed through b');
+  }</script>
+</section>
+
+<section>
+  <h2>Wrapper objects</h2>
+  <p>Primitives have no methods of their own; the engine wraps them momentarily so
+  <code>'x'.toUpperCase()</code> works. Creating the wrappers yourself with
+  <code>new</code> is a mistake.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const plain = 'text';
+    const wrapped = new String('text');
+
+    log('typeof plain   →', typeof plain);
+    log('typeof wrapped →', typeof wrapped);
+    log('plain === wrapped →', plain === wrapped);
+    log('and every wrapper object is truthy:', Boolean(new Boolean(false)));
+  }</script>
+</section>
+
+</body>
+</html>

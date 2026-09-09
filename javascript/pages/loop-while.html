@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>While Loop — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="loop-while">
+
+<h1>While Loop</h1>
+<p class="lede">Repeat as long as a condition holds. Use it when you do not know in advance
+how many passes you need — otherwise a <code>for</code> loop states your intent better.</p>
+
+<section>
+  <h2>while</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let i = 0;
+    while (i < 5) {
+      log('i is', i);
+      i++;
+    }
+
+    log('the condition is checked before each pass, so this never runs:');
+    while (false) log('unreachable');
+  }</script>
+</section>
+
+<section>
+  <h2>do…while runs at least once</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let n = 10;
+    do {
+      log('do…while body, n =', n);
+      n++;
+    } while (n < 5);
+
+    log('');
+    log('the same condition with while:');
+    let m = 10;
+    while (m < 5) {
+      log('never printed');
+      m++;
+    }
+    log('(nothing)');
+  }</script>
+</section>
+
+<section>
+  <h2>Forgetting to advance</h2>
+  <p>The one real danger. If nothing in the body can make the condition false, the tab
+  freezes.</p>
+
+  <div class="example">
+    <pre class="code"><code><span class="tok-key">let</span> i = <span class="tok-num">0</span>;
+<span class="tok-key">while</span> (i &lt; <span class="tok-num">5</span>) {
+  log(i);            <span class="tok-com">// i never changes → the browser hangs</span>
+}</code></pre>
+  </div>
+
+  <p>A safety counter is a cheap insurance policy when the exit depends on data:</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let value = 1000;
+    let steps = 0;
+    const MAX_STEPS = 100;
+
+    while (value > 1) {
+      value = value % 2 === 0 ? value / 2 : value * 3 + 1;   // Collatz
+      steps++;
+      if (steps > MAX_STEPS) { log('gave up — bailed out'); break; }
+    }
+
+    log('reached 1 in', steps, 'steps');
+  }</script>
+</section>
+
+<section>
+  <h2>When while is the right choice</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Consuming a queue whose length changes as you go:
+    const queue = ['a', 'b', 'c'];
+    while (queue.length) {
+      const item = queue.shift();
+      log('processing', item, '| left:', queue.length);
+      if (item === 'b') queue.push('b-followup');
+    }
+
+    log('');
+
+    // Repeating until a value satisfies a test:
+    let roll;
+    let tries = 0;
+    do {
+      roll = Math.floor(Math.random() * 6) + 1;
+      tries++;
+    } while (roll !== 6);
+    log('rolled a 6 after', tries, 'attempt(s)');
+  }</script>
+</section>
+
+<section>
+  <h2>The same loop, three ways</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Apple', 'Banana', 'Cherry'];
+
+    let out = [];
+    for (let i = 0; i < fruit.length; i++) out.push(fruit[i]);
+    log('for:     ', out);
+
+    out = [];
+    let i = 0;
+    while (i < fruit.length) { out.push(fruit[i]); i++; }
+    log('while:   ', out);
+
+    out = [];
+    for (const f of fruit) out.push(f);
+    log('for…of:  ', out);
+
+    log('');
+    log('all identical — pick the one that says the most about your intent');
+  }</script>
+</section>
+
+<section>
+  <h2>A countdown</h2>
+  <div class="stage">
+    <input id="from" type="number" value="5" style="width:80px">
+    <button id="start">Count down</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#start').onclick = function () {
+      log.clear();
+
+      let n = Number($('#from').value);
+      const MAX = 50;
+
+      if (n > MAX) { log('capped at', MAX); n = MAX; }
+
+      while (n > 0) {
+        log(n + '…');
+        n--;
+      }
+      log('lift off');
+    };
+  }</script>
+</section>
+
+</body>
+</html>

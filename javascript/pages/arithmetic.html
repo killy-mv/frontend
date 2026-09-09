@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arithmetic — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="arithmetic">
+
+<h1>Arithmetic</h1>
+<p class="lede">The maths operators, the order they are applied in, and the two results
+that catch everyone out: <code>NaN</code> and floating point drift.</p>
+
+<section>
+  <h2>A calculator</h2>
+  <div class="stage">
+    <input id="a" type="number" value="12" style="width:90px">
+    <select id="op">
+      <option>+</option><option>-</option><option>*</option>
+      <option>/</option><option>%</option><option>**</option>
+    </select>
+    <input id="b" type="number" value="5" style="width:90px">
+    <button id="go">=</button>
+    <b id="result"></b>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function calculate() {
+      const a = Number($('#a').value);
+      const b = Number($('#b').value);
+      const op = $('#op').value;
+
+      let result;
+      switch (op) {
+        case '+':  result = a + b;  break;
+        case '-':  result = a - b;  break;
+        case '*':  result = a * b;  break;
+        case '/':  result = a / b;  break;
+        case '%':  result = a % b;  break;
+        case '**': result = a ** b; break;
+      }
+
+      $('#result').textContent = result;
+      log(a, op, b, '=', result);
+    }
+
+    $('#go').onclick = calculate;
+    calculate();
+  }</script>
+</section>
+
+<section>
+  <h2>Operator precedence</h2>
+  <p>Multiplication, division and remainder bind tighter than addition and subtraction.
+  Parentheses beat everything.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('100 + 50 * 3   =', 100 + 50 * 3);
+    log('(100 + 50) * 3 =', (100 + 50) * 3);
+    log('2 ** 3 ** 2    =', 2 ** 3 ** 2, '(** is right-associative: 2 ** 9)');
+    log('-2 ** 2        → SyntaxError, you must write (-2) ** 2 =', (-2) ** 2);
+  }</script>
+</section>
+
+<section>
+  <h2>Remainder, and what it is good for</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('9 % 2  =', 9 % 2, '→ odd');
+    log('8 % 2  =', 8 % 2, '→ even');
+    log('-9 % 2 =', -9 % 2, '(sign follows the dividend)');
+
+    // Wrapping an index around an array:
+    const days = ['Mon', 'Tue', 'Wed'];
+    for (let i = 0; i < 7; i++) {
+      log(i, '→', days[i % days.length]);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Increment and decrement</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let x = 5;
+    log('x++ (postfix) evaluates to', x++, '— x is now', x);
+
+    let y = 5;
+    log('++y (prefix)  evaluates to', ++y, '— y is now', y);
+
+    let z = 5;
+    z -= 2;
+    log('z -= 2 →', z);
+  }</script>
+</section>
+
+<section>
+  <h2>NaN and Infinity</h2>
+  <p>Arithmetic never throws. Impossible results become <code>NaN</code> ("not a number")
+  or <code>Infinity</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('100 / "apple" =', 100 / 'apple');
+    log('typeof NaN    =', typeof NaN, '(a number that is not a number)');
+    log('NaN === NaN   =', NaN === NaN, '← use Number.isNaN() instead');
+    log('Number.isNaN(0 / 0) =', Number.isNaN(0 / 0));
+
+    log('10 / 0   =', 10 / 0);
+    log('-10 / 0  =', -10 / 0);
+    log('0 / 0    =', 0 / 0);
+    log('Number.isFinite(1 / 0) =', Number.isFinite(1 / 0));
+  }</script>
+</section>
+
+<section>
+  <h2>Floating point</h2>
+  <p>Numbers are binary doubles, so decimal fractions are approximations. This is not a
+  JavaScript bug — every language using IEEE 754 does it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('0.1 + 0.2 =', 0.1 + 0.2);
+    log('=== 0.3?  ', 0.1 + 0.2 === 0.3);
+
+    // Fix 1: round at the end
+    log('rounded:', (0.1 + 0.2).toFixed(2));
+
+    // Fix 2: compare within a tolerance
+    const close = Math.abs((0.1 + 0.2) - 0.3) < Number.EPSILON;
+    log('within EPSILON?', close);
+
+    // Fix 3: work in integers (cents, not euros)
+    log('money in cents:', (10 + 20) / 100);
+  }</script>
+</section>
+
+</body>
+</html>

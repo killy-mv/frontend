@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debugging — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="debugging">
+
+<h1>Debugging</h1>
+<p class="lede">JavaScript fails quietly: no compiler stops you, and a thrown error only
+appears in a console nobody has open. These are the tools for finding out what happened.</p>
+
+<section>
+  <h2>The console is more than log</h2>
+  <p>Open DevTools with F12 and watch what these produce.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const users = [
+      { name: 'Ada', age: 36, role: 'dev' },
+      { name: 'Alan', age: 41, role: 'ops' }
+    ];
+
+    console.log('plain');
+    console.info('info');
+    console.warn('warning');
+    console.error('error (nothing is actually broken)');
+    console.table(users);
+    console.dir(document.body);
+
+    console.group('a collapsible group');
+    console.log('inside');
+    console.groupEnd();
+
+    console.count('clicks'); console.count('clicks');
+    console.time('loop'); for (let i = 0; i < 1e5; i++); console.timeEnd('loop');
+    console.assert(1 === 2, 'assert only fires when the test fails');
+
+    log('nine different things were just written to the browser console');
+  }</script>
+</section>
+
+<section>
+  <h2>Logging objects usefully</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const state = { user: { name: 'Ada' }, items: [1, 2, 3], ready: true };
+
+    log('String():', String(state), '← useless');
+    log('JSON:    ', JSON.stringify(state));
+    log('pretty:');
+    log(JSON.stringify(state, null, 2));
+
+    // The labelled-object trick: shorthand keeps the variable names.
+    const a = 1, b = 2;
+    log('labelled:', { a, b });
+
+    log('');
+    log('in the console, objects are live — expanding one later shows its');
+    log('CURRENT contents, not what it held when you logged it.');
+    log('JSON.stringify at log time gives you a snapshot instead.');
+  }</script>
+</section>
+
+<section>
+  <h2>The debugger statement</h2>
+  <p>Execution stops on this line if DevTools is open — a breakpoint you can commit.</p>
+
+  <div class="stage">
+    <button id="break">Run with a debugger statement</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function calculate(a, b) {
+      const sum = a + b;
+      debugger;              // pauses here when DevTools is open
+      return sum * 2;
+    }
+
+    $('#break').onclick = function () {
+      log('open DevTools first, then click again to be paused');
+      log('result:', calculate(3, 4));
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>Reading an error</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function level3() { return undefined.property; }
+    function level2() { return level3(); }
+    function level1() { return level2(); }
+
+    try {
+      level1();
+    } catch (err) {
+      log('name:   ', err.name);
+      log('message:', err.message);
+      log('stack, innermost call first:');
+      String(err.stack).split('\n').slice(0, 5).forEach(line => log('  ' + line.trim()));
+    }
+
+    log('');
+    log('common messages and what they mean:');
+    log('  "x is not defined"          → typo, or the script has not run yet');
+    log('  "Cannot read … of undefined" → the thing before the dot is missing');
+    log('  "x is not a function"        → wrong name, or it is a property');
+    log('  "Unexpected token"           → a syntax error, often a missing bracket');
+  }</script>
+</section>
+
+<section>
+  <h2>Catching what escapes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Two safety nets worth adding to any real page:
+    log('window "error"              → uncaught exceptions');
+    log('window "unhandledrejection" → promises nobody caught');
+
+    window.addEventListener('unhandledrejection', function (event) {
+      log('caught a stray rejection:', event.reason?.message ?? event.reason);
+      event.preventDefault();
+    });
+
+    Promise.reject(new Error('nobody called .catch on me'));
+    log('a rejected promise was created with no handler…');
+  }</script>
+</section>
+
+<section>
+  <h2>Narrowing a bug down</h2>
+  <div class="stage">
+    <button id="run">Run a buggy function</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // A deliberately wrong average: it divides by the wrong thing.
+    function average(numbers) {
+      let total = 0;
+      for (let i = 0; i <= numbers.length; i++) {    // off by one
+        total += numbers[i];
+      }
+      return total / numbers.length;
+    }
+
+    $('#run').onclick = function () {
+      log.clear();
+      const data = [10, 20, 30];
+
+      log('input:   ', data);
+      log('result:  ', average(data));
+      log('expected:', 20);
+
+      log('');
+      log('tracing the loop:');
+      let total = 0;
+      for (let i = 0; i <= data.length; i++) {
+        log('  i =', i, '| numbers[i] =', data[i], '| total =', total += (data[i] ?? 0));
+      }
+      log('the last pass reads index', data.length, 'which is undefined');
+      log('fix: i < numbers.length');
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>A checklist</h2>
+  <ol>
+    <li>Read the error message and the top line of the stack. It is usually literally true.</li>
+    <li>Log the inputs, not the outputs — the wrong answer starts as the wrong input.</li>
+    <li>Cut the problem in half: comment out a chunk, see if the bug survives.</li>
+    <li>Check the obvious: is the script even loading? Is the element there yet?</li>
+    <li>Reproduce it in the console with the smallest possible input.</li>
+  </ol>
+</section>
+
+</body>
+</html>

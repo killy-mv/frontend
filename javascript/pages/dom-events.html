@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOM Events — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-events">
+
+<h1>DOM Events</h1>
+<p class="lede">Something happens — a click, a keypress, an image finishing loading — and the
+browser calls every function registered for it, passing one <code>Event</code> object.</p>
+
+<section>
+  <h2>The event object</h2>
+
+  <div class="stage">
+    <button id="probe">click, or press a key while focused</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#probe').addEventListener('click', event => {
+      log.clear();
+      log('type          →', event.type);
+      log('target        →', event.target.tagName + '#' + event.target.id);
+      log('currentTarget →', event.currentTarget.tagName);
+      log('timeStamp     →', Math.round(event.timeStamp) + 'ms since page load');
+      log('isTrusted     →', event.isTrusted, '← false for events you dispatch yourself');
+      log('bubbles       →', event.bubbles, '| cancelable:', event.cancelable);
+      log('coordinates   → client', event.clientX + ',' + event.clientY,
+          '| page', event.pageX + ',' + event.pageY);
+      log('modifiers     →', ['shift', 'ctrl', 'alt', 'meta']
+        .filter(k => event[k + 'Key']).join('+') || 'none');
+    });
+
+    log('click the button');
+  }</script>
+</section>
+
+<section>
+  <h2>Mouse events</h2>
+
+  <div class="stage">
+    <div id="pad" style="width:100%;height:70px;background:#e2e8f0;border-radius:8px;
+         display:grid;place-items:center;user-select:none">move, click, double-click</div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const pad = $('#pad');
+    const seen = new Map();
+
+    ['mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu',
+     'mouseenter', 'mouseleave', 'mousemove'].forEach(type =>
+      pad.addEventListener(type, event => {
+        if (type === 'contextmenu') event.preventDefault();
+        seen.set(type, (seen.get(type) || 0) + 1);
+        log.clear();
+        seen.forEach((count, name) => log(name.padEnd(12), count));
+        log('');
+        log('last button:', event.button, '(0 left, 1 middle, 2 right)');
+      }));
+
+    log('order for one click: mousedown → mouseup → click');
+    log('mouseenter/leave do not bubble; mouseover/out do');
+  }</script>
+</section>
+
+<section>
+  <h2>Keyboard events</h2>
+
+  <div class="stage">
+    <input id="keys" placeholder="type here" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#keys').addEventListener('keydown', event => {
+      log.clear();
+      log('key      →', JSON.stringify(event.key), '← what was produced');
+      log('code     →', event.code, '← which physical key');
+      log('repeat   →', event.repeat);
+      log('modifiers→', ['Shift', 'Control', 'Alt', 'Meta']
+        .filter(k => event.getModifierState(k)).join('+') || 'none');
+      log('');
+      log('keyCode  →', event.keyCode, '(deprecated — use key or code)');
+
+      if (event.key === 'Enter') log('→ you pressed Enter');
+      if (event.key === 'Escape') { event.target.value = ''; log('→ cleared'); }
+    });
+
+    log('keydown → keypress (deprecated) → input → keyup');
+  }</script>
+</section>
+
+<section>
+  <h2>Bubbling and capturing</h2>
+  <p>An event travels down from <code>window</code> to the target (capture), then back up
+  (bubble). Listeners run in that order.</p>
+
+  <div class="stage">
+    <div id="outer" style="padding:14px;background:#dbeafe;border-radius:8px">
+      outer
+      <div id="middle" style="padding:14px;background:#bfdbfe;border-radius:8px">
+        middle
+        <button id="inner">inner</button>
+      </div>
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const phases = { 1: 'capture', 2: 'target', 3: 'bubble' };
+
+    ['#outer', '#middle', '#inner'].forEach(sel => {
+      const el = $(sel);
+      el.addEventListener('click', e =>
+        log('capture ↓', sel.padEnd(8), '(phase ' + phases[e.eventPhase] + ')'), true);
+      el.addEventListener('click', e =>
+        log('bubble  ↑', sel.padEnd(8), '(phase ' + phases[e.eventPhase] + ')'));
+    });
+
+    $('#outer').addEventListener('click', () => log(''), true);
+
+    log('click "inner" and read the order');
+  }</script>
+</section>
+
+<section>
+  <h2>Stopping it</h2>
+
+  <div class="stage">
+    <div id="p1" style="padding:12px;background:#fee2e2;border-radius:8px">
+      parent
+      <button id="c1">normal</button>
+      <button id="c2">stopPropagation</button>
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#p1').addEventListener('click', () => log('  parent heard it'));
+
+    $('#c1').addEventListener('click', () => log('normal button clicked'));
+
+    $('#c2').addEventListener('click', event => {
+      event.stopPropagation();
+      log('stopPropagation button clicked — the parent will not hear it');
+    });
+
+    log('stopPropagation()          — stop travelling to other elements');
+    log('stopImmediatePropagation() — also skip other listeners on THIS element');
+    log('preventDefault()           — allow travel, cancel the browser action');
+  }</script>
+</section>
+
+<section>
+  <h2>Event delegation</h2>
+  <p>One listener on the parent, instead of one per child. It keeps working for rows added
+  later.</p>
+
+  <div class="stage" style="display:block">
+    <ul id="todo" style="margin:0;padding-left:18px">
+      <li>first <button data-action="del">×</button></li>
+      <li>second <button data-action="del">×</button></li>
+    </ul>
+    <button id="add-row" style="margin-top:8px">add a row</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const list = $('#todo');
+    let n = 2;
+
+    // ONE listener, for every row that exists now or later:
+    list.addEventListener('click', event => {
+      const button = event.target.closest('[data-action="del"]');
+      if (!button) return;
+      const row = button.closest('li');
+      log('deleting', JSON.stringify(row.firstChild.textContent.trim()));
+      row.remove();
+      log('  rows left:', list.children.length);
+    });
+
+    $('#add-row').addEventListener('click', () => {
+      const li = document.createElement('li');
+      li.innerHTML = 'row ' + (++n) + ' <button data-action="del">×</button>';
+      list.appendChild(li);
+      log('added row', n, '— no new listener was attached');
+    });
+
+    log('add rows, then delete any of them');
+  }</script>
+</section>
+
+<section>
+  <h2>Making your own</h2>
+
+  <div class="stage">
+    <button id="fire">dispatch a custom event</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // Anything can listen, and it bubbles like a native event:
+    document.addEventListener('cart:add', event =>
+      log('document heard cart:add →', event.detail));
+
+    $('#fire').addEventListener('click', () => {
+      const event = new CustomEvent('cart:add', {
+        detail: { sku: 'ABC-1', qty: 2 },
+        bubbles: true,
+        cancelable: true
+      });
+      const notCancelled = $('#fire').dispatchEvent(event);
+      log('dispatched | isTrusted:', event.isTrusted, '| not cancelled:', notCancelled);
+    });
+
+    log('CustomEvent carries a payload in event.detail');
+    log('this is how components talk without importing each other');
+  }</script>
+</section>
+
+<section>
+  <h2>Common event types</h2>
+
+  <table class="ref">
+    <tr><th>Group</th><th>Events</th></tr>
+    <tr><td>mouse</td><td>click, dblclick, mousedown/up/move/enter/leave, contextmenu</td></tr>
+    <tr><td>keyboard</td><td>keydown, keyup</td></tr>
+    <tr><td>form</td><td>submit, reset, input, change, focus, blur</td></tr>
+    <tr><td>window</td><td>load, DOMContentLoaded, resize, scroll, beforeunload</td></tr>
+    <tr><td>touch / pointer</td><td>pointerdown/up/move, touchstart/end</td></tr>
+    <tr><td>media</td><td>play, pause, ended, timeupdate</td></tr>
+    <tr><td>drag</td><td>dragstart, dragover, drop</td></tr>
+    <tr><td>network</td><td>online, offline</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Every event type has a constructor, and they form a hierarchy:
+    const chain = c => { const out = []; while (c && c.name) { out.push(c.name); c = Object.getPrototypeOf(c); } return out; };
+
+    log('MouseEvent   →', chain(MouseEvent).join(' → '));
+    log('KeyboardEvent→', chain(KeyboardEvent).join(' → '));
+    log('CustomEvent  →', chain(CustomEvent).join(' → '));
+  }</script>
+</section>
+
+</body>
+</html>

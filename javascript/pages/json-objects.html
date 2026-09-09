@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Objects — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-objects">
+
+<h1>JSON Objects</h1>
+<p class="lede">A JSON object is an unordered set of name/value pairs. Once parsed it is an
+ordinary JavaScript object — with all the ordinary ways of reading it.</p>
+
+<section>
+  <h2>Reading values</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = `{
+      "id": 7,
+      "name": "Ada Lovelace",
+      "address": { "city": "London", "postcode": "SW1A 1AA" },
+      "languages": ["assembly", "notation"],
+      "employer": null
+    }`;
+
+    const user = JSON.parse(text);
+
+    log('dot notation      →', user.name);
+    log('bracket notation  →', user['name']);
+    log('nested            →', user.address.city);
+    log('an array element  →', user.languages[0]);
+    log('a computed key    →', user[['na', 'me'].join('')]);
+
+    log('');
+    log('a missing key is undefined, not an error:');
+    log('  user.phone        →', user.phone);
+    log('  user.a.b          → TypeError, because user.a is undefined');
+    log('  user.address?.zip →', user.address?.zip);
+    log('  user.phone?.home  →', user.phone?.home, '← optional chaining stops safely');
+  }</script>
+</section>
+
+<section>
+  <h2>Deeply nested data</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const api = JSON.parse(`{
+      "data": {
+        "user": {
+          "profile": { "displayName": "Ada", "avatar": null },
+          "settings": { "theme": { "mode": "dark", "accent": "#2563eb" } }
+        }
+      },
+      "meta": { "requestId": "abc-123" }
+    }`);
+
+    log('the long way:');
+    log('  ', api.data.user.settings.theme.mode);
+
+    log('');
+    log('with optional chaining and a default:');
+    log('  accent →', api.data?.user?.settings?.theme?.accent ?? '#000');
+    log('  missing→', api.data?.user?.settings?.font?.size ?? '(default 14)');
+
+    log('');
+    log('destructuring, with renames and defaults:');
+    const {
+      data: { user: { profile: { displayName, avatar = 'default.png' } } },
+      meta: { requestId }
+    } = api;
+    log('  displayName →', displayName);
+    log('  avatar      →', avatar, '← null does NOT trigger the default');
+    log('  requestId   →', requestId);
+
+    log('');
+    log('a small helper beats deep chains when the path is dynamic:');
+    const get = (obj, path, fallback) =>
+      path.split('.').reduce((o, k) => (o == null ? undefined : o[k]), obj) ?? fallback;
+    log('  get(api, "data.user.profile.displayName") →',
+        get(api, 'data.user.profile.displayName'));
+    log('  get(api, "data.user.nothing.here", "n/a") →',
+        get(api, 'data.user.nothing.here', 'n/a'));
+  }</script>
+</section>
+
+<section>
+  <h2>Looping over one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const scores = JSON.parse('{"ada":98,"alan":91,"grace":95,"edsger":88}');
+
+    log('for…in:');
+    for (const name in scores) log('  ' + name.padEnd(8), scores[name]);
+
+    log('');
+    log('Object.keys / values / entries:');
+    log('  keys   →', Object.keys(scores));
+    log('  values →', Object.values(scores));
+    log('  entries→', Object.entries(scores)[0]);
+
+    log('');
+    log('and then the array methods are available:');
+    const top = Object.entries(scores)
+      .filter(([, score]) => score >= 92)
+      .sort(([, a], [, b]) => b - a)
+      .map(([name, score]) => `${name} (${score})`);
+    log('  92 and above →', top);
+
+    log('  average      →',
+        (Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length).toFixed(1));
+
+    log('');
+    log('back to an object:');
+    log('  ', Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, v + 1])));
+  }</script>
+</section>
+
+<section>
+  <h2>Modifying and re-serialising</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const config = JSON.parse('{"theme":"light","fontSize":14,"features":{"beta":false}}');
+
+    config.theme = 'dark';                       // change
+    config.language = 'en';                      // add
+    delete config.fontSize;                      // remove
+    config.features.beta = true;                 // nested change
+
+    log('after editing →', config);
+    log('as JSON       →', JSON.stringify(config));
+
+    log('');
+    log('immutably, which is what you want in most frameworks:');
+    const original = JSON.parse('{"theme":"light","features":{"beta":false}}');
+    const updated = {
+      ...original,
+      theme: 'dark',
+      features: { ...original.features, beta: true }
+    };
+    log('  original →', original);
+    log('  updated  →', updated);
+    log('  note the nested spread — one level is not enough.');
+  }</script>
+</section>
+
+<section>
+  <h2>Merging</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const defaults = JSON.parse('{"theme":"light","fontSize":14,"editor":{"tabs":2,"wrap":true}}');
+    const userPrefs = JSON.parse('{"theme":"dark","editor":{"tabs":4}}');
+
+    const shallow = { ...defaults, ...userPrefs };
+    log('shallow merge →', shallow);
+    log('  the whole editor object was replaced — wrap is gone.');
+
+    function deepMerge(base, override) {
+      const out = { ...base };
+      for (const [key, value] of Object.entries(override)) {
+        if (key === '__proto__' || key === 'constructor') continue;   // see json-parse
+        out[key] = (value && typeof value === 'object' && !Array.isArray(value) &&
+                    base[key] && typeof base[key] === 'object')
+          ? deepMerge(base[key], value)
+          : value;
+      }
+      return out;
+    }
+
+    log('');
+    log('deep merge    →', deepMerge(defaults, userPrefs));
+    log('  wrap survives.');
+
+    log('');
+    log('arrays are the hard question: replace, concatenate or merge by id?');
+    log('There is no right answer — decide it per field.');
+  }</script>
+</section>
+
+<section>
+  <h2>An API response, end to end</h2>
+
+  <div class="stage">
+    <button id="load">load</button>
+    <select id="sort"><option value="name">by name</option><option value="score">by score</option></select>
+  </div>
+  <div class="stage" id="out" style="display:block"></div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const payload = JSON.stringify({
+      meta: { page: 1, total: 4 },
+      data: [
+        { id: 1, name: 'Ada', score: 98, team: { id: 10, name: 'analytics' } },
+        { id: 2, name: 'Alan', score: 91, team: { id: 11, name: 'crypto' } },
+        { id: 3, name: 'Grace', score: 95, team: { id: 10, name: 'analytics' } },
+        { id: 4, name: 'Edsger', score: 88, team: null }
+      ]
+    });
+
+    const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+
+    async function load() {
+      log.clear();
+      try {
+        const response = await fetch(url);
+        const body = await response.json();
+
+        log('meta →', body.meta);
+
+        const rows = [...body.data].sort((a, b) =>
+          $('#sort').value === 'name'
+            ? a.name.localeCompare(b.name)
+            : b.score - a.score);
+
+        $('#out').replaceChildren();
+        rows.forEach(row => {
+          const div = document.createElement('div');
+          div.textContent =
+            `${row.name.padEnd(8)} ${row.score}  ${row.team?.name ?? 'no team'}`;
+          div.style.font = '13px ui-monospace, monospace';
+          $('#out').append(div);
+        });
+
+        // Grouping — the most common thing you do with a list of records.
+        const byTeam = rows.reduce((groups, row) => {
+          const key = row.team?.name ?? 'unassigned';
+          (groups[key] ??= []).push(row.name);
+          return groups;
+        }, {});
+        log('grouped by team →', byTeam);
+      } catch (err) {
+        log('failed:', err.name + ':', err.message);
+      }
+    }
+
+    $('#load').addEventListener('click', load);
+    $('#sort').addEventListener('change', load);
+    load();
+  }</script>
+</section>
+
+<section>
+  <h2>Shapes you will meet</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a single resource:');
+    log('  { "id": 1, "name": "Ada" }');
+    log('');
+    log('a collection with metadata:');
+    log('  { "data": [ … ], "meta": { "page": 1, "total": 240 } }');
+    log('');
+    log('an error:');
+    log('  { "error": { "code": "not_found", "message": "No such user" } }');
+    log('');
+    log('JSON:API:');
+    log('  { "data": { "type": "users", "id": "1", "attributes": { … } } }');
+    log('');
+    log('GraphQL, always 200, errors in the body:');
+    log('  { "data": { "user": { … } }, "errors": [ … ] }');
+    log('');
+    log('so: never assume. Log one real response before you write the parser.');
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Constructors — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-constructors">
+
+<h1>Object Constructors</h1>
+<p class="lede">A constructor is just a function called with <code>new</code>. Classes are
+sugar over this; knowing what <code>new</code> does explains both.</p>
+
+<section>
+  <h2>Writing one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(first, last, year) {
+      this.firstName = first;
+      this.lastName = last;
+      this.born = year;
+      this.fullName = function () {
+        return this.firstName + ' ' + this.lastName;
+      };
+    }
+
+    const ada = new Person('Ada', 'Lovelace', 1815);
+    const alan = new Person('Alan', 'Turing', 1912);
+
+    log(ada.fullName(), '|', alan.fullName());
+    log('a constructor is capitalised by convention, nothing more');
+    log('each instance got its OWN copy of fullName:', ada.fullName === alan.fullName);
+  }</script>
+</section>
+
+<section>
+  <h2>What new actually does</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(name) {
+      this.name = name;
+    }
+
+    // new Person('Ada') is equivalent to:
+    function manualNew(Constructor, ...args) {
+      const obj = Object.create(Constructor.prototype);   // 1. new object, right prototype
+      const result = Constructor.apply(obj, args);        // 2. run it with this = obj
+      return typeof result === 'object' && result !== null ? result : obj;   // 3. return
+    }
+
+    const a = new Person('Ada');
+    const b = manualNew(Person, 'Ada');
+
+    log('with new:   ', a, '| instanceof:', a instanceof Person);
+    log('by hand:    ', b, '| instanceof:', b instanceof Person);
+
+    log('');
+    log('and if the constructor returns an object, that object wins:');
+    function Odd() { this.a = 1; return { b: 2 }; }
+    log('  new Odd() →', new Odd());
+  }</script>
+</section>
+
+<section>
+  <h2>Forgetting new</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(name) {
+      this.name = name;
+    }
+
+    const proper = new Person('Ada');
+    log('with new:', proper);
+
+    const oops = Person('Alan');           // this is window in sloppy mode
+    log('without new, returns:', oops);
+    log('and it wrote to the global:', window.name === 'Alan');
+
+    // A guard, from before classes:
+    function Safe(name) {
+      if (!(this instanceof Safe)) return new Safe(name);
+      this.name = name;
+    }
+    log('a self-correcting constructor:', Safe('Grace'));
+
+    log('');
+    log('classes solve this properly — calling one without new throws.');
+  }</script>
+</section>
+
+<section>
+  <h2>Methods belong on the prototype</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(first, last) {
+      this.firstName = first;
+      this.lastName = last;
+    }
+
+    Person.prototype.fullName = function () {
+      return this.firstName + ' ' + this.lastName;
+    };
+    Person.prototype.species = 'human';
+
+    const ada = new Person('Ada', 'Lovelace');
+    const alan = new Person('Alan', 'Turing');
+
+    log(ada.fullName());
+    log('one shared function:', ada.fullName === alan.fullName);
+    log('own properties:', Object.keys(ada));
+    log('found through the chain:', ada.species);
+    log('hasOwn("species"):', Object.hasOwn(ada, 'species'));
+  }</script>
+</section>
+
+<section>
+  <h2>Adding after the fact</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(name) { this.name = name; }
+    const ada = new Person('Ada');
+
+    // Adding to one instance affects only that instance:
+    ada.nickname = 'the Countess';
+    log('ada:', ada);
+    log('a new instance:', new Person('Alan'));
+
+    // Adding to the prototype affects every instance, past and future:
+    Person.prototype.greet = function () { return 'Hi, ' + this.name; };
+    log('an object created BEFORE greet existed:', ada.greet());
+  }</script>
+</section>
+
+<section>
+  <h2>Inheritance, the old way</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Animal(name) {
+      this.name = name;
+    }
+    Animal.prototype.speak = function () { return this.name + ' makes a sound'; };
+
+    function Dog(name) {
+      Animal.call(this, name);                       // "super"
+    }
+    Dog.prototype = Object.create(Animal.prototype); // inherit the methods
+    Dog.prototype.constructor = Dog;                 // repair the constructor pointer
+    Dog.prototype.speak = function () { return this.name + ' barks'; };
+
+    const rex = new Dog('Rex');
+    log(rex.speak());
+    log('instanceof Dog:', rex instanceof Dog, '| instanceof Animal:', rex instanceof Animal);
+    log('constructor:', rex.constructor.name);
+
+    log('');
+    log('the class version of all of that:');
+    log('  class Dog extends Animal { speak() { … } }');
+  }</script>
+</section>
+
+<section>
+  <h2>Built-in constructors</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('new String("x") →', typeof new String('x'), 'vs "x" →', typeof 'x');
+    log('new Number(1)   →', typeof new Number(1));
+    log('new Boolean(false) is truthy:', Boolean(new Boolean(false)));
+
+    log('');
+    log('use the literal forms instead:');
+    log('  "" [] {} 0 false /re/');
+    log('the constructors are only useful as conversion functions,');
+    log('called WITHOUT new: Number("42") →', Number('42'));
+  }</script>
+</section>
+
+</body>
+</html>

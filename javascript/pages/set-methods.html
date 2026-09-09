@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="set-methods">
+
+<h1>Set Methods</h1>
+<p class="lede">Four core methods — <code>add</code>, <code>has</code>, <code>delete</code>,
+<code>clear</code> — plus a set of composition methods added in 2024.</p>
+
+<section>
+  <h2>The core four</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const s = new Set();
+
+    log('add("a")      returns the set:', s.add('a'));
+    log('add("a") again, size is still', s.add('a').size);
+    log('has("a")      →', s.has('a'));
+    log('has("z")      →', s.has('z'));
+    log('delete("a")   →', s.delete('a'), '(true if it was there)');
+    log('delete("a")   →', s.delete('a'), '(false the second time)');
+
+    s.add('x').add('y');
+    log('before clear:', s);
+    s.clear();
+    log('after clear: ', s, 'size', s.size);
+  }</script>
+</section>
+
+<section>
+  <h2>Composition methods (ES2025)</h2>
+  <p>Set algebra without converting to arrays. They all return a <b>new</b> Set and accept
+  anything set-like.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = new Set([1, 2, 3, 4]);
+    const b = new Set([3, 4, 5, 6]);
+
+    if (a.union) {
+      log('union             ', a.union(b));
+      log('intersection      ', a.intersection(b));
+      log('difference        ', a.difference(b));
+      log('symmetricDifference', a.symmetricDifference(b));
+      log('isSubsetOf        ', new Set([1, 2]).isSubsetOf(a));
+      log('isSupersetOf      ', a.isSupersetOf(new Set([1, 2])));
+      log('isDisjointFrom    ', a.isDisjointFrom(new Set([9])));
+      log('a is unchanged:   ', a);
+    } else {
+      log('this browser does not have the new Set methods yet');
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>The same thing by hand</h2>
+  <p>Worth knowing, because these one-liners still appear in most code.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = new Set([1, 2, 3, 4]);
+    const b = new Set([3, 4, 5, 6]);
+
+    const union = new Set([...a, ...b]);
+    const intersection = new Set([...a].filter(x => b.has(x)));
+    const difference = new Set([...a].filter(x => !b.has(x)));
+    const symmetric = new Set([...difference, ...[...b].filter(x => !a.has(x))]);
+
+    log('union       ', union);
+    log('intersection', intersection);
+    log('difference  ', difference);
+    log('symmetric   ', symmetric);
+    log('isSubset    ', [...new Set([1, 2])].every(x => a.has(x)));
+  }</script>
+</section>
+
+<section>
+  <h2>Converting</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const s = new Set(['a', 'b', 'c']);
+
+    log('spread:     ', [...s]);
+    log('Array.from: ', Array.from(s));
+    log('join:       ', [...s].join('-'));
+    log('to a Map:   ', new Map([...s].map((v, i) => [i, v])));
+    log('JSON:       ', JSON.stringify([...s]));
+    log('JSON of the Set itself:', JSON.stringify(s), '← Sets do not serialise');
+  }</script>
+</section>
+
+<section>
+  <h2>WeakSet</h2>
+  <p>Holds objects only, and does not stop them being garbage collected. It is not iterable
+  and has no <code>size</code> — useful for tagging objects without leaking memory.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const seen = new WeakSet();
+    const node = { id: 1 };
+
+    seen.add(node);
+    log('has(node) →', seen.has(node));
+    log('has({})   →', seen.has({}));
+
+    try {
+      seen.add('a string');
+    } catch (err) {
+      log('adding a primitive →', err.name + ':', err.message);
+    }
+
+    log('methods:', Object.getOwnPropertyNames(WeakSet.prototype).join(', '));
+  }</script>
+</section>
+
+<section>
+  <h2>Set operations, live</h2>
+  <div class="stage">
+    <input id="a" value="1,2,3,4" style="width:150px">
+    <input id="b" value="3,4,5,6" style="width:150px">
+    <span style="font-size:13px;color:var(--ink-faint)">comma separated</span>
+  </div>
+  <script class="run">{
+    const { log, $, $$ } = demo();
+
+    const parse = value => new Set(value.split(',').map(s => s.trim()).filter(Boolean));
+
+    function compute() {
+      const a = parse($('#a').value);
+      const b = parse($('#b').value);
+
+      log.clear();
+      log('A            ', [...a]);
+      log('B            ', [...b]);
+      log('A ∪ B        ', [...new Set([...a, ...b])]);
+      log('A ∩ B        ', [...a].filter(x => b.has(x)));
+      log('A \\ B        ', [...a].filter(x => !b.has(x)));
+      log('B \\ A        ', [...b].filter(x => !a.has(x)));
+      log('A ⊆ B        ', [...a].every(x => b.has(x)));
+      log('disjoint     ', ![...a].some(x => b.has(x)));
+    }
+
+    $$('input').forEach(el => el.addEventListener('input', compute));
+    compute();
+  }</script>
+</section>
+
+</body>
+</html>

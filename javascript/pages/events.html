@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Events — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="events">
+
+<h1>Events</h1>
+<p class="lede">Things that happen to a page: a click, a keystroke, a finished download.
+JavaScript reacts by running a function you registered — a handler.</p>
+
+<section>
+  <h2>Three ways to attach a handler</h2>
+
+  <div class="stage">
+    <button onclick="this.textContent = 'attribute fired'">HTML attribute</button>
+    <button id="prop">Property</button>
+    <button id="listener">addEventListener</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // 1. In the HTML:   <button onclick="...">
+    // 2. As a property — only one handler can be set this way:
+    $('#prop').onclick = function () {
+      log('property handler fired');
+    };
+
+    // 3. addEventListener — any number of handlers, and the preferred way:
+    const btn = $('#listener');
+    btn.addEventListener('click', () => log('listener one'));
+    btn.addEventListener('click', () => log('listener two'));
+  }</script>
+</section>
+
+<section>
+  <h2>The event object</h2>
+  <p>The handler receives an event object describing what happened.</p>
+
+  <div class="stage">
+    <div id="pad" style="flex:1;height:80px;background:#fff;border:1px dashed var(--line);border-radius:6px;display:grid;place-items:center;color:var(--ink-faint)">click anywhere in here</div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#pad').addEventListener('click', function (event) {
+      log.clear();
+      log('type:      ', event.type);
+      log('target:    ', event.target.id || event.target.nodeName);
+      log('offsetX/Y: ', event.offsetX + ', ' + event.offsetY);
+      log('shift held:', event.shiftKey);
+      log('timeStamp: ', Math.round(event.timeStamp), 'ms since load');
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Common events</h2>
+  <table class="ref">
+    <tr><th>Event</th><th>Fires when</th></tr>
+    <tr><td><code>click</code></td><td>an element is clicked</td></tr>
+    <tr><td><code>input</code></td><td>a field's value changes, per keystroke</td></tr>
+    <tr><td><code>change</code></td><td>a field is committed (blur, or select)</td></tr>
+    <tr><td><code>submit</code></td><td>a form is submitted</td></tr>
+    <tr><td><code>keydown</code> / <code>keyup</code></td><td>a key goes down or comes up</td></tr>
+    <tr><td><code>mouseover</code> / <code>mouseout</code></td><td>the pointer enters or leaves</td></tr>
+    <tr><td><code>focus</code> / <code>blur</code></td><td>an element gains or loses focus</td></tr>
+    <tr><td><code>DOMContentLoaded</code></td><td>the HTML is parsed</td></tr>
+    <tr><td><code>load</code></td><td>images and stylesheets are done too</td></tr>
+  </table>
+
+  <div class="stage">
+    <input id="probe" placeholder="type, focus, blur…">
+    <button id="clear">Clear log</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const probe = $('#probe');
+    ['focus', 'input', 'change', 'blur', 'keydown'].forEach(name => {
+      probe.addEventListener(name, e => {
+        log(name.padEnd(9), e.key ? 'key: ' + e.key : 'value: ' + e.target.value);
+      });
+    });
+
+    $('#clear').onclick = () => log.clear();
+  }</script>
+</section>
+
+<section>
+  <h2>Preventing the default action</h2>
+  <p>Many events have a built-in behaviour: a form submits, a link navigates.
+  <code>preventDefault()</code> cancels it.</p>
+
+  <div class="stage">
+    <form id="form" style="display:flex;gap:8px;flex:1">
+      <input name="email" type="email" placeholder="you@example.com" required style="flex:1">
+      <button type="submit">Subscribe</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#form').addEventListener('submit', function (event) {
+      event.preventDefault();        // without this, the page would reload
+      const data = new FormData(this);
+      log('submitted without navigating:', Object.fromEntries(data));
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Removing a handler</h2>
+  <p><code>removeEventListener</code> needs the same function reference, so an inline arrow
+  cannot be removed. Alternatively pass <code>{ once: true }</code>.</p>
+
+  <div class="stage">
+    <button id="limited">Works three times</button>
+    <button id="single">Works once</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const limited = $('#limited');
+    let count = 0;
+
+    function onClick() {
+      count++;
+      log('click', count);
+      if (count === 3) {
+        limited.removeEventListener('click', onClick);
+        limited.disabled = true;
+        log('handler removed');
+      }
+    }
+    limited.addEventListener('click', onClick);
+
+    $('#single').addEventListener('click', function () {
+      log('this handler removed itself automatically');
+      this.disabled = true;
+    }, { once: true });
+  }</script>
+</section>
+
+</body>
+</html>

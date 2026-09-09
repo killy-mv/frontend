@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RegExp — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="regexp">
+
+<h1>RegExp</h1>
+<p class="lede">A pattern that describes a set of strings. Written between slashes, with
+flags after the closing one.</p>
+
+<section>
+  <h2>Two ways to write one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const literal = /hello/i;                        // compiled once, at parse time
+    const built = new RegExp('hello', 'i');          // built at run time
+
+    log('literal:', literal, '| built:', built);
+    log('both match:', literal.test('Hello there'), built.test('Hello there'));
+
+    // Use the constructor when the pattern comes from a variable:
+    const word = 'world';
+    const dynamic = new RegExp('\\b' + word + '\\b', 'gi');
+    log('dynamic:', dynamic);
+    log('matches:', 'Hello world, small world'.match(dynamic));
+  }</script>
+</section>
+
+<section>
+  <h2>Flags</h2>
+
+  <table class="ref">
+    <tr><th>Flag</th><th>Means</th></tr>
+    <tr><td><code>g</code></td><td>global — find every match, not just the first</td></tr>
+    <tr><td><code>i</code></td><td>case insensitive</td></tr>
+    <tr><td><code>m</code></td><td>multiline — <code>^</code> and <code>$</code> match line ends</td></tr>
+    <tr><td><code>s</code></td><td>dotAll — <code>.</code> also matches newlines</td></tr>
+    <tr><td><code>u</code></td><td>full unicode</td></tr>
+    <tr><td><code>y</code></td><td>sticky — match only at lastIndex</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'Cat cat CAT';
+
+    log('/cat/     →', text.match(/cat/));
+    log('/cat/i    →', text.match(/cat/i));
+    log('/cat/gi   →', text.match(/cat/gi));
+
+    const lines = 'one\ntwo\nthree';
+    log('/^t/gm    →', lines.match(/^t/gm));
+    log('/e.t/s    →', 'one\ntwo'.match(/e.t/s));
+  }</script>
+</section>
+
+<section>
+  <h2>The pattern language</h2>
+
+  <table class="ref">
+    <tr><th>Pattern</th><th>Matches</th></tr>
+    <tr><td><code>.</code></td><td>any character except a newline</td></tr>
+    <tr><td><code>\d \w \s</code></td><td>digit, word character, whitespace</td></tr>
+    <tr><td><code>\D \W \S</code></td><td>the negations</td></tr>
+    <tr><td><code>[abc]</code> <code>[^abc]</code></td><td>any of / none of</td></tr>
+    <tr><td><code>[a-z0-9]</code></td><td>a range</td></tr>
+    <tr><td><code>^ $</code></td><td>start / end of the string</td></tr>
+    <tr><td><code>\b</code></td><td>a word boundary</td></tr>
+    <tr><td><code>* + ?</code></td><td>0+, 1+, 0 or 1</td></tr>
+    <tr><td><code>{2}</code> <code>{2,}</code> <code>{2,5}</code></td><td>exact / at least / a range</td></tr>
+    <tr><td><code>a|b</code></td><td>either</td></tr>
+    <tr><td><code>(…)</code> <code>(?:…)</code></td><td>capturing / non-capturing group</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const tests = [
+      [/^\d{4}$/, '2024', 'exactly four digits'],
+      [/^\w+@\w+\.\w{2,}$/, 'me@example.com', 'a rough email'],
+      [/\bcat\b/, 'the cat sat', 'a whole word'],
+      [/\bcat\b/, 'concatenate', 'not inside another word'],
+      [/colou?r/, 'color', 'an optional letter'],
+      [/^[A-Z][a-z]+$/, 'Ada', 'capitalised']
+    ];
+
+    tests.forEach(([re, s, what]) =>
+      log(String(re).padEnd(22), JSON.stringify(s).padEnd(18), re.test(s), ' ', what));
+  }</script>
+</section>
+
+<section>
+  <h2>test, exec and the methods that take a regex</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const re = /(\d{4})-(\d{2})-(\d{2})/;
+    const text = 'Due 2024-05-17 and 2024-06-01.';
+
+    log('test    →', re.test(text));
+    log('exec    →', re.exec(text));
+    log('match   →', text.match(re));
+    log('match/g →', text.match(/\d{4}-\d{2}-\d{2}/g));
+    log('search  →', text.search(re));
+    log('replace →', text.replace(re, '$3/$2/$1'));
+    log('split   →', 'a1b2c3'.split(/\d/));
+
+    log('');
+    log('groups from exec:');
+    const m = re.exec(text);
+    log('  whole:', m[0], '| year:', m[1], '| index:', m.index);
+  }</script>
+</section>
+
+<section>
+  <h2>Named groups and lookarounds</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const re = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
+    const { groups } = re.exec('2024-05-17');
+    log('named groups:', groups);
+    log('reordered:', '2024-05-17'.replace(re, '$<day>/$<month>/$<year>'));
+
+    log('');
+    log('lookahead  /\\d+(?= EUR)/ →', '40 EUR 50 USD'.match(/\d+(?= EUR)/));
+    log('negative   /\\d+(?! EUR)/ →', '40 EUR 50 USD'.match(/\d+(?! EUR)/g));
+    log('lookbehind /(?<=€)\\d+/   →', '€40 $50'.match(/(?<=€)\d+/));
+  }</script>
+</section>
+
+<section>
+  <h2>Two traps</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // 1. A /g regex keeps state in lastIndex between calls.
+    const re = /a/g;
+    log('test →', re.test('aa'), 'lastIndex now', re.lastIndex);
+    log('test →', re.test('aa'), 'lastIndex now', re.lastIndex);
+    log('test →', re.test('aa'), '← reset to false, then starts over');
+
+    log('');
+    // 2. Greedy vs lazy quantifiers.
+    const html = '<b>one</b> and <b>two</b>';
+    log('greedy /<b>.*<\\/b>/  →', html.match(/<b>.*<\/b>/)[0]);
+    log('lazy   /<b>.*?<\\/b>/ →', html.match(/<b>.*?<\/b>/)[0]);
+  }</script>
+</section>
+
+<section>
+  <h2>A regex tester</h2>
+  <div class="stage">
+    <input id="pattern" value="\b\w+@\w+\.\w+\b" style="flex:1">
+    <input id="flags" value="gi" style="width:70px">
+  </div>
+  <div class="stage" style="border-top:none">
+    <textarea id="subject" rows="3" style="flex:1">Write to ada@example.com or grace@navy.mil today.</textarea>
+  </div>
+  <script class="run">{
+    const { log, $, $$ } = demo();
+
+    function run() {
+      const source = $('#pattern').value;
+      const flags = $('#flags').value;
+      const subject = $('#subject').value;
+
+      log.clear();
+
+      let re;
+      try {
+        re = new RegExp(source, flags);
+      } catch (err) {
+        log('invalid pattern:', err.message);
+        return;
+      }
+
+      log('regex  ', re);
+      log('test   ', re.test(subject));
+
+      const all = [...subject.matchAll(new RegExp(source, flags.includes('g') ? flags : flags + 'g'))];
+      log('matches', all.length);
+      all.forEach(m => {
+        log('  "' + m[0] + '" at ' + m.index);
+        if (m.length > 1) log('    groups:', m.slice(1));
+      });
+    }
+
+    $$('#pattern, #flags, #subject').forEach(el => el.addEventListener('input', run));
+    run();
+  }</script>
+</section>
+
+</body>
+</html>

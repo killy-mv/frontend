@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES2016–2018 — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="es-2016-18">
+
+<h1>ES2016 – ES2018</h1>
+<p class="lede">After the enormous ES6, the committee switched to a yearly train: whatever is
+ready ships in June. These three years are small, and every one of them is something you use
+daily.</p>
+
+<section>
+  <h2>ES2016 — all two features</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Array.prototype.includes');
+    log('  [1, 2, 3].includes(2)   →', [1, 2, 3].includes(2));
+    log('  before: indexOf(2) !== -1');
+    log('');
+    log('and it handles NaN, which indexOf cannot:');
+    log('  [NaN].includes(NaN)     →', [NaN].includes(NaN));
+    log('  [NaN].indexOf(NaN)      →', [NaN].indexOf(NaN), '← never found');
+
+    log('');
+    log('the exponentiation operator **');
+    log('  2 ** 10        →', 2 ** 10);
+    log('  Math.pow(2,10) →', Math.pow(2, 10));
+    log('  right-associative: 2 ** 3 ** 2 →', 2 ** 3 ** 2, '(not 64)');
+    log('  and it assigns: x **= 2');
+
+    log('');
+    log('that is the entire ES2016 release. The yearly cadence means small');
+    log('years are fine — nothing waits a decade for the next train.');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2017 — async/await</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fetchThing = ms => new Promise(r => setTimeout(() => r('thing after ' + ms + 'ms'), ms));
+
+    // The chain:
+    fetchThing(20)
+      .then(a => { log('then  →', a); return fetchThing(20); })
+      .then(b => log('then  →', b));
+
+    // The same thing:
+    (async () => {
+      log('await →', await fetchThing(40));
+      log('await →', await fetchThing(20));
+
+      try {
+        await Promise.reject(new Error('and errors use try/catch'));
+      } catch (err) {
+        log('catch →', err.message);
+      }
+    })();
+
+    log('the single most-used feature added since ES6.');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2017 — the rest</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const scores = { ada: 98, alan: 91 };
+
+    log('Object.values  →', Object.values(scores));
+    log('Object.entries →', Object.entries(scores));
+    log('  which unlocked:', Object.entries(scores).map(([k, v]) => `${k}=${v}`).join('&'));
+
+    log('');
+    log('Object.getOwnPropertyDescriptors — a correct object copy,');
+    log('getters included, which Object.assign cannot do:');
+    const source = { base: 2, get double() { return this.base * 2; } };
+    const wrong = Object.assign({}, source);
+    const right = Object.defineProperties({}, Object.getOwnPropertyDescriptors(source));
+    source.base = 10;
+    log('  via assign →', wrong.double, '← frozen at copy time');
+    log('  via descriptors →', right.double, '← still a live getter');
+
+    log('');
+    log('String padding:');
+    log('  "5".padStart(3, "0")  →', '5'.padStart(3, '0'));
+    log('  "ab".padEnd(6, ".")   →', 'ab'.padEnd(6, '.'));
+    log('  which is what every table on this site uses.');
+
+    log('');
+    log('trailing commas in function parameters and calls:');
+    log('  function f(a, b,) {}   — cleaner diffs, one line changed not two');
+
+    log('');
+    log('SharedArrayBuffer and Atomics — real shared memory between workers.');
+    log('  supported here →', typeof SharedArrayBuffer !== 'undefined');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2018 — object spread and rest</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const defaults = { theme: 'light', size: 14, lang: 'en' };
+    const overrides = { theme: 'dark' };
+
+    log('spread →', { ...defaults, ...overrides });
+    log('  it replaced Object.assign({}, a, b) almost overnight.');
+
+    log('');
+    const { theme, ...withoutTheme } = { ...defaults, ...overrides };
+    log('rest   →', 'theme =', theme, '| the rest =', withoutTheme);
+    log('  the idiomatic way to omit one key.');
+
+    log('');
+    log('a caution — it is shallow:');
+    const nested = { a: { b: 1 } };
+    const copy = { ...nested };
+    copy.a.b = 99;
+    log('  the original changed too →', nested.a.b);
+  }</script>
+</section>
+
+<section>
+  <h2>ES2018 — asynchronous iteration</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    async function* pages() {
+      for (let page = 1; page <= 3; page++) {
+        await new Promise(r => setTimeout(r, 20));       // "fetch"
+        yield { page, rows: [page * 10, page * 10 + 1] };
+      }
+    }
+
+    (async () => {
+      for await (const { page, rows } of pages()) {
+        log('page', page, '→', rows);
+      }
+      log('done — the loop waited for each page in turn');
+      log('');
+      log('this is how you consume a paginated API, or a stream,');
+      log('without holding the whole thing in memory.');
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>ES2018 — Promise.finally</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function withSpinner(promise) {
+      log('  spinner on');
+      return promise.finally(() => log('  spinner off'));
+    }
+
+    withSpinner(Promise.resolve('ok')).then(v => log('resolved →', v));
+    withSpinner(Promise.reject(new Error('nope'))).catch(e => log('rejected →', e.message));
+
+    log('finally runs either way, and passes the value straight through:');
+    Promise.resolve(1).finally(() => 999).then(v => log('  value is still', v));
+  }</script>
+</section>
+
+<section>
+  <h2>ES2018 — regular expressions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('named capture groups:');
+    const date = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/;
+    const { groups } = '2026-09-09'.match(date);
+    log('  ', groups);
+    log('  and in a replacement: "$<day>/$<month>/$<year>" →',
+        '2026-09-09'.replace(date, '$<day>/$<month>/$<year>'));
+
+    log('');
+    log('lookbehind:');
+    log('  prices →', 'cost £42 and $17'.match(/(?<=£)\d+/g));
+    log('  negative lookbehind →', 'a1 b2'.match(/(?<!a)\d/g));
+
+    log('');
+    log('the s (dotAll) flag — . matches newlines:');
+    log('  without s →', /a.b/.test('a\nb'));
+    log('  with s    →', /a.b/s.test('a\nb'));
+
+    log('');
+    log('unicode property escapes:');
+    log('  letters only →', 'aé漢1 !'.match(/\p{Letter}/gu));
+    log('  emoji        →', 'hi 🎉 there 🚀'.match(/\p{Emoji_Presentation}/gu));
+  }</script>
+</section>
+
+<section>
+  <h2>ES2018 — the small one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('invalid escape sequences became legal in TAGGED templates,');
+    log('so a tag can accept things like a Windows path:');
+
+    const raw = (strings, ...values) => strings.raw[0];
+    log('  ', raw`C:\dir\new`);
+    log('  cooked value is undefined, raw still works.');
+
+    log('');
+    log('an untagged template with the same text is still a syntax error.');
+  }</script>
+</section>
+
+<section>
+  <h2>Recap</h2>
+
+  <table class="ref">
+    <tr><th>Year</th><th>Highlights</th></tr>
+    <tr><td>2016</td><td><code>includes</code>, <code>**</code></td></tr>
+    <tr><td>2017</td><td><b>async/await</b>, <code>Object.values/entries</code>, padding, <code>SharedArrayBuffer</code></td></tr>
+    <tr><td>2018</td><td>object spread/rest, <code>for await</code>, <code>finally</code>, named groups, lookbehind, dotAll</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

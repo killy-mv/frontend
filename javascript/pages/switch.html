@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Switch — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="switch">
+
+<h1>Switch</h1>
+<p class="lede">Compares one value against several cases using <b>strict</b> equality, then
+runs from the matching case until it hits a <code>break</code>.</p>
+
+<section>
+  <h2>The basic shape</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function dayName(n) {
+      switch (n) {
+        case 0: return 'Sunday';
+        case 1: return 'Monday';
+        case 2: return 'Tuesday';
+        case 3: return 'Wednesday';
+        case 4: return 'Thursday';
+        case 5: return 'Friday';
+        case 6: return 'Saturday';
+        default: return 'not a day';
+      }
+    }
+
+    log('today is', dayName(new Date().getDay()));
+    log('dayName(9) →', dayName(9));
+  }</script>
+</section>
+
+<section>
+  <h2>break, and what happens without it</h2>
+  <p>Without <code>break</code>, execution falls through into the next case. This is a bug
+  far more often than it is a feature.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function withBreaks(n) {
+      const out = [];
+      switch (n) {
+        case 1: out.push('one'); break;
+        case 2: out.push('two'); break;
+        default: out.push('many');
+      }
+      return out;
+    }
+
+    function withoutBreaks(n) {
+      const out = [];
+      switch (n) {
+        case 1: out.push('one');
+        case 2: out.push('two');
+        default: out.push('many');
+      }
+      return out;
+    }
+
+    log('with breaks,    n=1 →', withBreaks(1));
+    log('without breaks, n=1 →', withoutBreaks(1), '← fell all the way through');
+  }</script>
+</section>
+
+<section>
+  <h2>Deliberate fallthrough</h2>
+  <p>Stacking cases with no body is the one legitimate use.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function season(month) {
+      switch (month) {
+        case 12: case 1: case 2:
+          return 'winter';
+        case 3: case 4: case 5:
+          return 'spring';
+        case 6: case 7: case 8:
+          return 'summer';
+        case 9: case 10: case 11:
+          return 'autumn';
+        default:
+          return 'unknown';
+      }
+    }
+
+    for (let m = 1; m <= 12; m += 2) log('month', String(m).padStart(2), '→', season(m));
+  }</script>
+</section>
+
+<section>
+  <h2>Strict comparison</h2>
+  <p><code>switch</code> uses <code>===</code>. A string "2" never matches
+  <code>case 2</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function test(value) {
+      switch (value) {
+        case 2: return 'matched the number 2';
+        case '2': return 'matched the string "2"';
+        default: return 'no match';
+      }
+    }
+
+    log('test(2)    →', test(2));
+    log('test("2")  →', test('2'));
+    log('test(2.0)  →', test(2.0));
+
+    // A common fix when the value comes from an input:
+    log('test(Number("2")) →', test(Number('2')));
+  }</script>
+</section>
+
+<section>
+  <h2>switch (true) for ranges</h2>
+  <p><code>switch</code> only does equality — but if you switch on <code>true</code>, each
+  case can be any boolean expression.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function grade(score) {
+      switch (true) {
+        case score >= 90: return 'A';
+        case score >= 80: return 'B';
+        case score >= 70: return 'C';
+        case score >= 60: return 'D';
+        default: return 'F';
+      }
+    }
+
+    [95, 83, 71, 65, 12].forEach(s => log(String(s).padStart(3), '→', grade(s)));
+  }</script>
+</section>
+
+<section>
+  <h2>The object-lookup alternative</h2>
+  <p>When every case is a simple mapping, an object is shorter and easier to extend.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const messages = {
+      200: 'OK',
+      301: 'Moved permanently',
+      404: 'Not found',
+      500: 'Server error'
+    };
+
+    function describe(code) {
+      return messages[code] ?? 'Unknown status';
+    }
+
+    [200, 404, 418].forEach(c => log(c, '→', describe(c)));
+
+    // With behaviour instead of strings:
+    const handlers = {
+      add: (a, b) => a + b,
+      sub: (a, b) => a - b,
+      mul: (a, b) => a * b
+    };
+    log('handlers.mul(6, 7) →', handlers.mul(6, 7));
+  }</script>
+</section>
+
+<section>
+  <h2>Try it</h2>
+  <div class="stage">
+    <select id="fruit">
+      <option>Banana</option><option>Orange</option><option>Apple</option><option>Durian</option>
+    </select>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function describe(fruit) {
+      switch (fruit) {
+        case 'Banana':
+          return 'Yellow, curved, no peeling required tools.';
+        case 'Orange':
+        case 'Mandarin':
+          return 'Citrus. Segments included.';
+        case 'Apple':
+          return 'Crunchy. Keeps doctors away, allegedly.';
+        default:
+          return 'No description on file for "' + fruit + '".';
+      }
+    }
+
+    $('#fruit').addEventListener('change', function () {
+      log(this.value + ': ' + describe(this.value));
+    });
+
+    log('Banana: ' + describe('Banana'));
+  }</script>
+</section>
+
+</body>
+</html>

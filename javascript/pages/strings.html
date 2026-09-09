@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strings — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="strings">
+
+<h1>Strings</h1>
+<p class="lede">Text. Written in single quotes, double quotes or backticks — the three are
+interchangeable, so pick the one that avoids escaping.</p>
+
+<section>
+  <h2>Quotes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('single quotes');
+    log("double quotes");
+    log(`backticks`);
+
+    log("It's easier with double quotes");
+    log('She said "hi" — easier with single');
+    log('Or escape it: it\'s fine');
+  }</script>
+</section>
+
+<section>
+  <h2>Length and indexing</h2>
+  <p>Strings are indexed from zero. <code>length</code> counts UTF-16 code units, which is
+  not always the same as characters.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'JavaScript';
+
+    log('length:', text.length);
+    log('text[0]:', text[0], '| text.at(-1):', text.at(-1));
+    log('charAt(4):', text.charAt(4));
+    log('charCodeAt(0):', text.charCodeAt(0));
+
+    // Beyond the basic plane, one "character" can be two units:
+    const emoji = '👋 hi';
+    log('emoji.length:', emoji.length, '— but characters:', [...emoji].length);
+  }</script>
+</section>
+
+<section>
+  <h2>Escape sequences</h2>
+
+  <table class="ref">
+    <tr><th>Code</th><th>Means</th></tr>
+    <tr><td><code>\n</code></td><td>new line</td></tr>
+    <tr><td><code>\t</code></td><td>tab</td></tr>
+    <tr><td><code>\\</code></td><td>backslash</td></tr>
+    <tr><td><code>\'</code> <code>\"</code></td><td>a quote of the enclosing kind</td></tr>
+    <tr><td><code>\u00e9</code></td><td>a unicode code point</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('line one\nline two');
+    log('col1\tcol2\tcol3');
+    log('a path: C:\\Users\\Ada');
+    log('unicode: \u00e9 \u2713 \u{1F600}');
+  }</script>
+</section>
+
+<section>
+  <h2>Strings are immutable</h2>
+  <p>Every "modifying" method returns a new string. The original is untouched.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = 'hello';
+
+    log('toUpperCase() →', original.toUpperCase());
+    log('replace()     →', original.replace('h', 'j'));
+    log('the original  →', original);
+
+    original[0] = 'H';                 // no effect, no error
+    log('after assigning to [0]:', original);
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing and concatenating</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('"a" + "b"        →', 'a' + 'b');
+    log('"a".concat("b")  →', 'a'.concat('b', 'c'));
+    log('"ab" === "ab"    →', 'ab' === 'ab');
+    log('"a" < "b"        →', 'a' < 'b');
+    log('"B" < "a"        →', 'B' < 'a', '(capitals sort before lowercase)');
+
+    // For human-friendly ordering, use localeCompare:
+    const names = ['Ödegaard', 'Aaron', 'ébène', 'Zoe'];
+    log('sort():        ', [...names].sort());
+    log('localeCompare:', [...names].sort((a, b) => a.localeCompare(b)));
+  }</script>
+</section>
+
+<section>
+  <h2>Multi-line strings</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Backticks keep the line breaks you type:
+    const block = `Dear Ada,
+
+  Thank you for the notes.
+  — C.`;
+
+    log(block);
+    log('lines:', block.split('\n').length);
+  }</script>
+</section>
+
+<section>
+  <h2>Counting live</h2>
+  <div class="stage">
+    <input id="src" style="flex:1" value="The quick brown fox">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const src = $('#src');
+
+    function stats() {
+      const value = src.value;
+      log.clear();
+      log('characters:', value.length);
+      log('no spaces: ', value.replace(/\s/g, '').length);
+      log('words:     ', value.trim() ? value.trim().split(/\s+/).length : 0);
+      log('upper:     ', value.toUpperCase());
+      log('reversed:  ', [...value].reverse().join(''));
+    }
+
+    src.addEventListener('input', stats);
+    stats();
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web APIs — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="api-intro">
+
+<h1>Web APIs</h1>
+<p class="lede">The language itself is small. Everything that touches the page, the network,
+the disk or the hardware comes from the browser — hundreds of separate APIs, all reachable
+from <code>window</code>.</p>
+
+<section>
+  <h2>Language or browser?</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const language = ['Object', 'Array', 'String', 'Number', 'Math', 'JSON',
+                      'Promise', 'Map', 'Set', 'Symbol', 'Proxy', 'Intl'];
+    const browser = ['document', 'fetch', 'localStorage', 'navigator', 'alert',
+                     'setTimeout', 'console', 'URL', 'Worker', 'crypto'];
+
+    log('defined by ECMAScript — works in Node, Deno, a worker, anywhere:');
+    log('  ' + language.join(', '));
+    log('');
+    log('defined by the browser — none of these are JavaScript:');
+    log('  ' + browser.join(', '));
+
+    log('');
+    log('setTimeout is a browser API. So is console. Neither appears in the');
+    log('ECMAScript specification at all.');
+  }</script>
+</section>
+
+<section>
+  <h2>How they are shaped</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('most modern web APIs follow the same three patterns:');
+    log('');
+    log('1. a promise:');
+    log('   const data = await fetch(url).then(r => r.json());');
+    log('');
+    log('2. an event target:');
+    log('   const ws = new WebSocket(url);');
+    log('   ws.addEventListener("message", e => …);');
+    log('');
+    log('3. an object with methods:');
+    log('   localStorage.setItem("k", "v");');
+
+    log('');
+    log('older ones use callbacks and "on…" properties instead —');
+    log('XMLHttpRequest and geolocation are the ones you still meet.');
+  }</script>
+</section>
+
+<section>
+  <h2>Feature detection</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const checks = [
+      ['fetch', 'fetch' in window],
+      ['localStorage', 'localStorage' in window],
+      ['Web Workers', typeof Worker !== 'undefined'],
+      ['service workers', 'serviceWorker' in navigator],
+      ['IndexedDB', 'indexedDB' in window],
+      ['geolocation', 'geolocation' in navigator],
+      ['clipboard', 'clipboard' in navigator],
+      ['notifications', 'Notification' in window],
+      ['speech synthesis', 'speechSynthesis' in window],
+      ['WebGPU', 'gpu' in navigator],
+      ['structuredClone', typeof structuredClone === 'function'],
+      ['dialog element', 'showModal' in document.createElement('dialog')]
+    ];
+
+    checks.forEach(([name, ok]) =>
+      log('  ' + (ok ? '✔' : '✘') + ' ' + name));
+
+    log('');
+    log('always ask "is it there?", never "which browser is this?".');
+    log('A missing API should degrade, not crash:');
+    log('');
+    log('  if ("share" in navigator) shareButton.hidden = false;');
+  }</script>
+</section>
+
+<section>
+  <h2>Secure contexts</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('isSecureContext →', window.isSecureContext);
+    log('protocol        →', location.protocol);
+
+    log('');
+    log('a secure context means https, or localhost, or file:// in some cases.');
+    log('These APIs are unavailable without one:');
+    log('  • service workers and the Cache API');
+    log('  • geolocation');
+    log('  • getUserMedia (camera and microphone)');
+    log('  • the clipboard');
+    log('  • crypto.subtle and crypto.randomUUID');
+    log('  • notifications, Bluetooth, USB, WebXR');
+
+    log('');
+    log('actually available here:');
+    [['caches', 'caches' in window],
+     ['crypto.subtle', Boolean(window.crypto && crypto.subtle)],
+     ['crypto.randomUUID', Boolean(window.crypto && crypto.randomUUID)],
+     ['serviceWorker', 'serviceWorker' in navigator]]
+      .forEach(([n, ok]) => log('  ' + (ok ? '✔' : '✘') + ' ' + n));
+  }</script>
+</section>
+
+<section>
+  <h2>Permissions and gestures</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('three separate gates stand between you and a powerful API:');
+    log('');
+    log('1. a secure context      — https, checked automatically');
+    log('2. a user gesture        — the call must happen inside a click or keypress');
+    log('3. an explicit permission— the browser asks the user, once');
+    log('');
+    log('this is why a call that works in a click handler fails on page load:');
+
+    const start = performance.now();
+    log('');
+    log('  navigator.clipboard.writeText("x")  in a click  → works');
+    log('  the same call at load time                      → NotAllowedError');
+
+    log('');
+    log('user activation state:', navigator.userActivation
+      ? JSON.stringify({ hasBeenActive: navigator.userActivation.hasBeenActive,
+                         isActive: navigator.userActivation.isActive })
+      : '(navigator.userActivation not supported)');
+    log('checked in', (performance.now() - start).toFixed(2) + 'ms');
+  }</script>
+</section>
+
+<section>
+  <h2>The ones worth knowing</h2>
+
+  <table class="ref">
+    <tr><th>API</th><th>For</th></tr>
+    <tr><td>Fetch</td><td>HTTP requests</td></tr>
+    <tr><td>Web Storage</td><td>key/value data in the browser</td></tr>
+    <tr><td>IndexedDB</td><td>structured data, large amounts</td></tr>
+    <tr><td>History</td><td>client-side routing</td></tr>
+    <tr><td>Web Workers</td><td>a second thread</td></tr>
+    <tr><td>Service Workers</td><td>offline, caching, push</td></tr>
+    <tr><td>Canvas / WebGL</td><td>drawing, games, charts</td></tr>
+    <tr><td>Geolocation</td><td>where the device is</td></tr>
+    <tr><td>Intersection Observer</td><td>lazy loading, infinite scroll</td></tr>
+    <tr><td>Web Components</td><td>custom elements and shadow DOM</td></tr>
+    <tr><td>Intl</td><td>dates, numbers and text, per locale</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A quick demonstration of two you may not have met:
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry =>
+        log('the footer is', entry.isIntersecting ? 'visible' : 'off screen'));
+    });
+    observer.observe(document.querySelector('section:last-of-type'));
+
+    log('IntersectionObserver watches an element enter or leave the viewport —');
+    log('scroll to the bottom of this page.');
+
+    log('');
+    log('Intl, with no extra library:');
+    log('  ', new Intl.NumberFormat('de-DE',
+      { style: 'currency', currency: 'EUR' }).format(1234.5));
+    log('  ', new Intl.RelativeTimeFormat('en').format(-3, 'day'));
+    log('  ', new Intl.ListFormat('en').format(['a', 'b', 'c']));
+  }</script>
+</section>
+
+<section>
+  <h2>Where to look things up</h2>
+  <div class="note">MDN (<code>developer.mozilla.org</code>) is the reference; every page has
+  a browser-support table. <code>caniuse.com</code> answers "can I ship this yet".
+  The specifications themselves live at <code>spec.whatwg.org</code> and
+  <code>w3.org</code> — readable more often than you would expect.</div>
+</section>
+
+</body>
+</html>

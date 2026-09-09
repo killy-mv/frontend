@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The History API — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="history-api">
+
+<h1>The History API</h1>
+<p class="lede">Change the URL without loading a page. Three calls —
+<code>pushState</code>, <code>replaceState</code> and the <code>popstate</code> event — are
+the whole foundation of client-side routing.</p>
+
+<div class="note warn">The History API needs a real origin. Opened from
+<code>file://</code> the <code>pushState</code> examples will report a
+<code>SecurityError</code>; the hash-based router below works either way. Serve the folder
+over http to see everything.</div>
+
+<section>
+  <h2>The three calls</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('history.pushState(state, "", url)');
+    log('  adds an entry. Back returns to where you were.');
+    log('');
+    log('history.replaceState(state, "", url)');
+    log('  rewrites the current entry. Back skips it.');
+    log('');
+    log('window.addEventListener("popstate", e => …)');
+    log('  fires when the user moves between entries of this document.');
+    log('  e.state is whatever you pushed.');
+    log('');
+    log('the second argument is a title. Every browser ignores it.');
+    log('Pass "" and set document.title yourself.');
+
+    log('');
+    log('current state →', JSON.stringify(history.state));
+    log('current URL   →', location.pathname.split('/').pop() + location.search + location.hash);
+  }</script>
+</section>
+
+<section>
+  <h2>What the state object can hold</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('anything structured-cloneable — the same rule as postMessage:');
+
+    const ok = { page: 2, filters: ['a', 'b'], when: new Date(), set: new Set([1, 2]) };
+    const bad = { render: () => 'a function' };
+
+    try {
+      log('  cloneable →', structuredClone(ok));
+    } catch (err) { log('  unexpected:', err.message); }
+
+    try {
+      structuredClone(bad);
+    } catch (err) {
+      log('  a function →', err.name + ':', 'cannot be cloned');
+    }
+
+    log('');
+    log('but keep it SMALL. Firefox caps it around 16MB, and every entry');
+    log('is kept for the life of the tab.');
+    log('');
+    log('the rule that matters: the URL must be enough on its own.');
+    log('Someone can paste it into a fresh tab, where state is null.');
+  }</script>
+</section>
+
+<section>
+  <h2>pushState in practice</h2>
+
+  <div class="stage">
+    <button data-page="1">page 1</button>
+    <button data-page="2">page 2</button>
+    <button data-page="3">page 3</button>
+    <span id="now" style="font-size:13px;color:var(--ink-faint)"></span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function render(page, source) {
+      $('#now').textContent = 'showing page ' + page;
+      log(source.padEnd(12), 'page', page,
+          '| url:', location.search || '(none)',
+          '| history.length:', history.length);
+    }
+
+    $('.stage').querySelectorAll('button[data-page]').forEach(button =>
+      button.addEventListener('click', () => {
+        const page = button.dataset.page;
+        try {
+          history.pushState({ page }, '', '?page=' + page);
+          render(page, 'pushState');
+        } catch (err) {
+          log('pushState failed:', err.name, '— see the warning at the top');
+        }
+      }));
+
+    window.addEventListener('popstate', event => {
+      const page = event.state ? event.state.page : '(none)';
+      render(page, 'popstate');
+    });
+
+    log('click a few pages, then press the browser Back button');
+  }</script>
+</section>
+
+<section>
+  <h2>A hash router, which works anywhere</h2>
+
+  <div class="stage">
+    <button data-go="#/">home</button>
+    <button data-go="#/products">products</button>
+    <button data-go="#/products/42">product 42</button>
+    <button data-go="#/about">about</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const routes = [
+      [/^#?\/?$/, () => 'Home page'],
+      [/^#\/products$/, () => 'A list of products'],
+      [/^#\/products\/(\d+)$/, id => 'Product number ' + id],
+      [/^#\/about$/, () => 'About this demo']
+    ];
+
+    function render() {
+      const path = location.hash || '#/';
+      log.clear();
+      log('hash →', path);
+
+      for (const [pattern, view] of routes) {
+        const match = path.match(pattern);
+        if (match) return log('view →', view(...match.slice(1)));
+      }
+      log('view → 404 not found');
+    }
+
+    $('.stage').querySelectorAll('button[data-go]').forEach(button =>
+      button.addEventListener('click', () => { location.hash = button.dataset.go; }));
+
+    window.addEventListener('hashchange', render);
+    render();
+  }</script>
+</section>
+
+<section>
+  <h2>Keeping state in the URL</h2>
+  <p>A filter or a search term belongs in the query string, updated with
+  <code>replaceState</code> so Back does not step through every keystroke.</p>
+
+  <div class="stage">
+    <input id="q" placeholder="search term" style="flex:1">
+    <select id="sort"><option>relevance</option><option>date</option><option>price</option></select>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function sync() {
+      const params = new URLSearchParams();
+      if ($('#q').value) params.set('q', $('#q').value);
+      if ($('#sort').value !== 'relevance') params.set('sort', $('#sort').value);
+
+      const url = location.pathname + (params.toString() ? '?' + params : '') + location.hash;
+
+      log.clear();
+      log('would be:', url.split('/').pop());
+      try {
+        history.replaceState({ q: $('#q').value }, '', url);
+        log('replaceState succeeded | history.length:', history.length,
+            '← unchanged, which is the point');
+      } catch (err) {
+        log('replaceState failed:', err.name, '(file:// — see the warning above)');
+      }
+    }
+
+    $('#q').addEventListener('input', sync);
+    $('#sort').addEventListener('change', sync);
+    sync();
+
+    log('');
+    log('now the state survives a refresh, and the link is shareable.');
+  }</script>
+</section>
+
+<section>
+  <h2>Reading the URL at startup</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // The step people forget: a router must render from the URL on load,
+    // not only in response to clicks.
+    const params = new URLSearchParams(location.search);
+
+    log('the URL says:');
+    log('  path  →', location.pathname.split('/').pop());
+    log('  query →', Object.fromEntries(params));
+    log('  hash  →', location.hash || '(none)');
+
+    log('');
+    log('so a router is really three lines:');
+    log('  render(location);                                   // on load');
+    log('  addEventListener("popstate", () => render(location)); // on back/forward');
+    log('  onClick: pushState(…); render(location);             // on navigation');
+  }</script>
+</section>
+
+<section>
+  <h2>The server side</h2>
+  <div class="note">If <code>pushState</code> puts <code>/products/42</code> in the address
+  bar and the user refreshes, the browser really does request that path. The server must
+  answer with your <code>index.html</code> for any unknown route, or the user gets a 404.
+  This is the "history fallback" setting in every dev server and static host.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the trade-off:');
+    log('');
+    log('  hash routing  (#/products/42)');
+    log('    ✔ no server configuration at all');
+    log('    ✘ ugly URLs, and the hash is never sent to the server');
+    log('');
+    log('  history routing (/products/42)');
+    log('    ✔ clean, real URLs; works with server rendering');
+    log('    ✘ needs a catch-all route on the server');
+  }</script>
+</section>
+
+</body>
+</html>

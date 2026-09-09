@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>If Else — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="if-else">
+
+<h1>If Else</h1>
+<p class="lede">Run a block only when a condition is truthy. <code>if</code> must be
+lowercase — <code>If</code> is a syntax error.</p>
+
+<section>
+  <h2>if, else if, else</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function greetingFor(hour) {
+      if (hour < 12) {
+        return 'Good morning';
+      } else if (hour < 18) {
+        return 'Good afternoon';
+      } else {
+        return 'Good evening';
+      }
+    }
+
+    [7, 13, 21].forEach(h => log(h + ':00 →', greetingFor(h)));
+
+    log('');
+    log('only the first matching branch runs — order matters');
+  }</script>
+</section>
+
+<section>
+  <h2>The condition is coerced to boolean</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const values = [['0', 0], ['1', 1], ["''", ''], ["'text'", 'text'],
+                    ['null', null], ['undefined', undefined],
+                    ['[]', []], ['{}', {}], ['NaN', NaN]];
+
+    values.forEach(([label, v]) => {
+      if (v) log(label.padEnd(11), '→ truthy');
+      else log(label.padEnd(11), '→ falsy');
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Braces are optional, and that is the problem</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const x = 5;
+
+    if (x > 0) log('one statement without braces works');
+
+    // But this does not do what the indentation suggests:
+    if (x > 100)
+      log('never runs');
+      log('always runs — it is not part of the if');
+
+    log('');
+    log('always use braces.');
+  }</script>
+</section>
+
+<section>
+  <h2>Guard clauses beat nesting</h2>
+  <p>Returning early for the exceptional cases keeps the main path un-indented.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Nested:
+    function checkoutNested(user, cart) {
+      if (user) {
+        if (user.verified) {
+          if (cart.length > 0) {
+            return 'ok';
+          } else {
+            return 'cart is empty';
+          }
+        } else {
+          return 'not verified';
+        }
+      } else {
+        return 'not logged in';
+      }
+    }
+
+    // Flat:
+    function checkoutFlat(user, cart) {
+      if (!user) return 'not logged in';
+      if (!user.verified) return 'not verified';
+      if (!cart.length) return 'cart is empty';
+      return 'ok';
+    }
+
+    const cases = [
+      [null, []],
+      [{ verified: false }, []],
+      [{ verified: true }, []],
+      [{ verified: true }, ['item']]
+    ];
+
+    cases.forEach(([u, c]) =>
+      log(checkoutNested(u, c).padEnd(16), '|', checkoutFlat(u, c)));
+  }</script>
+</section>
+
+<section>
+  <h2>The ternary as an expression</h2>
+  <p>When both branches produce a value for the same variable, a ternary is shorter and
+  works where a statement cannot go.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const count = 1;
+
+    let label;
+    if (count === 1) label = 'item'; else label = 'items';
+    log('with if:     ', count + ' ' + label);
+
+    log('with ternary:', count + ' ' + (count === 1 ? 'item' : 'items'));
+
+    // Inside a template, where a statement is impossible:
+    const user = { name: 'Ada', admin: false };
+    log(`${user.name} is ${user.admin ? 'an admin' : 'a user'}`);
+
+    // Chained — readable only if you format it as a table:
+    const score = 78;
+    const grade =
+      score >= 90 ? 'A' :
+      score >= 80 ? 'B' :
+      score >= 70 ? 'C' : 'F';
+    log('grade:', grade);
+  }</script>
+</section>
+
+<section>
+  <h2>A validator</h2>
+  <div class="stage">
+    <input id="pw" type="text" placeholder="try a password" style="flex:1" value="abc">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function check(pw) {
+      const problems = [];
+      if (pw.length < 8) problems.push('at least 8 characters');
+      if (!/[A-Z]/.test(pw)) problems.push('an uppercase letter');
+      if (!/[a-z]/.test(pw)) problems.push('a lowercase letter');
+      if (!/\d/.test(pw)) problems.push('a digit');
+      if (!/[^A-Za-z0-9]/.test(pw)) problems.push('a symbol');
+      return problems;
+    }
+
+    function show() {
+      const problems = check($('#pw').value);
+      log.clear();
+      if (problems.length === 0) {
+        log('✓ strong enough');
+      } else {
+        log('still needs:');
+        problems.forEach(p => log('  • ' + p));
+      }
+    }
+
+    $('#pw').addEventListener('input', show);
+    show();
+  }</script>
+</section>
+
+</body>
+</html>

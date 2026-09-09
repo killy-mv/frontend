@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dates — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dates">
+
+<h1>Dates</h1>
+<p class="lede">A <code>Date</code> is one number: milliseconds since 1 January 1970 UTC.
+Everything else — years, months, time zones — is interpretation layered on top.</p>
+
+<section>
+  <h2>Four ways to create one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('new Date()                  →', new Date().toString());
+    log('new Date("2024-05-17")      →', new Date('2024-05-17').toString());
+    log('new Date(2024, 4, 17)       →', new Date(2024, 4, 17).toString());
+    log('new Date(0)                 →', new Date(0).toUTCString());
+    log('new Date(1715900000000)     →', new Date(1715900000000).toISOString());
+  }</script>
+
+  <div class="note warn">
+    In <code>new Date(year, month, day)</code> the month is <b>zero-based</b>: 0 is January,
+    4 is May, 11 is December. Days, hours and minutes are not.
+  </div>
+</section>
+
+<section>
+  <h2>The seven-argument form</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('full   ', new Date(2024, 4, 17, 14, 30, 45, 500).toString());
+    log('no ms  ', new Date(2024, 4, 17, 14, 30, 45).toString());
+    log('no time', new Date(2024, 4, 17).toString(), '(midnight local)');
+    log('y + m  ', new Date(2024, 4).toString());
+
+    // Out-of-range values roll over, which makes arithmetic easy:
+    log('month 12  →', new Date(2024, 12, 1).toDateString(), '(January 2025)');
+    log('day 0     →', new Date(2024, 5, 0).toDateString(), '(last day of May)');
+    log('day 32    →', new Date(2024, 0, 32).toDateString());
+  }</script>
+</section>
+
+<section>
+  <h2>The parsing trap</h2>
+  <p>A date-only ISO string is parsed as <b>UTC</b>. Add a time and it is parsed as
+  <b>local</b>. That one-line difference has broken a lot of software.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const dateOnly = new Date('2024-05-17');
+    const withTime = new Date('2024-05-17T00:00:00');
+
+    log('"2024-05-17"          →', dateOnly.toString());
+    log('"2024-05-17T00:00:00" →', withTime.toString());
+    log('same instant?', dateOnly.getTime() === withTime.getTime());
+    log('your time zone offset:', new Date().getTimezoneOffset(), 'minutes from UTC');
+
+    // Non-ISO formats are implementation-dependent — avoid them:
+    log('new Date("05/17/2024") →', new Date('05/17/2024').toDateString());
+    log('new Date("nonsense")   →', String(new Date('nonsense')));
+  }</script>
+</section>
+
+<section>
+  <h2>Underneath it is a number</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T12:00:00Z');
+
+    log('getTime()  →', d.getTime(), 'ms since the epoch');
+    log('valueOf()  →', d.valueOf());
+    log('Number(d)  →', Number(d));
+    log('Date.now() →', Date.now(), '(now, without creating an object)');
+
+    // Which is why subtraction works but addition does not:
+    const later = new Date('2024-05-18T12:00:00Z');
+    log('later - d  →', later - d, 'ms =', (later - d) / 86400000, 'days');
+    log('d + later  →', typeof (d + later), '← string concatenation!');
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing dates</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = new Date('2024-01-01');
+    const b = new Date('2024-06-01');
+    const alsoA = new Date('2024-01-01');
+
+    log('a < b        →', a < b);
+    log('a === alsoA  →', a === alsoA, '← two different objects');
+    log('a.getTime() === alsoA.getTime() →', a.getTime() === alsoA.getTime());
+    log('+a === +alsoA →', +a === +alsoA);
+
+    const dates = [b, a, new Date('2024-03-15')];
+    log('sorted:', dates.sort((x, y) => x - y).map(d => d.toISOString().slice(0, 10)));
+  }</script>
+</section>
+
+<section>
+  <h2>A live clock</h2>
+  <div class="stage">
+    <b id="clock" style="font-family:var(--mono);font-size:22px"></b>
+    <button id="toggle">Stop</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const clock = $('#clock');
+    let timer = null;
+
+    function tick() {
+      const now = new Date();
+      clock.textContent = now.toLocaleTimeString();
+    }
+
+    function start() {
+      tick();
+      timer = setInterval(tick, 1000);
+      log('started');
+    }
+
+    $('#toggle').onclick = function () {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        this.textContent = 'Start';
+        log('stopped at', clock.textContent);
+      } else {
+        start();
+        this.textContent = 'Stop';
+      }
+    };
+
+    start();
+  }</script>
+</section>
+
+</body>
+</html>

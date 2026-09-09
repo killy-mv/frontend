@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Output — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="output">
+
+<h1>Output</h1>
+<p class="lede">JavaScript has no <code>print</code> statement. To show something you write it
+into the page, pop it up in a dialog, or send it to the developer console.</p>
+
+<section>
+  <h2>Writing into an element</h2>
+  <p>The normal way. Find an element, then set <code>innerHTML</code> (parses HTML) or
+  <code>textContent</code> (plain text, always safe).</p>
+
+  <div class="stage">
+    <div id="target" style="flex:1;padding:8px;background:#fff;border:1px solid var(--line);border-radius:6px">empty</div>
+    <button id="asHtml">innerHTML</button>
+    <button id="asText">textContent</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const target = $('#target');
+    const payload = '<b>Bold</b> &amp; <i>italic</i>';
+
+    $('#asHtml').onclick = function () {
+      target.innerHTML = payload;          // tags are parsed and rendered
+      log('innerHTML → the tags became real elements');
+    };
+
+    $('#asText').onclick = function () {
+      target.textContent = payload;        // tags are shown literally
+      log('textContent → the tags are shown as characters');
+    };
+  }</script>
+
+  <div class="note warn">
+    <strong>Rule of thumb:</strong> if the text came from a user or a server, use
+    <code>textContent</code>. <code>innerHTML</code> will happily run markup you did not
+    intend to run.
+  </div>
+</section>
+
+<section>
+  <h2>console.log</h2>
+  <p>The developer console (F12) is where output goes during development. It never disturbs
+  the page.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    console.log('Open DevTools — this line is in the console.');
+    console.warn('console.warn shows a yellow warning');
+    console.error('console.error shows a red error (nothing is broken)');
+    console.table([{ lang: 'JS', year: 1995 }, { lang: 'TS', year: 2012 }]);
+
+    log('Four things were just written to the browser console.');
+    log('The panel you are reading is this site\'s own log(), not the console.');
+  }</script>
+</section>
+
+<section>
+  <h2>window.alert</h2>
+  <p><code>alert()</code> blocks everything until the user clicks OK. Useful for a quick
+  check, terrible in a real interface.</p>
+
+  <div class="stage">
+    <button id="pop">Show an alert</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#pop').onclick = function () {
+      const before = Date.now();
+      alert('Everything on the page is frozen until you close me.');
+      log('you had the dialog open for', Date.now() - before, 'ms');
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>document.write</h2>
+  <p>Writes directly into the document stream while it is being parsed. It still works, but
+  calling it <b>after</b> the page has loaded wipes the whole document — which is why nobody
+  uses it any more.</p>
+
+  <div class="example">
+    <pre class="code"><code><span class="tok-com">// during parsing: appends here</span>
+document.write(<span class="tok-str">'hello'</span>);
+
+<span class="tok-com">// after load: replaces the entire page</span>
+window.onload = () =&gt; document.write(<span class="tok-str">'goodbye'</span>);</code></pre>
+  </div>
+
+  <p>Use it only for throwaway experiments.</p>
+</section>
+
+<section>
+  <h2>Returning a value from a function</h2>
+  <p>The cleanest "output" is often no output at all: a function returns a value and the
+  caller decides what to do with it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function receipt(items) {
+      const total = items.reduce((sum, i) => sum + i.price, 0);
+      return items.map(i => i.name + ' — ' + i.price.toFixed(2)).join('\n')
+        + '\n' + '-'.repeat(20) + '\ntotal  ' + total.toFixed(2);
+    }
+
+    log(receipt([
+      { name: 'coffee', price: 3.4 },
+      { name: 'bagel', price: 2.75 }
+    ]));
+  }</script>
+</section>
+
+</body>
+</html>

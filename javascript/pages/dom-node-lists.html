@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NodeList — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-node-lists">
+
+<h1>NodeList</h1>
+<p class="lede">What <code>querySelectorAll</code> and <code>childNodes</code> return. Almost
+an array — it has <code>forEach</code> and is iterable, but nothing else.</p>
+
+<section>
+  <h2>The basics</h2>
+
+  <div class="stage" id="pen" style="display:block">
+    <p class="row">alpha</p>
+    <p class="row">beta</p>
+    <p class="row">gamma</p>
+  </div>
+  <script class="run">{
+    const { log } = demo();
+
+    const rows = document.querySelectorAll('.row');
+
+    log('type    →', rows.constructor.name);
+    log('length  →', rows.length);
+    log('rows[1] →', rows[1].textContent);
+    log('item(1) →', rows.item(1).textContent);
+    log('out of range →', rows[99], '/', rows.item(99));
+    log('isArray →', Array.isArray(rows));
+  }</script>
+</section>
+
+<section>
+  <h2>What you can do with it directly</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rows = document.querySelectorAll('.row');
+
+    log('forEach:');
+    rows.forEach((el, i) => log('  ' + i, el.textContent));
+
+    log('');
+    log('for…of:');
+    for (const el of rows) log('  ' + el.textContent);
+
+    log('');
+    log('entries / keys / values:');
+    for (const [i, el] of rows.entries()) log('  ' + i + ' →', el.textContent);
+    log('  keys:', [...rows.keys()]);
+
+    log('');
+    log('destructuring works, because it is iterable:');
+    const [first, ...rest] = rows;
+    log('  first →', first.textContent, '| rest →', rest.length, 'more');
+  }</script>
+</section>
+
+<section>
+  <h2>What you cannot</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rows = document.querySelectorAll('.row');
+
+    ['forEach', 'item', 'entries', 'keys', 'values',
+     'map', 'filter', 'reduce', 'find', 'some', 'includes', 'slice', 'sort']
+      .forEach(name => log('  ' + name.padEnd(10),
+                           typeof rows[name] === 'function' ? '✔' : '✘ not available'));
+
+    log('');
+    try {
+      rows.map(el => el.textContent);
+    } catch (err) {
+      log('rows.map(…) →', err.name + ':', err.message);
+    }
+
+    log('');
+    log('convert first:', Array.from(rows).map(el => el.textContent));
+    log('or map as you convert:', Array.from(rows, el => el.textContent.toUpperCase()));
+  }</script>
+</section>
+
+<section>
+  <h2>Static — with one exception</h2>
+
+  <div class="stage">
+    <button id="add">add a row</button>
+  </div>
+  <script class="run">{
+    const { log } = demo();
+
+    const pen = document.getElementById('pen');
+
+    const fromQuery = document.querySelectorAll('.row');   // static NodeList
+    const fromChildren = pen.childNodes;                   // LIVE NodeList
+    let n = 3;
+
+    document.getElementById('add').addEventListener('click', () => {
+      const p = document.createElement('p');
+      p.className = 'row';
+      p.textContent = 'row ' + (++n);
+      pen.append(p);
+      log('querySelectorAll:', fromQuery.length,
+          '| childNodes:', fromChildren.length, '← this one grew');
+    });
+
+    log('querySelectorAll:', fromQuery.length, '| childNodes:', fromChildren.length);
+    log('');
+    log('childNodes is a live NodeList; querySelectorAll returns a static one.');
+    log('The class name does not tell you which — the method does.');
+  }</script>
+</section>
+
+<section>
+  <h2>childNodes counts whitespace</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const spaced = document.createElement('div');
+    spaced.innerHTML = `
+      <p>a</p>
+      <p>b</p>
+    `;
+
+    const tight = document.createElement('div');
+    tight.innerHTML = '<p>a</p><p>b</p>';
+
+    log('formatted HTML → childNodes:', spaced.childNodes.length,
+        '| children:', spaced.children.length);
+    log('minified HTML  → childNodes:', tight.childNodes.length,
+        '| children:', tight.children.length);
+
+    log('');
+    log('the extra nodes:');
+    spaced.childNodes.forEach((node, i) =>
+      log('  ' + i, node.nodeName, JSON.stringify(node.textContent.slice(0, 12))));
+  }</script>
+</section>
+
+<section>
+  <h2>NodeList vs HTMLCollection vs Array</h2>
+
+  <table class="ref">
+    <tr><th></th><th>NodeList</th><th>HTMLCollection</th><th>Array</th></tr>
+    <tr><td>index access</td><td>yes</td><td>yes</td><td>yes</td></tr>
+    <tr><td><code>length</code></td><td>yes</td><td>yes</td><td>yes</td></tr>
+    <tr><td><code>forEach</code></td><td>yes</td><td>no</td><td>yes</td></tr>
+    <tr><td>iterable</td><td>yes</td><td>yes*</td><td>yes</td></tr>
+    <tr><td><code>map</code>/<code>filter</code></td><td>no</td><td>no</td><td>yes</td></tr>
+    <tr><td>can hold text nodes</td><td>yes</td><td>no</td><td>yes</td></tr>
+    <tr><td>live</td><td>sometimes</td><td>always</td><td>never</td></tr>
+  </table>
+  <p style="font-size:13px;color:var(--ink-faint)">* HTMLCollection has a
+  <code>Symbol.iterator</code> in modern browsers, so spread works even though
+  <code>forEach</code> does not.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const nodeList = document.querySelectorAll('.row');
+    const collection = document.getElementsByClassName('row');
+
+    log('spread a NodeList      →', [...nodeList].length);
+    log('spread an HTMLCollection →', [...collection].length);
+    log('');
+    log('NodeList[Symbol.iterator]       →', typeof nodeList[Symbol.iterator]);
+    log('HTMLCollection[Symbol.iterator] →', typeof collection[Symbol.iterator]);
+    log('');
+    log('when in doubt: Array.from(whatever) and stop worrying');
+  }</script>
+</section>
+
+<section>
+  <h2>A practical pass</h2>
+
+  <div class="stage">
+    <input id="filter" placeholder="filter the rows above" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log } = demo();
+
+    const input = document.getElementById('filter');
+
+    function apply() {
+      const term = input.value.trim().toLowerCase();
+
+      // Re-query each time so newly added rows are included:
+      const rows = document.querySelectorAll('#pen .row');
+      let shown = 0;
+
+      rows.forEach(row => {
+        const match = !term || row.textContent.toLowerCase().includes(term);
+        row.style.display = match ? '' : 'none';
+        if (match) shown++;
+      });
+
+      log.clear();
+      log('matched', shown, 'of', rows.length);
+      log('visible:', Array.from(rows)
+        .filter(r => r.style.display !== 'none')
+        .map(r => r.textContent));
+    }
+
+    input.addEventListener('input', apply);
+    apply();
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Modules — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="modules">
+
+<h1>Modules</h1>
+<p class="lede">A module is a file with its own scope. Nothing leaks out unless you
+<code>export</code> it, and nothing comes in unless you <code>import</code> it.</p>
+
+<div class="note warn">
+  Modules are subject to CORS, so <code>import</code> does not work from a
+  <code>file://</code> page. The live examples below use dynamic imports of a data URL,
+  which do work; for real files, serve the folder over HTTP
+  (<code>npx serve</code>, <code>python -m http.server</code>).
+</div>
+
+<section>
+  <h2>Loading one</h2>
+
+  <div class="example">
+    <pre class="code"><code><span class="tok-com">&lt;!-- the type is what makes it a module --&gt;</span>
+&lt;script type=<span class="tok-str">"module"</span> src=<span class="tok-str">"app.js"</span>&gt;&lt;/script&gt;
+
+<span class="tok-com">// app.js</span>
+<span class="tok-key">import</span> { formatPrice } <span class="tok-key">from</span> <span class="tok-str">'./money.js'</span>;
+<span class="tok-key">import</span> money <span class="tok-key">from</span> <span class="tok-str">'./money.js'</span>;      <span class="tok-com">// the default export</span></code></pre>
+  </div>
+
+  <ul>
+    <li>Module scripts are <b>deferred</b> automatically — they run after the document parses.</li>
+    <li>They are always in <b>strict mode</b>.</li>
+    <li>Each module is fetched and evaluated <b>once</b>, however many files import it.</li>
+    <li>The path must be a real path: <code>'./money.js'</code>, not <code>'money'</code>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Named exports</h2>
+
+  <div class="example">
+    <pre class="code"><code><span class="tok-com">// money.js — export at the declaration…</span>
+<span class="tok-key">export const</span> VAT = <span class="tok-num">0.25</span>;
+<span class="tok-key">export function</span> formatPrice(n) { <span class="tok-key">return</span> n.toFixed(<span class="tok-num">2</span>) + <span class="tok-str">' EUR'</span>; }
+
+<span class="tok-com">// …or in one list at the bottom</span>
+<span class="tok-key">const</span> rate = <span class="tok-num">1.1</span>;
+<span class="tok-key">export</span> { rate, rate <span class="tok-key">as</span> exchangeRate };</code></pre>
+  </div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A module built at run time, so it can actually run on this page:
+    const source = `
+      export const VAT = 0.25;
+      export function formatPrice(n) { return n.toFixed(2) + ' EUR'; }
+      export default function withVat(n) { return n * (1 + VAT); }
+    `;
+    const url = 'data:text/javascript;base64,' + btoa(source);
+
+    import(url).then(module => {
+      log('the module namespace object:', Object.keys(module).join(', '));
+      log('VAT              →', module.VAT);
+      log('formatPrice(9.5) →', module.formatPrice(9.5));
+      log('default export   →', module.default(100));
+      log('namespace is frozen:', Object.isFrozen(module));
+    }).catch(err => log('import failed:', err.message));
+
+    log('the import is asynchronous — this line runs first');
+  }</script>
+</section>
+
+<section>
+  <h2>Default exports</h2>
+
+  <div class="example">
+    <pre class="code"><code><span class="tok-com">// one per module, named by the importer</span>
+<span class="tok-key">export default class</span> Logger { }
+
+<span class="tok-key">import</span> Logger <span class="tok-key">from</span> <span class="tok-str">'./logger.js'</span>;
+<span class="tok-key">import</span> AnyNameIWant <span class="tok-key">from</span> <span class="tok-str">'./logger.js'</span>;   <span class="tok-com">// also fine</span>
+
+<span class="tok-com">// mixing both kinds</span>
+<span class="tok-key">import</span> Logger, { LEVELS } <span class="tok-key">from</span> <span class="tok-str">'./logger.js'</span>;</code></pre>
+  </div>
+
+  <p>Named exports are usually the better default: they are explicit at both ends, and they
+  survive renaming and auto-import tooling better.</p>
+</section>
+
+<section>
+  <h2>Import forms</h2>
+
+  <table class="ref">
+    <tr><th>Form</th><th>Brings in</th></tr>
+    <tr><td><code>import { a, b } from './m.js'</code></td><td>two named exports</td></tr>
+    <tr><td><code>import { a as x } from './m.js'</code></td><td>a named export, renamed</td></tr>
+    <tr><td><code>import d from './m.js'</code></td><td>the default export</td></tr>
+    <tr><td><code>import * as m from './m.js'</code></td><td>everything, as a namespace object</td></tr>
+    <tr><td><code>import './m.js'</code></td><td>nothing — just runs it for its side effects</td></tr>
+    <tr><td><code>await import('./m.js')</code></td><td>loads it lazily, at run time</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Dynamic import</h2>
+  <p>A function-like form that returns a promise. Use it for code you only sometimes need —
+  a heavy chart library, an admin panel.</p>
+
+  <div class="stage">
+    <button id="load">Load a module on demand</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const source = `
+      export function heavy(n) {
+        let total = 0;
+        for (let i = 0; i < n; i++) total += Math.sqrt(i);
+        return Math.round(total);
+      }
+    `;
+    const url = 'data:text/javascript;base64,' + btoa(source);
+
+    $('#load').onclick = async function () {
+      this.disabled = true;
+      log('requesting the module…');
+      const t = performance.now();
+      const { heavy } = await import(url);
+      log('arrived in', (performance.now() - t).toFixed(1), 'ms');
+      log('heavy(1e6) →', heavy(1e6));
+      log('a second import is served from cache, not fetched again');
+      this.disabled = false;
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>Live bindings</h2>
+  <p>An import is a live view of the exporting module's variable, not a copy taken at import
+  time.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const source = `
+      export let count = 0;
+      export function increment() { count++; }
+    `;
+    const url = 'data:text/javascript;base64,' + btoa(source);
+
+    import(url).then(m => {
+      log('count       →', m.count);
+      m.increment();
+      m.increment();
+      log('after two increments →', m.count, '← the binding updated');
+
+      m.count = 99;                     // read-only: ignored here, throws in a module
+      log('after assigning 99   →', m.count, '← imports cannot be written to');
+    }).catch(err => log('import failed:', err.message));
+  }</script>
+</section>
+
+<section>
+  <h2>Modules vs classic scripts</h2>
+  <table class="ref">
+    <tr><th></th><th>Classic script</th><th>Module</th></tr>
+    <tr><td>Top-level scope</td><td>global</td><td>the module</td></tr>
+    <tr><td>Strict mode</td><td>opt in</td><td>always</td></tr>
+    <tr><td>Execution</td><td>immediate, blocking</td><td>deferred</td></tr>
+    <tr><td>Runs more than once</td><td>yes, per tag</td><td>no, cached</td></tr>
+    <tr><td>top-level <code>await</code></td><td>no</td><td>yes</td></tr>
+    <tr><td>From <code>file://</code></td><td>works</td><td>blocked by CORS</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array Search — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="array-search">
+
+<h1>Array Search</h1>
+<p class="lede">Finding things by value, or by a test you write. The split is:
+<code>indexOf</code> family compares values, <code>find</code> family runs a function.</p>
+
+<section>
+  <h2>By value</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Apple', 'Orange', 'Apple', 'Mango'];
+
+    log('indexOf("Apple")     →', fruit.indexOf('Apple'));
+    log('indexOf("Apple", 1)  →', fruit.indexOf('Apple', 1));
+    log('lastIndexOf("Apple") →', fruit.lastIndexOf('Apple'));
+    log('indexOf("Pear")      →', fruit.indexOf('Pear'));
+    log('includes("Mango")    →', fruit.includes('Mango'));
+
+    // includes finds NaN; indexOf cannot, because NaN !== NaN
+    const nums = [1, NaN, 3];
+    log('indexOf(NaN)  →', nums.indexOf(NaN));
+    log('includes(NaN) →', nums.includes(NaN));
+  }</script>
+</section>
+
+<section>
+  <h2>By test: find and findIndex</h2>
+  <p>The callback receives <code>(value, index, array)</code> and returns true for a match.
+  Both stop at the first hit.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const people = [
+      { name: 'Ada', age: 36 },
+      { name: 'Grace', age: 45 },
+      { name: 'Alan', age: 41 }
+    ];
+
+    log('find(age > 40)      →', people.find(p => p.age > 40));
+    log('findIndex(age > 40) →', people.findIndex(p => p.age > 40));
+    log('findLast(age > 40)  →', people.findLast(p => p.age > 40));
+    log('findLastIndex       →', people.findLastIndex(p => p.age > 40));
+    log('find(age > 99)      →', people.find(p => p.age > 99));
+
+    // indexOf cannot do this — objects compare by identity:
+    log('indexOf({name:"Ada",age:36}) →', people.indexOf({ name: 'Ada', age: 36 }));
+  }</script>
+</section>
+
+<section>
+  <h2>some and every</h2>
+  <p>Boolean questions about the whole array. Both short-circuit as soon as the answer is
+  decided.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const ages = [32, 33, 12, 40];
+
+    log('some(age >= 18)  →', ages.some(a => a >= 18));
+    log('every(age >= 18) →', ages.every(a => a >= 18));
+    log('some(age > 100)  →', ages.some(a => a > 100));
+
+    // every() on an empty array is true — "vacuously true"
+    log('[].every(...)    →', [].every(a => false));
+    log('[].some(...)     →', [].some(a => true));
+
+    // Watching the short-circuit:
+    [1, 2, 3, 4].some(n => {
+      log('  testing', n);
+      return n === 2;
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>filter: every match, not just the first</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [12, 5, 8, 130, 44, 3];
+
+    log('filter(n > 10) →', numbers.filter(n => n > 10));
+    log('filter count   →', numbers.filter(n => n > 10).length);
+    log('no matches     →', numbers.filter(n => n > 1000), '(an empty array)');
+
+    // filter + map is the everyday combination:
+    const products = [
+      { name: 'pen', price: 2, stock: 0 },
+      { name: 'book', price: 15, stock: 3 },
+      { name: 'lamp', price: 40, stock: 7 }
+    ];
+    log('in stock, names:', products.filter(p => p.stock > 0).map(p => p.name));
+  }</script>
+</section>
+
+<section>
+  <h2>Which method to reach for</h2>
+  <table class="ref">
+    <tr><th>Question</th><th>Method</th><th>Returns</th></tr>
+    <tr><td>Is this value in there?</td><td><code>includes</code></td><td>boolean</td></tr>
+    <tr><td>Where is this value?</td><td><code>indexOf</code></td><td>index or −1</td></tr>
+    <tr><td>Give me the first match</td><td><code>find</code></td><td>the item or undefined</td></tr>
+    <tr><td>Where is the first match?</td><td><code>findIndex</code></td><td>index or −1</td></tr>
+    <tr><td>Is at least one like this?</td><td><code>some</code></td><td>boolean</td></tr>
+    <tr><td>Are they all like this?</td><td><code>every</code></td><td>boolean</td></tr>
+    <tr><td>Give me all the matches</td><td><code>filter</code></td><td>a new array</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>A searchable table</h2>
+  <div class="stage">
+    <input id="term" placeholder="name…" style="flex:1" value="a">
+    <label>min price <input id="min" type="number" value="0" style="width:80px"></label>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const stock = [
+      { name: 'Keyboard', price: 49.9 },
+      { name: 'Mouse', price: 19.5 },
+      { name: 'Monitor', price: 189 },
+      { name: 'Webcam', price: 65 },
+      { name: 'Cable', price: 7.25 }
+    ];
+
+    function search() {
+      const term = $('#term').value.toLowerCase();
+      const min = Number($('#min').value);
+
+      const hits = stock.filter(item =>
+        item.name.toLowerCase().includes(term) && item.price >= min);
+
+      log.clear();
+      log('matches:', hits.length);
+      hits.forEach(i => log('  ' + i.name.padEnd(10) + String(i.price).padStart(7)));
+      log('any over 100?', hits.some(i => i.price > 100));
+      log('all under 200?', hits.every(i => i.price < 200));
+      log('first match:', hits.find(() => true)?.name ?? '(none)');
+    }
+
+    $('#term').addEventListener('input', search);
+    $('#min').addEventListener('input', search);
+    search();
+  }</script>
+</section>
+
+</body>
+</html>

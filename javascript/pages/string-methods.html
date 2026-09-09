@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>String Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="string-methods">
+
+<h1>String Methods</h1>
+<p class="lede">Every one of these returns a new string. None of them changes the original.</p>
+
+<section>
+  <h2>Extracting</h2>
+  <p><code>slice()</code> is the one to use; it accepts negative indexes counting from the
+  end. <code>substring()</code> swaps its arguments if they are out of order, and
+  <code>substr()</code> is deprecated.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'Apple, Banana, Kiwi';
+
+    log('slice(7, 13)   →', text.slice(7, 13));
+    log('slice(7)       →', text.slice(7));
+    log('slice(-4)      →', text.slice(-4));
+    log('slice(-12, -6) →', text.slice(-12, -6));
+
+    log('substring(7,13)→', text.substring(7, 13));
+    log('substring(13,7)→', text.substring(13, 7), '(arguments swapped for you)');
+    log('slice(13, 7)   →', JSON.stringify(text.slice(13, 7)), '(empty)');
+  }</script>
+</section>
+
+<section>
+  <h2>Case</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const name = 'Ada Lovelace';
+
+    log(name.toUpperCase());
+    log(name.toLowerCase());
+    log('locale-aware:', 'i'.toLocaleUpperCase('tr'), '(Turkish dotted I)');
+
+    // Case-insensitive comparison:
+    const a = 'HELLO', b = 'hello';
+    log('a === b                     →', a === b);
+    log('lowercased comparison       →', a.toLowerCase() === b.toLowerCase());
+  }</script>
+</section>
+
+<section>
+  <h2>Replacing</h2>
+  <p><code>replace()</code> changes the first match only; <code>replaceAll()</code> changes
+  every one. A regex with <code>/g</code> does the same as replaceAll.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'Please visit Microsoft and Microsoft!';
+
+    log(text.replace('Microsoft', 'W3Schools'));
+    log(text.replaceAll('Microsoft', 'W3Schools'));
+    log(text.replace(/microsoft/gi, 'W3Schools'));
+
+    // The replacement can be a function:
+    log('a1 b2 c3'.replace(/\d/g, d => d * 2));
+  }</script>
+</section>
+
+<section>
+  <h2>Trimming and padding</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const messy = '   spaced out   ';
+
+    log('[' + messy.trim() + ']');
+    log('[' + messy.trimStart() + ']');
+    log('[' + messy.trimEnd() + ']');
+
+    log('5'.padStart(3, '0'), '← padStart, useful for times and ids');
+    log('ab'.padEnd(6, '.') + '|');
+
+    // Lining up a small table:
+    const rows = [['apple', 1.2], ['fig', 15], ['clementine', 3]];
+    rows.forEach(([name, price]) =>
+      log(name.padEnd(12) + String(price).padStart(6)));
+  }</script>
+</section>
+
+<section>
+  <h2>Splitting and joining</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const csv = 'red,green,blue';
+
+    log(csv.split(','));
+    log(csv.split(',').join(' | '));
+    log('one two  three'.split(/\s+/));
+    log('abc'.split(''));
+    log('a,b,c'.split(',', 2), '(limited to 2)');
+  }</script>
+</section>
+
+<section>
+  <h2>Repeating and combining</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('-'.repeat(30));
+    log('ab'.repeat(3));
+    log('Hello'.concat(' ', 'World'));
+
+    // A quick bar chart:
+    [12, 30, 5, 22].forEach(n => log(String(n).padStart(3), '█'.repeat(n)));
+  }</script>
+</section>
+
+<section>
+  <h2>Try them</h2>
+  <div class="stage">
+    <input id="input" style="flex:1" value="  Hello, World!  ">
+    <select id="method">
+      <option>trim</option><option>toUpperCase</option><option>toLowerCase</option>
+      <option>slice(0, 8)</option><option>split(",")</option>
+      <option>replaceAll("l", "L")</option><option>padEnd(24, ".")</option>
+    </select>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const input = $('#input');
+    const method = $('#method');
+
+    const apply = {
+      'trim': s => s.trim(),
+      'toUpperCase': s => s.toUpperCase(),
+      'toLowerCase': s => s.toLowerCase(),
+      'slice(0, 8)': s => s.slice(0, 8),
+      'split(",")': s => s.split(','),
+      'replaceAll("l", "L")': s => s.replaceAll('l', 'L'),
+      'padEnd(24, ".")': s => s.padEnd(24, '.')
+    };
+
+    function run() {
+      log.clear();
+      log('in: ', JSON.stringify(input.value));
+      log('out:', apply[method.value](input.value));
+    }
+
+    input.addEventListener('input', run);
+    method.addEventListener('change', run);
+    run();
+  }</script>
+</section>
+
+</body>
+</html>

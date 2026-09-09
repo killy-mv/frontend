@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asynchronous JavaScript — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="asynchronous">
+
+<h1>Asynchronous JavaScript</h1>
+<p class="lede">JavaScript runs on one thread. "Asynchronous" does not mean parallel — it
+means <i>queued to run later, once the current work finishes</i>.</p>
+
+<section>
+  <h2>One thread, one call stack</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function third()  { log('  third');  }
+    function second() { log('  second'); third(); }
+    function first()  { log('  first');  second(); }
+
+    log('call stack, deepest last:');
+    first();
+
+    log('');
+    log('nothing else can run while this stack is busy —');
+    log('including rendering, clicks, and timers.');
+  }</script>
+</section>
+
+<section>
+  <h2>Blocking</h2>
+  <p>A long synchronous loop freezes the whole page. Click the button, then try to select
+  this text while it runs.</p>
+
+  <div class="stage">
+    <button id="block">block for 800ms</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#block').addEventListener('click', () => {
+      log('starting…');
+      const end = Date.now() + 800;
+      let spins = 0;
+      while (Date.now() < end) spins++;
+      log('finished after', spins.toLocaleString(), 'spins');
+      log('the page was frozen the whole time — even this line only appeared now');
+    });
+
+    log('press the button');
+  }</script>
+</section>
+
+<section>
+  <h2>The event loop</h2>
+  <p>Async work is handed to the browser. When it finishes, a callback is queued; the loop
+  runs it only when the stack is empty.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('1 — script (synchronous)');
+
+    setTimeout(() => log('5 — macrotask: setTimeout 0'), 0);
+
+    Promise.resolve().then(() => log('3 — microtask: promise'));
+    queueMicrotask(() => log('4 — microtask: queueMicrotask'));
+
+    log('2 — script (synchronous)');
+
+    // Order: all synchronous code → ALL microtasks → one macrotask → repeat.
+  }</script>
+</section>
+
+<section>
+  <h2>Microtasks starve macrotasks</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    setTimeout(() => log('the timer finally ran, after every promise'), 0);
+
+    Promise.resolve()
+      .then(() => log('promise 1'))
+      .then(() => log('promise 2'))
+      .then(() => log('promise 3'))
+      .then(() => log('promise 4'));
+
+    log('the microtask queue is drained completely before any timer');
+  }</script>
+</section>
+
+<section>
+  <h2>setTimeout is a minimum, not a promise</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const start = Date.now();
+    setTimeout(() => log('asked for 0ms, actually waited', Date.now() - start, 'ms'), 0);
+
+    setTimeout(() => {
+      const t = Date.now();
+      while (Date.now() - t < 60) { /* busy */ }
+      log('a slow callback delays everything behind it');
+    }, 5);
+
+    setTimeout(() => log('asked for 10ms, actually waited', Date.now() - start, 'ms'), 10);
+
+    log('nested timeouts are also clamped to ~4ms by browsers');
+  }</script>
+</section>
+
+<section>
+  <h2>Three generations of the same idea</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    // 1. callback
+    setTimeout(() => log('callback style'), 10);
+
+    // 2. promise
+    wait(20).then(() => log('promise style'));
+
+    // 3. async / await
+    (async () => {
+      await wait(30);
+      log('async/await style');
+      log('');
+      log('all three do the same thing; only the readability differs');
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>Concurrency without threads</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const job = (name, ms) => new Promise(resolve =>
+      setTimeout(() => { log('  ' + name + ' finished'); resolve(name); }, ms));
+
+    const start = Date.now();
+
+    // Started together — the waiting overlaps, even on one thread.
+    Promise.all([job('slow', 120), job('medium', 80), job('fast', 40)])
+      .then(names => {
+        log('all done in ~' + (Date.now() - start) + 'ms:', names);
+        log('sequentially it would have taken ~240ms');
+      });
+
+    log('three jobs started at once');
+  }</script>
+</section>
+
+<section>
+  <h2>When you really need another thread</h2>
+  <div class="note">Async does not make CPU work faster — it only stops it from blocking
+  <i>waiting</i>. For genuinely heavy computation the browser offers
+  <b>Web Workers</b>, which run on a separate thread and talk to the page by message.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('rules of thumb:');
+    log('  waiting on the network, a file, a timer  → async');
+    log('  heavy maths, parsing, image processing   → a Worker');
+    log('  splitting a long loop into chunks        → setTimeout between chunks');
+
+    log('');
+    log('Worker support here:', typeof Worker !== 'undefined' ? 'yes' : 'no');
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Properties — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-properties">
+
+<h1>Object Properties</h1>
+<p class="lede">Every property is a name and a value plus three hidden switches: writable,
+enumerable and configurable.</p>
+
+<section>
+  <h2>Reading and writing</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { firstName: 'Ada', 'last name': 'Lovelace', 42: 'the answer' };
+
+    log('dot:      ', person.firstName);
+    log('bracket:  ', person['last name'], '← required, the key has a space');
+    log('numeric:  ', person[42], '(keys are always strings)');
+    log('variable: ', person[['first', 'Name'].join('')]);
+
+    person.age = 36;                    // add
+    person.firstName = 'Augusta Ada';   // change
+    log(person);
+
+    log('missing:  ', person.nickname);
+    log('deep:     ', person.address?.city, '← optional chaining does not throw');
+  }</script>
+</section>
+
+<section>
+  <h2>Deleting</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const config = { host: 'localhost', port: 8080, debug: true };
+
+    delete config.debug;
+    log('after delete:', config);
+    log('delete returns:', delete config.nothingHere, '(true even when nothing was there)');
+
+    // Setting to undefined is not the same as deleting:
+    config.port = undefined;
+    log('port set to undefined:', config, '| "port" in config →', 'port' in config);
+
+    // Non-mutating removal:
+    const { host, ...withoutHost } = config;
+    log('by destructuring:', withoutHost);
+  }</script>
+</section>
+
+<section>
+  <h2>Does it exist?</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const obj = { a: 1, b: undefined };
+
+    log('obj.a !== undefined →', obj.a !== undefined);
+    log('obj.b !== undefined →', obj.b !== undefined, '← wrong, b does exist');
+    log("'b' in obj          →", 'b' in obj);
+    log('Object.hasOwn(obj, "b") →', Object.hasOwn(obj, 'b'));
+
+    log('');
+    log('the difference between own and inherited:');
+    log("  'toString' in obj            →", 'toString' in obj);
+    log('  Object.hasOwn(obj, "toString") →', Object.hasOwn(obj, 'toString'));
+  }</script>
+</section>
+
+<section>
+  <h2>Property descriptors</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const obj = { normal: 1 };
+
+    log('a normal property:', Object.getOwnPropertyDescriptor(obj, 'normal'));
+
+    Object.defineProperty(obj, 'hidden', {
+      value: 'not enumerable',
+      writable: false,
+      enumerable: false,
+      configurable: false
+    });
+
+    log('');
+    log('obj.hidden          →', obj.hidden);
+    log('Object.keys(obj)    →', Object.keys(obj), '← hidden is skipped');
+    log('JSON.stringify(obj) →', JSON.stringify(obj));
+    log('getOwnPropertyNames →', Object.getOwnPropertyNames(obj));
+
+    obj.hidden = 'try to change';
+    log('after writing to it:', obj.hidden, '← writable:false, silently ignored');
+  }</script>
+</section>
+
+<section>
+  <h2>The three switches</h2>
+
+  <table class="ref">
+    <tr><th>Flag</th><th>When false</th></tr>
+    <tr><td><code>writable</code></td><td>the value cannot be changed</td></tr>
+    <tr><td><code>enumerable</code></td><td>skipped by <code>for…in</code>, <code>Object.keys</code>, spread and JSON</td></tr>
+    <tr><td><code>configurable</code></td><td>cannot be deleted or redefined</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const account = {};
+
+    Object.defineProperties(account, {
+      id: { value: 'ACC-1', writable: false, enumerable: true },
+      balance: { value: 100, writable: true, enumerable: true },
+      _secret: { value: 'internal', enumerable: false, writable: true }
+    });
+
+    account.id = 'ACC-2';
+    account.balance = 250;
+
+    log('id (read-only):', account.id);
+    log('balance:       ', account.balance);
+    log('spread copies only enumerables:', { ...account });
+    log('all own names:', Object.getOwnPropertyNames(account));
+  }</script>
+</section>
+
+<section>
+  <h2>Getters and setters as properties</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rectangle = {
+      width: 4,
+      height: 3,
+      get area() { return this.width * this.height; },
+      set area(value) { this.width = value / this.height; }
+    };
+
+    log('area →', rectangle.area, '(computed, no parentheses)');
+    rectangle.area = 30;
+    log('after setting area to 30, width →', rectangle.width);
+
+    const descriptor = Object.getOwnPropertyDescriptor(rectangle, 'area');
+    log('descriptor keys:', Object.keys(descriptor));
+  }</script>
+</section>
+
+<section>
+  <h2>Inspect an object</h2>
+  <div class="stage">
+    <select id="pick">
+      <option value="plain">a plain object</option>
+      <option value="array">an array</option>
+      <option value="date">a Date</option>
+      <option value="defined">one built with defineProperty</option>
+    </select>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const defined = {};
+    Object.defineProperty(defined, 'visible', { value: 1, enumerable: true });
+    Object.defineProperty(defined, 'hidden', { value: 2, enumerable: false });
+
+    const samples = {
+      plain: { a: 1, b: 'two' },
+      array: ['x', 'y'],
+      date: new Date(),
+      defined
+    };
+
+    function inspect() {
+      const target = samples[$('#pick').value];
+      log.clear();
+
+      log('Object.keys        ', Object.keys(target));
+      log('getOwnPropertyNames', Object.getOwnPropertyNames(target).slice(0, 10));
+      log('JSON.stringify     ', JSON.stringify(target));
+      log('');
+      Object.getOwnPropertyNames(target).slice(0, 6).forEach(key => {
+        const d = Object.getOwnPropertyDescriptor(target, key);
+        log('  ' + key.padEnd(12),
+            'writable:' + String(d.writable ?? '-').padEnd(6),
+            'enumerable:' + String(d.enumerable).padEnd(6),
+            'configurable:' + d.configurable);
+      });
+    }
+
+    $('#pick').addEventListener('change', inspect);
+    inspect();
+  }</script>
+</section>
+
+</body>
+</html>

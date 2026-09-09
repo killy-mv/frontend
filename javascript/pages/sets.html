@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sets — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="sets">
+
+<h1>Sets</h1>
+<p class="lede">A collection of unique values, kept in insertion order. Adding a value that
+is already there does nothing.</p>
+
+<section>
+  <h2>Creating one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const empty = new Set();
+    empty.add('a').add('b').add('a');        // add returns the set, so it chains
+
+    log('after adding a, b, a:', empty, 'size', empty.size);
+
+    const fromArray = new Set([1, 2, 2, 3, 3, 3]);
+    log('from an array:', fromArray);
+
+    const fromString = new Set('mississippi');
+    log('from a string:', fromString);
+  }</script>
+</section>
+
+<section>
+  <h2>The everyday use: removing duplicates</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const tags = ['js', 'css', 'js', 'html', 'css', 'js'];
+
+    log('original:', tags);
+    log('unique:  ', [...new Set(tags)]);
+    log('counted: ', tags.length, '→', new Set(tags).size);
+
+    // Compare with the pre-Set idiom:
+    log('the old way:', tags.filter((v, i) => tags.indexOf(v) === i));
+  }</script>
+</section>
+
+<section>
+  <h2>Membership is fast</h2>
+  <p><code>set.has()</code> is roughly constant time; <code>array.includes()</code> scans.
+  With thousands of items the difference is large.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const N = 50000;
+    const array = Array.from({ length: N }, (_, i) => i);
+    const set = new Set(array);
+    const needle = N - 1;
+
+    let t = performance.now();
+    for (let i = 0; i < 1000; i++) array.includes(needle);
+    const arrayTime = performance.now() - t;
+
+    t = performance.now();
+    for (let i = 0; i < 1000; i++) set.has(needle);
+    const setTime = performance.now() - t;
+
+    log('1000 lookups in', N, 'items');
+    log('array.includes:', arrayTime.toFixed(1), 'ms');
+    log('set.has:       ', setTime.toFixed(2), 'ms');
+  }</script>
+</section>
+
+<section>
+  <h2>Uniqueness uses SameValueZero</h2>
+  <p>Almost <code>===</code>, with one difference: <code>NaN</code> equals itself. Objects
+  are compared by identity, so two identical-looking objects are two entries.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const s = new Set([NaN, NaN, 0, -0, '1', 1]);
+    log(s, 'size', s.size);
+    log('NaN is deduplicated, unlike with indexOf');
+    log('0 and -0 count as the same value');
+    log('"1" and 1 do not');
+
+    const objects = new Set([{ a: 1 }, { a: 1 }]);
+    log('two identical objects →', objects.size, 'entries');
+
+    const shared = { a: 1 };
+    log('the same object twice →', new Set([shared, shared]).size, 'entry');
+  }</script>
+</section>
+
+<section>
+  <h2>Looping</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const letters = new Set(['a', 'b', 'c']);
+
+    for (const letter of letters) log('for…of:', letter);
+
+    letters.forEach(function (value, key, set) {
+      log('forEach: value', value, '| key', key, '(a Set has no separate keys)');
+    });
+
+    log('entries:', [...letters.entries()]);
+    log('there are no indexes — a Set is not ordered by position, only by insertion');
+  }</script>
+</section>
+
+<section>
+  <h2>Sets are not arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const set = new Set([3, 1, 2]);
+
+    log('set.size   →', set.size, '(not .length)');
+    log('set[0]     →', set[0], '(no index access)');
+    log('set.map    →', typeof set.map, '(no array methods)');
+
+    // Convert, work, convert back:
+    log('sorted:', [...set].sort((a, b) => a - b));
+    log('doubled:', new Set([...set].map(n => n * 2)));
+  }</script>
+</section>
+
+<section>
+  <h2>A tag input</h2>
+  <div class="stage">
+    <input id="tag" placeholder="add a tag" style="flex:1" value="javascript">
+    <button id="add">Add</button>
+    <button id="clear">Clear</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const tags = new Set(['html', 'css']);
+
+    function render() {
+      log.clear();
+      log('tags (' + tags.size + '):', [...tags].join(', ') || '(none)');
+    }
+
+    $('#add').onclick = function () {
+      const value = $('#tag').value.trim().toLowerCase();
+      if (!value) return;
+      const before = tags.size;
+      tags.add(value);
+      render();
+      log(tags.size === before ? '→ "' + value + '" was already there' : '→ added "' + value + '"');
+      $('#tag').value = '';
+    };
+
+    $('#clear').onclick = function () { tags.clear(); render(); };
+
+    render();
+  }</script>
+</section>
+
+</body>
+</html>

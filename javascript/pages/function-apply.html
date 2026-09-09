@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>apply() — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-apply">
+
+<h1>apply()</h1>
+<p class="lede">Exactly like <code>call()</code>, except the arguments arrive as a single
+array. Remember it as <b>a</b>pply → <b>a</b>rray.</p>
+
+<section>
+  <h2>Same thing, different shape</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function order(size, drink) {
+      return `${this.name} ordered a ${size} ${drink}`;
+    }
+
+    const customer = { name: 'Ada' };
+
+    log(order.call(customer, 'large', 'coffee'));
+    log(order.apply(customer, ['large', 'coffee']));
+
+    log('');
+    log('apply is useful when the arguments are already in an array:');
+    const wanted = ['small', 'tea'];
+    log(order.apply(customer, wanted));
+  }</script>
+</section>
+
+<section>
+  <h2>Spreading an array into a function</h2>
+  <p>The classic trick: <code>Math.max</code> takes separate arguments, not an array.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [4, 19, 7, 42, 3];
+
+    log('Math.max(numbers)          →', Math.max(numbers), '← one non-number argument');
+    log('Math.max.apply(null, nums) →', Math.max.apply(null, numbers));
+    log('Math.max(...numbers)       →', Math.max(...numbers), '← the modern form');
+
+    log('');
+    log('this is ignored by Math.max, so null is the conventional placeholder');
+  }</script>
+</section>
+
+<section>
+  <h2>Flattening and concatenating</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const nested = [[1, 2], [3, 4], [5]];
+
+    log('apply:  ', [].concat.apply([], nested));
+    log('spread: ', [].concat(...nested));
+    log('modern: ', nested.flat());
+
+    log('');
+    const target = ['a'];
+    Array.prototype.push.apply(target, ['b', 'c', 'd']);
+    log('push.apply grows an array in place:', target);
+    log('the same with spread:', (target.push(...['e']), target));
+  }</script>
+</section>
+
+<section>
+  <h2>The argument-count limit</h2>
+  <p>Both <code>apply</code> and spread push every element onto the call stack, so very large
+  arrays throw.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function count() { return arguments.length; }
+
+    log('10,000 arguments →', count.apply(null, new Array(10000)));
+
+    try {
+      log('1,000,000 →', count.apply(null, new Array(1000000)));
+    } catch (err) {
+      log('1,000,000 →', err.name + ':', err.message);
+    }
+
+    log('');
+    log('for big data, loop or reduce instead:');
+    const big = Array.from({ length: 200000 }, (_, i) => i % 977);
+    log('  reduce max →', big.reduce((m, n) => (n > m ? n : m), -Infinity));
+  }</script>
+</section>
+
+<section>
+  <h2>Forwarding arguments</h2>
+  <p>Wrapping a function used to mean <code>apply(this, arguments)</code>. Rest and spread
+  now say it more clearly.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function slowAdd(a, b) { return a + b; }
+
+    // The old way:
+    function logCallsOld(fn) {
+      return function () {
+        log('  called with', Array.from(arguments));
+        return fn.apply(this, arguments);
+      };
+    }
+
+    // The modern way:
+    const logCallsNew = fn => function (...args) {
+      log('  called with', args);
+      return fn.apply(this, args);
+    };
+
+    log('old wrapper:', logCallsOld(slowAdd)(2, 3));
+    log('new wrapper:', logCallsNew(slowAdd)(4, 5));
+
+    log('');
+    log('both forward this too, so wrapping a method still works:');
+    const obj = { base: 10, add(n) { return this.base + n; } };
+    obj.add = logCallsNew(obj.add);
+    log('obj.add(5) →', obj.add(5));
+  }</script>
+</section>
+
+<section>
+  <h2>Array-like objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // apply itself accepts an array-LIKE, not only a real array:
+    function join3(a, b, c) { return [a, b, c].join('/'); }
+
+    log(join3.apply(null, { 0: 'x', 1: 'y', 2: 'z', length: 3 }));
+
+    // Which makes borrowing symmetric:
+    const nodes = document.querySelectorAll('h2');
+    log('headings on this page:',
+        Array.prototype.map.call(nodes, h => h.textContent).slice(0, 3));
+  }</script>
+</section>
+
+<section>
+  <h2>Choosing between them</h2>
+  <div class="note">In new code, prefer spread: <code>fn(...args)</code> for a plain call,
+  <code>fn.call(ctx, ...args)</code> when you also need a <code>this</code>. Reach for
+  <code>apply</code> when you are reading older code, or when the arguments already exist as
+  an array-like that is not iterable.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const args = [1, 2, 3];
+    function total(a, b, c) { return a + b + c; }
+
+    log('fn(...args)          →', total(...args));
+    log('fn.apply(null, args) →', total.apply(null, args));
+    log('identical results:', total(...args) === total.apply(null, args));
+
+    log('');
+    const notIterable = { 0: 1, 1: 2, 2: 3, length: 3 };
+    try { log(total(...notIterable)); }
+    catch (err) { log('spread on an array-like →', err.name, '← apply still works here'); }
+    log('apply on an array-like →', total.apply(null, notIterable));
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>String Templates — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="string-templates">
+
+<h1>String Templates</h1>
+<p class="lede">Strings written in backticks. They keep line breaks, and anything inside
+<code>${ }</code> is evaluated and dropped into the text.</p>
+
+<section>
+  <h2>Interpolation</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const name = 'Ada';
+    const items = 3;
+    const price = 12.5;
+
+    // The old way:
+    log('Hi ' + name + ', you have ' + items + ' items (' + (items * price).toFixed(2) + ').');
+
+    // The template way:
+    log(`Hi ${name}, you have ${items} items (${(items * price).toFixed(2)}).`);
+  }</script>
+</section>
+
+<section>
+  <h2>Any expression fits inside ${ }</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const user = { name: 'Ada', admin: true };
+    const scores = [10, 20, 30];
+
+    log(`property:   ${user.name}`);
+    log(`method:     ${user.name.toUpperCase()}`);
+    log(`arithmetic: ${scores.reduce((a, b) => a + b, 0)}`);
+    log(`ternary:    ${user.admin ? 'admin' : 'user'}`);
+    log(`nested:     ${`inner ${1 + 1}`}`);
+  }</script>
+</section>
+
+<section>
+  <h2>Multi-line output</h2>
+  <p>Line breaks and indentation inside the backticks are kept exactly as written.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const order = { id: 'A-119', items: 2, total: 41.5 };
+
+    log(`Order ${order.id}
+  items: ${order.items}
+  total: ${order.total.toFixed(2)} EUR
+  ${'-'.repeat(20)}
+  thank you!`);
+  }</script>
+</section>
+
+<section>
+  <h2>Building HTML</h2>
+  <p>The most common everyday use: turning data into markup.</p>
+
+  <div class="stage">
+    <button id="render">Render the list</button>
+    <div id="target" style="flex:1"></div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const products = [
+      { name: 'Keyboard', price: 49.9, stock: 4 },
+      { name: 'Mouse', price: 19.5, stock: 0 },
+      { name: 'Monitor', price: 189, stock: 12 }
+    ];
+
+    $('#render').onclick = function () {
+      const html = `
+        <ul style="margin:0;padding-left:18px">
+          ${products.map(p => `
+            <li>
+              <b>${p.name}</b> — ${p.price.toFixed(2)}
+              ${p.stock ? `(${p.stock} in stock)` : '<i>sold out</i>'}
+            </li>`).join('')}
+        </ul>`;
+
+      $('#target').innerHTML = html;
+      log('rendered', products.length, 'products');
+    };
+  }</script>
+
+  <div class="note warn">
+    Interpolating user input into <code>innerHTML</code> is how injection bugs happen.
+    Escape the values, or build the elements with <code>textContent</code>.
+  </div>
+</section>
+
+<section>
+  <h2>Tagged templates</h2>
+  <p>Putting a function name in front of a template calls that function with the literal
+  parts and the interpolated values separately — which lets you process them.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function escapeHtml(strings, ...values) {
+      return strings.reduce((out, part, i) => {
+        const value = values[i - 1]
+          .toString()
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        return out + value + part;
+      });
+    }
+
+    const userInput = '<img src=x onerror=alert(1)>';
+    log(escapeHtml`Comment: ${userInput}`);
+
+    function highlight(strings, ...values) {
+      log('literal parts:', strings.raw);
+      log('values:       ', values);
+      return 'done';
+    }
+    log(highlight`a ${1} b ${2} c`);
+  }</script>
+</section>
+
+<section>
+  <h2>Raw strings</h2>
+  <p><code>String.raw</code> ignores escape sequences — handy for Windows paths and regex
+  sources.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('cooked:', `C:\name\table`);
+    log('raw:   ', String.raw`C:\name\table`);
+  }</script>
+</section>
+
+</body>
+</html>

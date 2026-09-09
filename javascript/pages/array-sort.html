@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array Sort — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="array-sort">
+
+<h1>Array Sort</h1>
+<p class="lede"><code>sort()</code> converts everything to strings unless you give it a
+compare function. That single default explains almost every sorting question ever asked.</p>
+
+<section>
+  <h2>The default is alphabetical</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('strings sort fine:', ['Volvo', 'BMW', 'Saab'].sort());
+
+    log('numbers do not:   ', [40, 100, 1, 5, 25, 10].sort());
+    log('…because it compares "100" < "25" as text');
+
+    log('with a comparator:', [40, 100, 1, 5, 25, 10].sort((a, b) => a - b));
+  }</script>
+</section>
+
+<section>
+  <h2>The compare function</h2>
+  <p>Return a negative number to put <code>a</code> first, positive to put <code>b</code>
+  first, zero to leave them as they are.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [40, 100, 1, 5, 25, 10];
+
+    log('ascending: ', [...numbers].sort((a, b) => a - b));
+    log('descending:', [...numbers].sort((a, b) => b - a));
+
+    // Watch the comparisons happen:
+    [3, 1, 2].sort((a, b) => {
+      log('  comparing', a, 'and', b, '→', a - b);
+      return a - b;
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>sort mutates</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = [3, 1, 2];
+    const result = original.sort();
+
+    log('original:', original, '← changed in place');
+    log('result === original →', result === original);
+
+    // The ES2023 non-mutating versions:
+    const safe = [3, 1, 2];
+    log('toSorted()  →', safe.toSorted((a, b) => a - b), '| safe:', safe);
+    log('toReversed()→', safe.toReversed(), '| safe:', safe);
+
+    // Before ES2023, copy first:
+    log('copy then sort →', [...safe].sort((a, b) => a - b));
+  }</script>
+</section>
+
+<section>
+  <h2>Sorting strings properly</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const names = ['banana', 'Apple', 'cherry', 'Ápple'];
+
+    log('default:      ', [...names].sort());
+    log('case folded:  ', [...names].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1));
+    log('localeCompare:', [...names].sort((a, b) => a.localeCompare(b)));
+
+    // A reusable collator is faster for large lists:
+    const collator = new Intl.Collator('en', { sensitivity: 'base', numeric: true });
+    log('with numeric: ', ['file10', 'file2', 'file1'].sort(collator.compare));
+    log('without:      ', ['file10', 'file2', 'file1'].sort());
+  }</script>
+</section>
+
+<section>
+  <h2>Sorting objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const cars = [
+      { brand: 'Volvo', year: 2016, price: 21000 },
+      { brand: 'Saab', year: 2001, price: 8000 },
+      { brand: 'BMW', year: 2010, price: 21000 }
+    ];
+
+    const byYear = [...cars].sort((a, b) => a.year - b.year);
+    log('by year:', byYear.map(c => c.brand + ' ' + c.year));
+
+    const byBrand = [...cars].sort((a, b) => a.brand.localeCompare(b.brand));
+    log('by brand:', byBrand.map(c => c.brand));
+
+    // Two keys: price descending, then brand ascending as a tie-breaker
+    const byPriceThenBrand = [...cars].sort((a, b) =>
+      b.price - a.price || a.brand.localeCompare(b.brand));
+    log('price desc, then brand:', byPriceThenBrand.map(c => c.brand + ' ' + c.price));
+  }</script>
+</section>
+
+<section>
+  <h2>Highest, lowest, and shuffling</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const points = [40, 100, 1, 5, 25, 10];
+
+    log('lowest via sort :', [...points].sort((a, b) => a - b)[0]);
+    log('highest via sort:', [...points].sort((a, b) => b - a)[0]);
+    log('or just Math.min/max:', Math.min(...points), Math.max(...points));
+
+    // sort() is NOT a shuffle — the results are biased and engine-dependent.
+    log('do not do this:', [...points].sort(() => Math.random() - 0.5));
+  }</script>
+</section>
+
+<section>
+  <h2>Sort a table</h2>
+  <div class="stage">
+    <button data-key="brand">Brand</button>
+    <button data-key="year">Year</button>
+    <button data-key="price">Price</button>
+    <span style="color:var(--ink-faint);font-size:13px">click again to reverse</span>
+  </div>
+  <script class="run">{
+    const { log, $$ } = demo();
+
+    const cars = [
+      { brand: 'Volvo', year: 2016, price: 21000 },
+      { brand: 'Saab', year: 2001, price: 8000 },
+      { brand: 'BMW', year: 2010, price: 34500 },
+      { brand: 'Audi', year: 2019, price: 29000 }
+    ];
+
+    let sortKey = 'brand';
+    let ascending = true;
+
+    function render() {
+      const sorted = [...cars].sort((a, b) => {
+        const x = a[sortKey], y = b[sortKey];
+        const cmp = typeof x === 'number' ? x - y : String(x).localeCompare(String(y));
+        return ascending ? cmp : -cmp;
+      });
+
+      log.clear();
+      log('sorted by ' + sortKey + ' ' + (ascending ? '▲' : '▼'));
+      sorted.forEach(c =>
+        log('  ' + c.brand.padEnd(8) + String(c.year).padStart(6) + String(c.price).padStart(9)));
+    }
+
+    $$('[data-key]').forEach(btn => {
+      btn.onclick = function () {
+        const key = this.dataset.key;
+        ascending = key === sortKey ? !ascending : true;
+        sortKey = key;
+        render();
+      };
+    });
+
+    render();
+  }</script>
+</section>
+
+</body>
+</html>

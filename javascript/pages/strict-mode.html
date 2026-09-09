@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strict Mode — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="strict-mode">
+
+<h1>Strict Mode</h1>
+<p class="lede"><code>"use strict"</code> at the top of a file or a function turns a set of
+silent mistakes into thrown errors. Modules and class bodies are strict automatically.</p>
+
+<section>
+  <h2>Turning it on</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sloppy() {
+      return (function () { return this; })();
+    }
+
+    function strict() {
+      'use strict';
+      return (function () { return this; })();
+    }
+
+    log('sloppy this →', sloppy() === window ? 'window' : sloppy());
+    log('strict this →', strict());
+
+    log('');
+    log('the directive must be the FIRST statement to have any effect');
+  }</script>
+</section>
+
+<section>
+  <h2>Undeclared variables</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sloppy() {
+      undeclaredHere = 'creates a global';
+      return window.undeclaredHere;
+    }
+    log('sloppy →', sloppy());
+
+    function strict() {
+      'use strict';
+      try {
+        alsoUndeclared = 'nope';
+      } catch (err) {
+        return err.name + ': ' + err.message;
+      }
+    }
+    log('strict →', strict());
+  }</script>
+</section>
+
+<section>
+  <h2>Silent write failures become errors</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const frozen = Object.freeze({ a: 1 });
+
+    function sloppy() {
+      frozen.a = 99;
+      return 'no complaint, value is still ' + frozen.a;
+    }
+    log('sloppy →', sloppy());
+
+    function strict() {
+      'use strict';
+      try {
+        frozen.a = 99;
+      } catch (err) {
+        return err.name + ': ' + err.message;
+      }
+    }
+    log('strict →', strict());
+
+    log('');
+    log('the same applies to writing to a getter-only property,');
+    log('or adding a property to a non-extensible object.');
+  }</script>
+</section>
+
+<section>
+  <h2>Duplicate parameters</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      const sloppy = new Function('a', 'a', 'return a;');
+      log('sloppy duplicate params →', sloppy(1, 2), '(the last one wins)');
+    } catch (err) {
+      log('sloppy →', err.name);
+    }
+
+    try {
+      new Function('"use strict"; return function (a, a) { return a; };')();
+    } catch (err) {
+      log('strict duplicate params →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Reserved words and old syntax</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const forbidden = [
+      ['0644 (octal literal)', 'var n = 0644;'],
+      ['with statement', 'with (Math) { }'],
+      ['delete on a variable', 'var q = 1; delete q;'],
+      ['implements as a name', 'var implements = 1;'],
+      ['arguments.callee', '(function () { return arguments.callee; })();']
+    ];
+
+    forbidden.forEach(([label, code]) => {
+      let sloppyResult = 'allowed';
+      try { new Function(code); } catch (err) { sloppyResult = err.name; }
+
+      let strictResult = 'allowed';
+      try { new Function('"use strict";' + code); } catch (err) { strictResult = err.name; }
+
+      log(label.padEnd(24), 'sloppy:', sloppyResult.padEnd(12), 'strict:', strictResult);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Where it already applies</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Example {
+      test() { return this; }
+    }
+    const instance = new Example();
+    const detached = instance.test;
+
+    log('a method called normally  →', detached.call(instance) === instance);
+    log('detached from its object  →', detached(), '← undefined, because class bodies are strict');
+
+    log('');
+    log('always strict:');
+    log('  • ES modules (type="module" or an import/export file)');
+    log('  • class bodies');
+    log('always sloppy unless you opt in:');
+    log('  • a plain <script> like this one');
+  }</script>
+</section>
+
+<section>
+  <h2>Is it worth adding?</h2>
+  <p>In new code you rarely type it: if you use modules or classes, you are already in
+  strict mode. It is worth adding to older standalone scripts, where it usually surfaces
+  two or three real bugs immediately.</p>
+</section>
+
+</body>
+</html>

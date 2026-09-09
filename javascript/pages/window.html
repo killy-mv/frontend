@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Window Object — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="window">
+
+<h1>The Window Object</h1>
+<p class="lede">The browser's global object. Every global variable, every built-in, and the
+whole Browser Object Model hang off it — and you almost never have to type its name.</p>
+
+<section>
+  <h2>window is implicit</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('these pairs are the same thing:');
+    log('  alert            / window.alert          →', alert === window.alert);
+    log('  document         / window.document       →', document === window.document);
+    log('  setTimeout       / window.setTimeout     →', setTimeout === window.setTimeout);
+    log('  location         / window.location       →', location === window.location);
+
+    log('');
+    log('window points at itself, several times over:');
+    log('  window === window.window →', window === window.window);
+    log('  window === self          →', window === self);
+    log('  window === globalThis    →', window === globalThis);
+    log('  window === frames        →', window === frames);
+    log('');
+    log('globalThis is the portable name — it also works in Node and in workers.');
+  }</script>
+</section>
+
+<section>
+  <h2>Globals land on it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    var oldStyle = 'declared with var';
+    implicitGlobal = 'never declared at all';
+
+    log('var at top level →', window.oldStyle);
+    log('undeclared       →', window.implicitGlobal);
+
+    log('');
+    log('var ignores the surrounding block and reaches the global scope.');
+    log('let, const and class do not:');
+    log('  window.log →', window.log, '← the const above is in the block scope only');
+
+    delete window.implicitGlobal;
+    log('');
+    log('after delete →', window.implicitGlobal);
+    log('this pollution is one reason to use modules, which have their own scope.');
+  }</script>
+</section>
+
+<section>
+  <h2>Size</h2>
+
+  <div class="stage">
+    <button id="measure">measure again</button>
+    <span style="font-size:13px;color:var(--ink-faint)">or resize the window</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function measure() {
+      log.clear();
+      log('innerWidth  ×  innerHeight →', window.innerWidth, '×', window.innerHeight,
+          '(the viewport, including scrollbars)');
+      log('outerWidth  ×  outerHeight →', window.outerWidth, '×', window.outerHeight,
+          '(the whole browser window)');
+      log('documentElement.clientWidth →', document.documentElement.clientWidth,
+          '(viewport without scrollbars)');
+      log('');
+      log('screenX / screenY →', window.screenX + ',' + window.screenY,
+          '(position on the desktop)');
+      log('devicePixelRatio  →', window.devicePixelRatio);
+      log('scrollX / scrollY →', Math.round(window.scrollX) + ',' + Math.round(window.scrollY));
+    }
+
+    $('#measure').addEventListener('click', measure);
+    window.addEventListener('resize', measure);
+    measure();
+  }</script>
+</section>
+
+<section>
+  <h2>Scrolling</h2>
+
+  <div class="stage">
+    <button id="down">scroll down 200</button>
+    <button id="top">back to top</button>
+    <button id="into">scroll the last section into view</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#down').addEventListener('click', () => {
+      window.scrollBy({ top: 200, behavior: 'smooth' });
+      log('scrollBy — relative to where you are');
+    });
+
+    $('#top').addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      log('scrollTo — absolute');
+    });
+
+    $('#into').addEventListener('click', () => {
+      document.querySelector('section:last-of-type')
+        .scrollIntoView({ behavior: 'smooth', block: 'start' });
+      log('scrollIntoView — let the browser work out the numbers');
+    });
+
+    let throttled = false;
+    window.addEventListener('scroll', () => {
+      if (throttled) return;
+      throttled = true;
+      requestAnimationFrame(() => {
+        throttled = false;
+        const max = document.documentElement.scrollHeight - window.innerHeight;
+        log('scrollY', Math.round(window.scrollY),
+            '(' + Math.round((window.scrollY / max) * 100) + '% of the page)');
+      });
+    });
+
+    log('scroll the page to see the position update');
+  }</script>
+</section>
+
+<section>
+  <h2>Opening a window</h2>
+
+  <div class="stage">
+    <button id="open">open a small window</button>
+    <button id="write">write into it</button>
+    <button id="close">close it</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    let child = null;
+
+    $('#open').addEventListener('click', () => {
+      child = window.open('', 'demoWindow', 'width=360,height=220');
+      if (!child) return log('blocked — popups only open from a real user gesture');
+      log('opened. child.opener === window →', child.opener === window);
+    });
+
+    $('#write').addEventListener('click', () => {
+      if (!child || child.closed) return log('nothing open');
+      child.document.body.innerHTML =
+        '<h1 style="font:600 18px system-ui">Hello from the opener</h1>' +
+        '<p style="font:14px system-ui">Written at ' + new Date().toLocaleTimeString() + '</p>';
+      log('wrote into the child document');
+      log('this works only because both pages share an origin');
+    });
+
+    $('#close').addEventListener('click', () => {
+      if (child && !child.closed) { child.close(); log('closed'); }
+      else log('nothing open');
+    });
+
+    log('window.open returns the new window, or null if it was blocked');
+    log('you can only close a window your script opened');
+  }</script>
+</section>
+
+<section>
+  <h2>Lifecycle events</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    window.addEventListener('focus', () => log('focus  — this tab is active again'));
+    window.addEventListener('blur', () => log('blur   — you switched away'));
+    window.addEventListener('online', () => log('online'));
+    window.addEventListener('offline', () => log('offline'));
+
+    document.addEventListener('visibilitychange', () =>
+      log('visibility →', document.visibilityState));
+
+    log('click another window, then come back');
+    log('');
+    log('load           — everything has finished loading');
+    log('DOMContentLoaded — the tree is ready, images may not be');
+    log('beforeunload   — the user is leaving; return a string to warn them');
+    log('pagehide       — use this for cleanup; beforeunload is unreliable on mobile');
+    log('');
+    log('currently online:', navigator.onLine);
+  }</script>
+</section>
+
+<section>
+  <h2>What else lives here</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const groups = {
+      'documents': ['document', 'frames', 'parent', 'top', 'opener'],
+      'the BOM': ['location', 'history', 'navigator', 'screen'],
+      'dialogs': ['alert', 'confirm', 'prompt', 'print'],
+      'timers': ['setTimeout', 'setInterval', 'requestAnimationFrame', 'queueMicrotask'],
+      'storage': ['localStorage', 'sessionStorage', 'indexedDB', 'caches'],
+      'networking': ['fetch', 'XMLHttpRequest', 'WebSocket', 'EventSource'],
+      'utilities': ['console', 'crypto', 'performance', 'structuredClone', 'matchMedia']
+    };
+
+    Object.entries(groups).forEach(([group, names]) => {
+      log(group + ':');
+      log('  ' + names.map(n => n + (n in window ? '' : ' (missing)')).join(', '));
+    });
+  }</script>
+</section>
+
+</body>
+</html>

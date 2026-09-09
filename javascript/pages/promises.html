@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Promises — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="promises">
+
+<h1>Promises</h1>
+<p class="lede">A promise is an object standing in for a value that is not ready yet. It is
+<b>pending</b>, then either <b>fulfilled</b> with a value or <b>rejected</b> with a reason —
+once, permanently.</p>
+
+<section>
+  <h2>Creating one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const promise = new Promise((resolve, reject) => {
+      const ok = true;
+      setTimeout(() => {
+        if (ok) resolve('it worked');
+        else reject(new Error('it did not'));
+      }, 40);
+    });
+
+    log('right away:', promise);
+    log('typeof then:', typeof promise.then);
+
+    promise.then(value => {
+      log('fulfilled with:', value);
+      log('the object is now:', promise);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>then, catch, finally</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function load(shouldFail) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => (shouldFail ? reject(new Error('network down')) : resolve({ id: 1 })), 30);
+      });
+    }
+
+    load(false)
+      .then(data => log('success →', data))
+      .catch(err => log('error   →', err.message))
+      .finally(() => log('finally → runs either way'));
+
+    load(true)
+      .then(data => log('success →', data))
+      .catch(err => log('error   →', err.message))
+      .finally(() => log('finally → runs either way'));
+  }</script>
+</section>
+
+<section>
+  <h2>Chaining</h2>
+  <p><code>then</code> always returns a new promise. Return a value to pass it on; return a
+  promise to wait for it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    Promise.resolve(2)
+      .then(n => { log('start with', n); return n * 5; })
+      .then(n => { log('plain value passes through:', n); return Promise.resolve(n + 1); })
+      .then(n => { log('a returned promise is unwrapped:', n); return n; })
+      .then(n => new Promise(r => setTimeout(() => r(n * 2), 30)))
+      .then(n => log('after a delay:', n));
+
+    log('');
+    log('forgetting to return breaks the chain:');
+    Promise.resolve('a')
+      .then(v => { Promise.resolve(v + 'b'); })     // no return
+      .then(v => log('  got', v, '← undefined, the inner promise was dropped'));
+  }</script>
+</section>
+
+<section>
+  <h2>Errors fall through</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    Promise.resolve('start')
+      .then(() => { throw new Error('boom in step 1'); })
+      .then(() => log('this step is skipped'))
+      .then(() => log('so is this one'))
+      .catch(err => log('caught:', err.message))
+      .then(() => log('the chain continues after a catch'));
+
+    log('');
+    log('a catch in the middle recovers and returns a value:');
+    Promise.reject(new Error('failed'))
+      .catch(() => 'a fallback value')
+      .then(v => log('  recovered with', v));
+  }</script>
+</section>
+
+<section>
+  <h2>Combinators</h2>
+
+  <table class="ref">
+    <tr><th></th><th>Fulfils when</th><th>Rejects when</th></tr>
+    <tr><td><code>all</code></td><td>every promise fulfils</td><td>any one rejects</td></tr>
+    <tr><td><code>allSettled</code></td><td>every promise settles</td><td>never</td></tr>
+    <tr><td><code>race</code></td><td colspan="2">the first to settle, either way</td></tr>
+    <tr><td><code>any</code></td><td>the first to fulfil</td><td>all of them reject</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const ok = (v, ms) => new Promise(r => setTimeout(() => r(v), ms));
+    const bad = (v, ms) => new Promise((_, j) => setTimeout(() => j(new Error(v)), ms));
+
+    Promise.all([ok('a', 20), ok('b', 40)])
+      .then(v => log('all       →', v));
+
+    Promise.all([ok('a', 20), bad('nope', 10)])
+      .catch(e => log('all (fail)→', e.message));
+
+    Promise.allSettled([ok('a', 20), bad('nope', 10)])
+      .then(r => log('allSettled→', r.map(x => x.status)));
+
+    Promise.race([ok('quick', 10), ok('slow', 60)])
+      .then(v => log('race      →', v));
+
+    Promise.any([bad('x', 10), ok('survivor', 30)])
+      .then(v => log('any       →', v));
+  }</script>
+</section>
+
+<section>
+  <h2>Sequential vs parallel</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const job = (name, ms) => new Promise(r => setTimeout(() => r(name), ms));
+
+    const t0 = Date.now();
+    job('a', 60)
+      .then(() => job('b', 60))
+      .then(() => job('c', 60))
+      .then(() => log('sequential took ~' + (Date.now() - t0) + 'ms'));
+
+    const t1 = Date.now();
+    Promise.all([job('a', 60), job('b', 60), job('c', 60)])
+      .then(() => log('parallel   took ~' + (Date.now() - t1) + 'ms'));
+
+    log('use sequential only when a step needs the previous result');
+  }</script>
+</section>
+
+<section>
+  <h2>Promises are eager, and settle once</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // The executor runs immediately, not when you call .then
+    const p = new Promise(resolve => {
+      log('executor ran right away');
+      resolve('first');
+      resolve('second');            // ignored
+      log('after resolve, code keeps running');
+    });
+
+    p.then(v => log('value:', v));
+    p.then(v => log('and again, same value:', v, '← the result is cached'));
+
+    setTimeout(() => p.then(v => log('even much later:', v)), 50);
+  }</script>
+</section>
+
+<section>
+  <h2>Unhandled rejections</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A rejection with no catch surfaces as an "Uncaught (in promise)" console error.
+    const orphan = Promise.reject(new Error('nobody is listening'));
+
+    // Attaching a handler later still counts, as long as it is soon enough:
+    setTimeout(() => orphan.catch(err => log('handled late:', err.message)), 0);
+
+    window.addEventListener('unhandledrejection', event => {
+      log('unhandledrejection fired:', event.reason.message);
+      event.preventDefault();
+    });
+
+    Promise.reject(new Error('truly unhandled'));
+
+    log('always end a chain with .catch, or await it inside try/catch');
+  }</script>
+</section>
+
+<section>
+  <h2>A practical wrapper</h2>
+
+  <div class="stage">
+    <button id="go">run with a 120ms timeout</button>
+    <label><input type="checkbox" id="slow"> make it slow</label>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function withTimeout(promise, ms) {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timed out after ' + ms + 'ms')), ms));
+      return Promise.race([promise, timeout]);
+    }
+
+    function work() {
+      const ms = $('#slow').checked ? 400 : 50;
+      return new Promise(r => setTimeout(() => r('done in ' + ms + 'ms'), ms));
+    }
+
+    $('#go').addEventListener('click', () => {
+      log.clear();
+      log('working…');
+      withTimeout(work(), 120)
+        .then(v => log('✔', v))
+        .catch(e => log('✘', e.message));
+    });
+
+    log('press the button, then tick the box and press again');
+  }</script>
+</section>
+
+</body>
+</html>

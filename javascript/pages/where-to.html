@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Where To — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="where-to">
+
+<h1>Where To</h1>
+<p class="lede">JavaScript lives inside a <code>&lt;script&gt;</code> tag. The tag can hold the
+code directly, or point at a <code>.js</code> file with the <code>src</code> attribute. Where
+you put it decides when it runs.</p>
+
+<section>
+  <h2>A script in the page</h2>
+  <p>Scripts run <b>in the order the browser meets them</b>, while it is still parsing the
+  HTML. This one runs before the rest of the page below it even exists.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('This script ran while the page was still being parsed.');
+    log('Elements further down the page do not exist yet:');
+    log('document.getElementById("later") →', document.getElementById('later'));
+  }</script>
+
+  <p id="later">An element that appears later in the document.</p>
+</section>
+
+<section>
+  <h2>Head or body?</h2>
+  <p>Both are legal. A script in <code>&lt;head&gt;</code> runs before the body exists, which is
+  why the classic advice is to put scripts <b>at the end of the body</b> — by then every
+  element is available.</p>
+
+  <table class="ref">
+    <tr><th>Placement</th><th>Runs</th><th>Sees the DOM?</th></tr>
+    <tr><td><code>&lt;head&gt;</code>, plain</td><td>immediately, blocks parsing</td><td>no</td></tr>
+    <tr><td>end of <code>&lt;body&gt;</code></td><td>after the HTML above it</td><td>yes</td></tr>
+    <tr><td><code>defer</code></td><td>after the whole document is parsed</td><td>yes</td></tr>
+    <tr><td><code>async</code></td><td>as soon as it downloads, order not guaranteed</td><td>maybe</td></tr>
+  </table>
+
+  <div class="note">
+    This site uses a plain script in <code>&lt;head&gt;</code> for
+    <code>lesson.js</code> on purpose: the helper it defines must exist before the inline
+    example scripts further down run.
+  </div>
+</section>
+
+<section>
+  <h2>Waiting for the DOM instead</h2>
+  <p>If a script must run early but needs the finished page, listen for
+  <code>DOMContentLoaded</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('now:', document.readyState);
+
+    document.addEventListener('DOMContentLoaded', function () {
+      log('DOMContentLoaded fired — readyState is now:', document.readyState);
+      log('the whole document has', document.querySelectorAll('*').length, 'elements');
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>External scripts</h2>
+  <p>Real projects keep code in separate files. The browser caches them, several pages can
+  share them, and the HTML stays readable.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // This page loaded two external files. They are ordinary DOM elements.
+    document.querySelectorAll('script[src]').forEach(function (tag) {
+      log(tag.getAttribute('src'), '→', tag.src);
+    });
+  }</script>
+
+  <p>The markup that loaded them:</p>
+  <div class="example">
+    <pre class="code"><code><span class="tok-key">&lt;script</span> src=<span class="tok-str">"../assets/topics.js"</span><span class="tok-key">&gt;&lt;/script&gt;</span>
+<span class="tok-key">&lt;script</span> src=<span class="tok-str">"../assets/lesson.js"</span><span class="tok-key">&gt;&lt;/script&gt;</span></code></pre>
+  </div>
+
+  <p>An external script file contains only JavaScript — no <code>&lt;script&gt;</code> tags
+  inside it. A tag with <code>src</code> ignores any code written between its
+  open and close tags.</p>
+</section>
+
+<section>
+  <h2>Paths in src</h2>
+  <table class="ref">
+    <tr><th>Form</th><th>Example</th><th>Means</th></tr>
+    <tr><td>Relative</td><td><code>assets/lesson.js</code></td><td>next to the current page</td></tr>
+    <tr><td>Parent</td><td><code>../assets/lesson.js</code></td><td>one folder up</td></tr>
+    <tr><td>Root relative</td><td><code>/js/app.js</code></td><td>from the site root</td></tr>
+    <tr><td>Absolute</td><td><code>https://cdn.example.com/x.js</code></td><td>another server</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

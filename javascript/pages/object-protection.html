@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Protection — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-protection">
+
+<h1>Object Protection</h1>
+<p class="lede">Three levels of lock, from weakest to strongest:
+<code>preventExtensions</code>, <code>seal</code>, <code>freeze</code>.</p>
+
+<section>
+  <h2>What each one allows</h2>
+
+  <table class="ref">
+    <tr><th></th><th>add</th><th>change</th><th>delete</th></tr>
+    <tr><td>normal</td><td>yes</td><td>yes</td><td>yes</td></tr>
+    <tr><td><code>preventExtensions</code></td><td>no</td><td>yes</td><td>yes</td></tr>
+    <tr><td><code>seal</code></td><td>no</td><td>yes</td><td>no</td></tr>
+    <tr><td><code>freeze</code></td><td>no</td><td>no</td><td>no</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function tryAll(label, obj) {
+      obj.added = 'new';
+      obj.existing = 'changed';
+      delete obj.removable;
+      log(label.padEnd(20), JSON.stringify(obj));
+    }
+
+    const base = () => ({ existing: 'original', removable: 'here' });
+
+    tryAll('normal', base());
+    tryAll('preventExtensions', Object.preventExtensions(base()));
+    tryAll('seal', Object.seal(base()));
+    tryAll('freeze', Object.freeze(base()));
+  }</script>
+</section>
+
+<section>
+  <h2>Checking</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const normal = { a: 1 };
+    const noExt = Object.preventExtensions({ a: 1 });
+    const sealed = Object.seal({ a: 1 });
+    const frozen = Object.freeze({ a: 1 });
+
+    [['normal', normal], ['preventExtensions', noExt],
+     ['sealed', sealed], ['frozen', frozen]].forEach(([label, o]) =>
+      log(label.padEnd(20),
+          'extensible:' + String(Object.isExtensible(o)).padEnd(7),
+          'sealed:' + String(Object.isSealed(o)).padEnd(7),
+          'frozen:' + Object.isFrozen(o)));
+
+    log('');
+    log('note: freeze implies seal implies not extensible');
+  }</script>
+</section>
+
+<section>
+  <h2>Silent in sloppy mode, loud in strict</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const frozen = Object.freeze({ a: 1 });
+
+    frozen.a = 99;                        // this script is sloppy: ignored
+    log('sloppy write:', frozen.a, '← no complaint at all');
+
+    (function () {
+      'use strict';
+      try {
+        frozen.a = 99;
+      } catch (err) {
+        log('strict write:', err.name + ':', err.message);
+      }
+    })();
+
+    log('');
+    log('modules and class bodies are always strict, so in real code');
+    log('these failures usually do throw.');
+  }</script>
+</section>
+
+<section>
+  <h2>Freezing is shallow</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const config = Object.freeze({
+      name: 'app',
+      limits: { maxUsers: 10 }
+    });
+
+    config.name = 'changed';              // blocked
+    config.limits.maxUsers = 9999;        // allowed — a different object
+
+    log(config);
+
+    function deepFreeze(obj) {
+      Object.getOwnPropertyNames(obj).forEach(key => {
+        const value = obj[key];
+        if (value && typeof value === 'object') deepFreeze(value);
+      });
+      return Object.freeze(obj);
+    }
+
+    const locked = deepFreeze({ name: 'app', limits: { maxUsers: 10 } });
+    locked.limits.maxUsers = 9999;
+    log('deep frozen:', locked);
+  }</script>
+</section>
+
+<section>
+  <h2>Arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const list = Object.freeze(['a', 'b']);
+
+    list[0] = 'z';
+    log('write to an index:', list);
+
+    try {
+      list.push('c');
+    } catch (err) {
+      log('push →', err.name + ':', err.message, '← this one throws even in sloppy mode');
+    }
+
+    try {
+      list.length = 0;
+    } catch (err) {
+      log('length = 0 →', err.name);
+    }
+
+    log('non-mutating methods still work:', list.concat('c'), list.map(s => s.toUpperCase()));
+  }</script>
+</section>
+
+<section>
+  <h2>Per-property locks</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const user = { name: 'Ada' };
+
+    Object.defineProperty(user, 'id', {
+      value: 'U-001',
+      writable: false,
+      configurable: false,
+      enumerable: true
+    });
+
+    user.id = 'U-002';
+    user.name = 'Augusta Ada';
+
+    log(user);
+    log('name is still writable, id is not');
+
+    try {
+      Object.defineProperty(user, 'id', { value: 'U-003' });
+    } catch (err) {
+      log('redefining it →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>When to use which</h2>
+  <ul>
+    <li><b>freeze</b> — configuration objects, enum-like constants, anything shared that
+    must not drift.</li>
+    <li><b>seal</b> — an object whose shape is fixed but whose values change; catches typos
+    that would otherwise create a new property.</li>
+    <li><b>preventExtensions</b> — rarely, when you only want to stop new properties.</li>
+  </ul>
+  <div class="note">None of these give you privacy — the values are still readable. For
+  that, use a closure or a <code>#private</code> class field.</div>
+</section>
+
+</body>
+</html>

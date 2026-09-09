@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changing HTML — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-html">
+
+<h1>Changing HTML</h1>
+<p class="lede">Three things you change on an element: its <b>content</b>, its
+<b>attributes</b>, and its position in the tree.</p>
+
+<section>
+  <h2>Content: the three properties</h2>
+
+  <div class="stage">
+    <div id="box" style="border:1px solid #cbd5e1;padding:6px;border-radius:6px">
+      Hello <b>world</b><!-- hidden comment -->
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const box = $('#box');
+
+    log('textContent →', JSON.stringify(box.textContent));
+    log('innerText   →', JSON.stringify(box.innerText));
+    log('innerHTML   →', JSON.stringify(box.innerHTML));
+    log('outerHTML   →', JSON.stringify(box.outerHTML));
+
+    log('');
+    log('assigning replaces everything inside:');
+    box.innerHTML = 'Now it is <i>italic</i>';
+    log('  ', box.innerHTML);
+
+    box.textContent = 'Now it is plain <i>text</i>';
+    log('  ', box.innerHTML, '← the angle brackets were escaped');
+
+    box.innerHTML = 'Hello <b>world</b>';
+  }</script>
+</section>
+
+<section>
+  <h2>Adding without replacing</h2>
+
+  <div class="stage">
+    <div id="target" style="border:1px solid #cbd5e1;padding:6px;border-radius:6px">start</div>
+    <button id="append">append</button>
+    <button id="prepend">prepend</button>
+    <button id="insert-adj">insertAdjacentHTML</button>
+    <button id="reset">reset</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const target = $('#target');
+    let n = 0;
+
+    $('#append').addEventListener('click', () => {
+      const span = document.createElement('span');
+      span.textContent = ' +' + (++n);
+      target.append(span);                    // append takes nodes OR strings
+      log('append   →', target.innerHTML);
+    });
+
+    $('#prepend').addEventListener('click', () => {
+      target.prepend('(' + (++n) + ') ');
+      log('prepend  →', target.innerHTML);
+    });
+
+    $('#insert-adj').addEventListener('click', () => {
+      target.insertAdjacentHTML('beforeend', ' <b>#' + (++n) + '</b>');
+      log('adjacent →', target.innerHTML);
+    });
+
+    $('#reset').addEventListener('click', () => {
+      target.textContent = 'start';
+      n = 0;
+      log('reset');
+    });
+
+    log('innerHTML += rebuilds the whole subtree and loses event listeners.');
+    log('append, prepend and insertAdjacentHTML do not.');
+  }</script>
+</section>
+
+<section>
+  <h2>The four insertion positions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const holder = document.createElement('div');
+    holder.innerHTML = '<p id="p">middle</p>';
+    const p = holder.querySelector('#p');
+
+    p.insertAdjacentHTML('beforebegin', '<i>1</i>');
+    p.insertAdjacentHTML('afterbegin', '<i>2</i>');
+    p.insertAdjacentHTML('beforeend', '<i>3</i>');
+    p.insertAdjacentHTML('afterend', '<i>4</i>');
+
+    log(holder.innerHTML);
+    log('');
+    log('  <!-- beforebegin -->');
+    log('  <p>');
+    log('    <!-- afterbegin -->  middle  <!-- beforeend -->');
+    log('  </p>');
+    log('  <!-- afterend -->');
+    log('');
+    log('insertAdjacentElement and insertAdjacentText take the same positions');
+  }</script>
+</section>
+
+<section>
+  <h2>Attributes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const link = document.createElement('a');
+
+    link.setAttribute('href', 'https://example.com');
+    link.setAttribute('target', '_blank');
+    link.textContent = 'a link';
+
+    log('outerHTML   →', link.outerHTML);
+    log('getAttribute→', link.getAttribute('target'));
+    log('hasAttribute→', link.hasAttribute('rel'));
+
+    link.toggleAttribute('rel');
+    log('after toggle→', link.outerHTML);
+
+    link.removeAttribute('target');
+    log('after remove→', link.outerHTML);
+
+    log('');
+    log('all attributes:', Array.from(link.attributes, a => a.name + '=' + a.value));
+  }</script>
+</section>
+
+<section>
+  <h2>Boolean attributes</h2>
+
+  <div class="stage">
+    <input id="check" type="checkbox">
+    <label for="check">tick me</label>
+    <button id="lock">toggle disabled</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const check = $('#check');
+    const lock = $('#lock');
+
+    check.addEventListener('change', () => {
+      log('property  checked →', check.checked);
+      log('attribute checked →', check.getAttribute('checked'), '← never changes');
+    });
+
+    lock.addEventListener('click', () => {
+      check.disabled = !check.disabled;
+      log('disabled property  →', check.disabled);
+      log('disabled attribute →', check.getAttribute('disabled'),
+          '← the property writes this one back');
+    });
+
+    log('for booleans, set the property (el.checked = true), not the attribute');
+  }</script>
+</section>
+
+<section>
+  <h2>data-* attributes</h2>
+
+  <div class="stage">
+    <div id="card" data-user-id="42" data-role="admin" data-active>a card</div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const card = $('#card');
+
+    log('dataset →', { ...card.dataset });
+    log('userId  →', card.dataset.userId, '← data-user-id becomes userId');
+    log('role    →', card.dataset.role);
+    log('active  →', JSON.stringify(card.dataset.active), '← present but empty');
+
+    card.dataset.lastSeen = 'today';
+    log('after setting dataset.lastSeen:', card.outerHTML);
+
+    delete card.dataset.role;
+    log('after delete:', card.outerHTML);
+
+    log('');
+    log('values are always strings:', typeof card.dataset.userId);
+  }</script>
+</section>
+
+<section>
+  <h2>Building a list, three ways</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruits = ['apple', 'pear', 'plum'];
+
+    // 1. innerHTML with a template — concise, but a string
+    const a = document.createElement('ul');
+    a.innerHTML = fruits.map(f => `<li>${f}</li>`).join('');
+
+    // 2. createElement in a loop — verbose, but safe with any text
+    const b = document.createElement('ul');
+    fruits.forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = f;
+      b.appendChild(li);
+    });
+
+    // 3. a fragment, then one insertion — the fastest for large lists
+    const c = document.createElement('ul');
+    const frag = document.createDocumentFragment();
+    fruits.forEach(f => {
+      const li = document.createElement('li');
+      li.textContent = f;
+      frag.appendChild(li);
+    });
+    c.appendChild(frag);
+
+    log('1 innerHTML →', a.innerHTML);
+    log('2 loop      →', b.innerHTML);
+    log('3 fragment  →', c.innerHTML);
+    log('identical results:', a.innerHTML === b.innerHTML && b.innerHTML === c.innerHTML);
+  }</script>
+</section>
+
+<section>
+  <h2>&lt;template&gt;</h2>
+  <p>Markup the browser parses but does not render, ready to be cloned.</p>
+
+  <div class="stage" style="display:block">
+    <template id="row-tpl">
+      <li><b class="name"></b> — <span class="score"></span></li>
+    </template>
+    <ol id="scores"></ol>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const tpl = $('#row-tpl');
+    const list = $('#scores');
+
+    [['Ada', 98], ['Alan', 91], ['Grace', 95]].forEach(([name, score]) => {
+      const row = tpl.content.cloneNode(true);
+      row.querySelector('.name').textContent = name;
+      row.querySelector('.score').textContent = score;
+      list.appendChild(row);
+    });
+
+    log('template.content is a DocumentFragment:', tpl.content.constructor.name);
+    log('rows added:', list.children.length);
+    log('the template itself renders nothing — it is still in the page');
+  }</script>
+</section>
+
+</body>
+</html>

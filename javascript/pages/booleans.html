@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Booleans — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="booleans">
+
+<h1>Booleans</h1>
+<p class="lede">Two values, <code>true</code> and <code>false</code>. What matters in
+practice is which non-boolean values <i>behave</i> like each of them.</p>
+
+<section>
+  <h2>The eight falsy values</h2>
+  <p>Everything else in the language is truthy. Memorise this list and most
+  <code>if</code> surprises disappear.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const falsy = [false, 0, -0, 0n, '', null, undefined, NaN];
+    const label = v => (v === '' ? "'' (empty string)" : String(v)).padEnd(17);
+
+    falsy.forEach(v => log(label(v), '→', Boolean(v)));
+
+    log('');
+    log('and some things that look empty but are truthy:');
+    const truthy = [['[]', []], ['{}', {}], ["'0'", '0'], ["'false'", 'false'],
+                    ["' '", ' '], ['Infinity', Infinity], ['-1', -1]];
+    truthy.forEach(([name, v]) => log(name.padEnd(17), '→', Boolean(v)));
+  }</script>
+
+  <div class="note warn">
+    <code>Boolean('false')</code> is <code>true</code>, and <code>Boolean([])</code> is
+    <code>true</code>. An empty array is an object, and every object is truthy.
+  </div>
+</section>
+
+<section>
+  <h2>Converting to boolean</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const value = 'hello';
+
+    log('Boolean(value) →', Boolean(value));
+    log('!!value        →', !!value, '(the same thing, shorter)');
+    log('if (value)     → the same test, done implicitly');
+
+    // The double negation trick, step by step:
+    log('!"hello"  →', !'hello');
+    log('!!"hello" →', !!'hello');
+  }</script>
+</section>
+
+<section>
+  <h2>Comparisons produce booleans</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('10 > 9      →', 10 > 9);
+    log('10 === "10" →', 10 === '10');
+    log('"a" in {a:1}→', 'a' in { a: 1 });
+    log('[] instanceof Array →', [] instanceof Array);
+    log('Array.isArray({})   →', Array.isArray({}));
+
+    const age = 20;
+    log('drinking age check:', age >= 18);
+  }</script>
+</section>
+
+<section>
+  <h2>Boolean logic</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rows = [[true, true], [true, false], [false, true], [false, false]];
+
+    log('a      b      a&&b   a||b   !a');
+    rows.forEach(([a, b]) => log(
+      String(a).padEnd(6), String(b).padEnd(6),
+      String(a && b).padEnd(6), String(a || b).padEnd(6), String(!a)
+    ));
+
+    log('');
+    log('XOR (exactly one):', rows.map(([a, b]) => a !== b).join(' '));
+  }</script>
+</section>
+
+<section>
+  <h2>Short-circuit evaluation</h2>
+  <p><code>&amp;&amp;</code> stops at the first falsy operand and returns it;
+  <code>||</code> stops at the first truthy one. Neither necessarily returns a boolean.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function noisy(value) {
+      log('  evaluated', value);
+      return value;
+    }
+
+    log('false && noisy(1):', false && noisy(1), '← noisy never ran');
+    log('true  || noisy(2):', true || noisy(2), '← noisy never ran');
+    log('true  && noisy(3):', true && noisy(3));
+
+    log('');
+    log("'' || 'fallback'  →", '' || 'fallback');
+    log("'a' && 'b'        →", 'a' && 'b');
+
+    // Guarding a call:
+    const user = null;
+    log('user && user.name →', user && user.name);
+    log('user?.name        →', user?.name);
+  }</script>
+</section>
+
+<section>
+  <h2>Truthiness in a form</h2>
+  <div class="stage">
+    <input id="value" placeholder="type anything" style="flex:1" value="0">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function test() {
+      const raw = $('#value').value;
+      const asNumber = Number(raw);
+
+      log.clear();
+      log('raw string        ', JSON.stringify(raw));
+      log('Boolean(raw)      ', Boolean(raw), '← "0" and "false" are truthy strings');
+      log('Number(raw)       ', asNumber);
+      log('Boolean(Number)   ', Boolean(asNumber));
+      log('raw.length > 0    ', raw.length > 0);
+      log('raw.trim() !== "" ', raw.trim() !== '', '← usually the check you want');
+    }
+
+    $('#value').addEventListener('input', test);
+    test();
+  }</script>
+</section>
+
+</body>
+</html>

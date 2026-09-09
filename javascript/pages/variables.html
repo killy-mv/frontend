@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Variables — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="variables">
+
+<h1>Variables</h1>
+<p class="lede">A variable is a named container for a value. There are four ways to make one:
+<code>var</code>, <code>let</code>, <code>const</code>, and — by accident — no keyword at all.</p>
+
+<section>
+  <h2>Declaring and assigning</h2>
+  <p><code>=</code> is the assignment operator, not a claim of equality. Read
+  <code>x = 5</code> as "put 5 into x".</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let price;              // declared, no value yet
+    log('before assignment:', price);
+
+    price = 12.5;           // assigned
+    log('after assignment: ', price);
+
+    let quantity = 3;       // declared and assigned in one go
+    log('total:', price * quantity);
+  }</script>
+</section>
+
+<section>
+  <h2>Which keyword to use</h2>
+  <table class="ref">
+    <tr><th>Keyword</th><th>Scope</th><th>Reassign?</th><th>Redeclare?</th><th>Use it</th></tr>
+    <tr><td><code>const</code></td><td>block</td><td>no</td><td>no</td><td>by default</td></tr>
+    <tr><td><code>let</code></td><td>block</td><td>yes</td><td>no</td><td>when the value must change</td></tr>
+    <tr><td><code>var</code></td><td>function</td><td>yes</td><td>yes</td><td>only in old code</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const country = 'Norway';   // will never point at anything else
+    let visits = 0;             // will be incremented
+    var legacy = 'pre-2015';    // still works, but has odd scoping
+
+    visits = visits + 1;
+    log(country, visits, legacy);
+
+    try {
+      country = 'Sweden';
+    } catch (err) {
+      log('reassigning a const →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Declaring several at once</h2>
+  <p>One keyword, commas between the names. Readable when they belong together.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let firstName = 'Ada',
+        lastName = 'Lovelace',
+        born = 1815;
+
+    log(firstName + ' ' + lastName + ', b. ' + born);
+  }</script>
+</section>
+
+<section>
+  <h2>Undeclared variables leak</h2>
+  <p>Assigning to a name that was never declared creates a <b>global</b> variable. Strict
+  mode (and every module) turns this into an error instead.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sloppy() {
+      leaked = 'I am now on window';   // no let/const/var
+    }
+    sloppy();
+    log('window.leaked →', window.leaked);
+
+    function strictVersion() {
+      'use strict';
+      try {
+        alsoLeaked = 1;
+      } catch (err) {
+        log('in strict mode →', err.name + ':', err.message);
+      }
+    }
+    strictVersion();
+  }</script>
+</section>
+
+<section>
+  <h2>Types come from the value, not the declaration</h2>
+  <p>JavaScript is dynamically typed. A variable holds whatever you last put in it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let thing = 42;
+    log(thing, '→', typeof thing);
+
+    thing = 'now a string';
+    log(thing, '→', typeof thing);
+
+    thing = [1, 2, 3];
+    log(thing, '→', typeof thing, '(arrays report as "object")');
+
+    thing = undefined;
+    log(thing, '→', typeof thing);
+  }</script>
+</section>
+
+<section>
+  <h2>Naming</h2>
+  <ul>
+    <li>Describe the value, not its type: <code>userCount</code>, not <code>numVar</code>.</li>
+    <li><code>camelCase</code> for variables and functions.</li>
+    <li>Booleans read like a question: <code>isReady</code>, <code>hasAccess</code>.</li>
+    <li>Short names are fine for short lives — <code>i</code> in a loop, <code>e</code> in a handler.</li>
+  </ul>
+</section>
+
+</body>
+</html>

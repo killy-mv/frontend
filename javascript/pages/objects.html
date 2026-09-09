@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Objects — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="objects">
+
+<h1>Objects</h1>
+<p class="lede">A variable holds one value. An object holds many, each behind a name.
+Values that are functions are called methods.</p>
+
+<section>
+  <h2>An object literal</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const car = {
+      make: 'Fiat',
+      model: 500,
+      colour: 'white',
+      inStock: true
+    };
+
+    log(car);
+    log('dot notation:    car.make    →', car.make);
+    log('bracket notation: car["model"] →', car['model']);
+
+    // Brackets are required when the key is in a variable:
+    const key = 'colour';
+    log('car[key] →', car[key]);
+  }</script>
+</section>
+
+<section>
+  <h2>Adding, changing and removing</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const user = { name: 'Ada' };
+
+    user.role = 'admin';                // add
+    user['last login'] = '2024-05-01';  // keys may contain spaces, via brackets
+    user.name = 'Ada Lovelace';         // change
+    delete user.role;                   // remove
+
+    log(user);
+    log('has "role"?', 'role' in user);
+    log('keys:', Object.keys(user));
+  }</script>
+</section>
+
+<section>
+  <h2>Methods and this</h2>
+  <p>Inside a method called as <code>obj.method()</code>, <code>this</code> is the object
+  before the dot.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      born: 1815,
+
+      fullName() {
+        return this.firstName + ' ' + this.lastName;
+      },
+
+      age(inYear) {
+        return inYear - this.born;
+      }
+    };
+
+    log(person.fullName());
+    log('age in 1843:', person.age(1843));
+
+    // Detaching a method loses the object it was attached to:
+    const detached = person.fullName;
+    log('detached() →', detached(), '← this is no longer person');
+    log('rebound    →', detached.call(person));
+  }</script>
+</section>
+
+<section>
+  <h2>Nested objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const company = {
+      name: 'Acme',
+      address: { city: 'Oslo', country: 'NO' },
+      staff: [
+        { name: 'Ada', role: 'dev' },
+        { name: 'Grace', role: 'ops' }
+      ]
+    };
+
+    log(company.address.city);
+    log(company.staff[1].name);
+    log('every role:', company.staff.map(s => s.role));
+
+    // Optional chaining stops a missing branch from throwing:
+    log('company.owner?.name →', company.owner?.name);
+  }</script>
+</section>
+
+<section>
+  <h2>Objects are handled by reference</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = { count: 1 };
+    const alias = original;             // not a copy
+    const copy = { ...original };       // a shallow copy
+
+    alias.count = 99;
+
+    log('original:', original);
+    log('alias:   ', alias);
+    log('copy:    ', copy);
+    log('original === alias →', original === alias);
+    log('original === copy  →', original === copy);
+  }</script>
+</section>
+
+<section>
+  <h2>Building an object from a form</h2>
+
+  <div class="stage">
+    <input id="f-name" placeholder="name" value="Ada">
+    <input id="f-city" placeholder="city" value="Oslo">
+    <button id="build">Build object</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#build').onclick = function () {
+      const name = $('#f-name').value;
+      const city = $('#f-city').value;
+
+      // Shorthand: { name: name, city: city }
+      const record = { name, city, savedAt: new Date().toLocaleTimeString() };
+
+      log(record);
+      log('as JSON:', JSON.stringify(record));
+    };
+  }</script>
+</section>
+
+</body>
+</html>

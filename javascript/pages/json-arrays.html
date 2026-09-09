@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Arrays — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-arrays">
+
+<h1>JSON Arrays</h1>
+<p class="lede">An ordered list of values, of any types, nested as deeply as you like. Almost
+every API response you will ever handle contains one.</p>
+
+<section>
+  <h2>Parsing arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('numbers  →', JSON.parse('[1,2,3]'));
+    log('strings  →', JSON.parse('["a","b"]'));
+    log('mixed    →', JSON.parse('[1,"two",true,null]'));
+    log('nested   →', JSON.parse('[[1,2],[3,4]]'));
+    log('objects  →', JSON.parse('[{"id":1},{"id":2}]'));
+    log('empty    →', JSON.parse('[]'), '| length', JSON.parse('[]').length);
+
+    log('');
+    log('a top-level array is perfectly valid JSON:');
+    const list = JSON.parse('[10,20,30]');
+    log('  isArray →', Array.isArray(list));
+    log('  typeof  →', typeof list, '← "object", as always');
+    log('');
+    log('so check with Array.isArray, never with typeof.');
+  }</script>
+</section>
+
+<section>
+  <h2>A list of records</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const users = JSON.parse(`[
+      { "id": 1, "name": "Ada",    "age": 36, "active": true,  "roles": ["admin"] },
+      { "id": 2, "name": "Alan",   "age": 41, "active": false, "roles": [] },
+      { "id": 3, "name": "Grace",  "age": 45, "active": true,  "roles": ["admin","dev"] },
+      { "id": 4, "name": "Edsger", "age": 52, "active": true,  "roles": ["dev"] }
+    ]`);
+
+    log('count        →', users.length);
+    log('names        →', users.map(u => u.name));
+    log('active only  →', users.filter(u => u.active).map(u => u.name));
+    log('find one     →', users.find(u => u.id === 3).name);
+    log('any admins?  →', users.some(u => u.roles.includes('admin')));
+    log('all adults?  →', users.every(u => u.age >= 18));
+    log('total age    →', users.reduce((sum, u) => sum + u.age, 0));
+    log('all roles    →', [...new Set(users.flatMap(u => u.roles))]);
+    log('by id        →', Object.fromEntries(users.map(u => [u.id, u.name])));
+  }</script>
+</section>
+
+<section>
+  <h2>Sorting</h2>
+
+  <div class="stage">
+    <button data-by="name">by name</button>
+    <button data-by="age">by age</button>
+    <button data-by="active">active first</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const users = JSON.parse(`[
+      { "name": "Ada", "age": 36, "active": true },
+      { "name": "alan", "age": 41, "active": false },
+      { "name": "Grace", "age": 45, "active": true },
+      { "name": "Édouard", "age": 29, "active": false }
+    ]`);
+
+    const comparators = {
+      name: (a, b) => a.name.localeCompare(b.name),
+      age: (a, b) => a.age - b.age,
+      active: (a, b) => Number(b.active) - Number(a.active) || a.name.localeCompare(b.name)
+    };
+
+    function sortBy(key) {
+      // sort() mutates, so copy first — the parsed data usually belongs to someone else.
+      const sorted = [...users].sort(comparators[key]);
+      log.clear();
+      log('sorted by', key + ':');
+      sorted.forEach(u => log('  ' + u.name.padEnd(10), u.age, u.active ? '✔' : ' '));
+      log('');
+      log('original order is untouched:', users.map(u => u.name));
+    }
+
+    $('.stage').querySelectorAll('button[data-by]').forEach(b =>
+      b.addEventListener('click', () => sortBy(b.dataset.by)));
+
+    sortBy('name');
+    log('');
+    log('localeCompare handles case and accents; a < b does not.');
+    log('  ["b","A","É"].sort()               →', ['b', 'A', 'É'].sort());
+    log('  .sort((a,b) => a.localeCompare(b)) →',
+        ['b', 'A', 'É'].sort((a, b) => a.localeCompare(b)));
+  }</script>
+</section>
+
+<section>
+  <h2>Grouping and summarising</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const orders = JSON.parse(`[
+      { "id": 1, "customer": "Ada",   "total": 42.5, "status": "shipped" },
+      { "id": 2, "customer": "Alan",  "total": 17.0, "status": "pending" },
+      { "id": 3, "customer": "Ada",   "total": 99.9, "status": "shipped" },
+      { "id": 4, "customer": "Grace", "total": 12.0, "status": "cancelled" },
+      { "id": 5, "customer": "Ada",   "total": 5.5,  "status": "pending" }
+    ]`);
+
+    const byStatus = orders.reduce((groups, order) => {
+      (groups[order.status] ??= []).push(order.id);
+      return groups;
+    }, {});
+    log('grouped by status →', byStatus);
+
+    const totals = orders.reduce((sums, order) => {
+      sums[order.customer] = (sums[order.customer] ?? 0) + order.total;
+      return sums;
+    }, {});
+    log('total per customer →', totals);
+
+    log('');
+    log('biggest spender →',
+        Object.entries(totals).sort(([, a], [, b]) => b - a)[0]);
+
+    log('revenue, excluding cancellations →',
+        orders.filter(o => o.status !== 'cancelled')
+              .reduce((sum, o) => sum + o.total, 0).toFixed(2));
+
+    if (typeof Object.groupBy === 'function') {
+      log('');
+      log('Object.groupBy (ES2024) does the first one for you:');
+      log('  ', Object.keys(Object.groupBy(orders, o => o.status)));
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Flattening nested arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const teams = JSON.parse(`[
+      { "team": "analytics", "members": [{"name":"Ada"},{"name":"Grace"}] },
+      { "team": "crypto",    "members": [{"name":"Alan"}] },
+      { "team": "empty",     "members": [] }
+    ]`);
+
+    log('flatMap →', teams.flatMap(t => t.members).map(m => m.name));
+
+    log('');
+    log('keeping the parent, which is what you usually want:');
+    const flat = teams.flatMap(t => t.members.map(m => ({ ...m, team: t.team })));
+    flat.forEach(row => log('  ' + row.name.padEnd(8), row.team));
+
+    log('');
+    log('deep nesting:');
+    const deep = JSON.parse('[1,[2,[3,[4,[5]]]]]');
+    log('  flat()         →', deep.flat());
+    log('  flat(2)        →', deep.flat(2));
+    log('  flat(Infinity) →', deep.flat(Infinity));
+  }</script>
+</section>
+
+<section>
+  <h2>Paginating</h2>
+
+  <div class="stage">
+    <button id="prev">◀</button>
+    <span id="label" style="font-size:13px"></span>
+    <button id="next">▶</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const rows = JSON.parse(JSON.stringify(
+      Array.from({ length: 23 }, (_, i) => ({ id: i + 1, name: 'record ' + (i + 1) }))));
+
+    const perPage = 5;
+    const pages = Math.ceil(rows.length / perPage);
+    let page = 1;
+
+    function render() {
+      const start = (page - 1) * perPage;
+      const slice = rows.slice(start, start + perPage);
+
+      $('#label').textContent = `page ${page} of ${pages}`;
+      log.clear();
+      log('showing', slice.length, 'of', rows.length, 'records');
+      slice.forEach(r => log('  ' + String(r.id).padStart(3), r.name));
+      log('');
+      log('slice(' + start + ', ' + (start + perPage) + ') — slice never mutates,');
+      log('and an over-long end index is simply clamped.');
+    }
+
+    $('#prev').addEventListener('click', () => { page = Math.max(1, page - 1); render(); });
+    $('#next').addEventListener('click', () => { page = Math.min(pages, page + 1); render(); });
+    render();
+  }</script>
+</section>
+
+<section>
+  <h2>Serialising arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a plain array →', JSON.stringify([1, 'two', true, null]));
+    log('nested        →', JSON.stringify([[1, 2], { a: 3 }]));
+    log('indented:');
+    log(JSON.stringify([{ id: 1 }, { id: 2 }], null, 2));
+
+    log('');
+    log('holes and unsupported values become null:');
+    log('  [1, , 3]              →', JSON.stringify([1, , 3]));
+    log('  [undefined, () => 1]  →', JSON.stringify([undefined, () => 1]));
+
+    log('');
+    log('an array with extra properties loses them:');
+    const list = [1, 2, 3];
+    list.total = 6;
+    log('  the array →', list.length, 'items, total =', list.total);
+    log('  as JSON   →', JSON.stringify(list), '← total is gone');
+    log('  send { items: [...], total: 6 } instead.');
+  }</script>
+</section>
+
+<section>
+  <h2>Defensive reading</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Everything that can arrive where you expected an array:
+    const responses = ['[1,2,3]', '{"data":[1,2]}', 'null', '{}', '"[1,2]"', '[]'];
+
+    function toArray(text) {
+      let value;
+      try { value = JSON.parse(text); } catch (err) { return []; }
+      if (Array.isArray(value)) return value;
+      if (value && Array.isArray(value.data)) return value.data;
+      return [];
+    }
+
+    responses.forEach(text =>
+      log(text.padEnd(18), '→', toArray(text)));
+
+    log('');
+    log('the two habits that prevent most runtime errors:');
+    log('  1. Array.isArray before you map or filter');
+    log('  2. default to [] so the rendering code never sees undefined');
+    log('');
+    log('  (data ?? []).map(…)   is not enough — null is not the only');
+    log('  wrong value you will be sent.');
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>window.navigator — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="navigator">
+
+<h1>window.navigator</h1>
+<p class="lede">Information about the browser and the device, plus the entry point to a
+growing pile of hardware APIs.</p>
+
+<section>
+  <h2>The basics</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('userAgent    →', navigator.userAgent);
+    log('');
+    log('language     →', navigator.language);
+    log('languages    →', navigator.languages);
+    log('onLine       →', navigator.onLine);
+    log('cookieEnabled→', navigator.cookieEnabled);
+    log('hardwareConcurrency →', navigator.hardwareConcurrency, 'logical cores');
+    log('maxTouchPoints      →', navigator.maxTouchPoints);
+    if ('deviceMemory' in navigator) log('deviceMemory →', navigator.deviceMemory, 'GB (approx)');
+    if (navigator.userAgentData) log('brands →', navigator.userAgentData.brands.map(b => b.brand));
+  }</script>
+</section>
+
+<section>
+  <h2>Do not sniff the user agent</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const ua = navigator.userAgent;
+
+    log('this string is a museum of compatibility lies:');
+    ['Mozilla', 'AppleWebKit', 'KHTML', 'Gecko', 'Chrome', 'Safari', 'Edg', 'Firefox']
+      .forEach(token => log('  claims to be ' + token.padEnd(12),
+                            ua.includes(token) ? '✔' : '✘'));
+
+    log('');
+    log('every browser pretends to be Mozilla. Chrome claims Safari. Edge');
+    log('claims Chrome. Parsing it correctly is close to impossible.');
+
+    log('');
+    log('feature detection instead — ask what it can do, not what it is:');
+    [['structuredClone', 'structuredClone' in window],
+     ['Array.prototype.at', typeof [].at === 'function'],
+     ['CSS :has()', CSS.supports('selector(:has(a))')],
+     ['dialog element', 'showModal' in document.createElement('dialog')]]
+      .forEach(([name, ok]) => log('  ' + name.padEnd(20), ok ? '✔ supported' : '✘ missing'));
+  }</script>
+</section>
+
+<section>
+  <h2>Clipboard</h2>
+
+  <div class="stage">
+    <input id="text" value="copy me" style="flex:1">
+    <button id="copy">copy</button>
+    <button id="paste">paste</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#copy').addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText($('#text').value);
+        log('copied:', $('#text').value);
+      } catch (err) {
+        log('refused:', err.name + ':', err.message);
+        log('  writeText needs a secure context (https or localhost)');
+      }
+    });
+
+    $('#paste').addEventListener('click', async () => {
+      try {
+        log('clipboard contains:', JSON.stringify(await navigator.clipboard.readText()));
+      } catch (err) {
+        log('refused:', err.name, '— reading needs explicit permission');
+      }
+    });
+
+    log('clipboard access is deliberately restricted:');
+    log('  • writing needs a user gesture');
+    log('  • reading needs permission, every time in some browsers');
+    log('  • neither works on file:// or plain http://');
+  }</script>
+</section>
+
+<section>
+  <h2>Permissions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const names = ['geolocation', 'notifications', 'camera', 'microphone',
+                   'clipboard-read', 'persistent-storage'];
+
+    if (!navigator.permissions) {
+      log('the Permissions API is not available here');
+    } else {
+      names.forEach(name => {
+        navigator.permissions.query({ name })
+          .then(status => log(name.padEnd(20), '→', status.state))
+          .catch(err => log(name.padEnd(20), '→ not queryable (' + err.name + ')'));
+      });
+    }
+
+    log('states: granted | denied | prompt');
+    log('');
+    log('query() never triggers a prompt — it only reports. Asking happens');
+    log('when you actually call the API.');
+  }</script>
+</section>
+
+<section>
+  <h2>Sharing</h2>
+
+  <div class="stage">
+    <button id="share">navigator.share</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    log('supported here:', typeof navigator.share === 'function');
+
+    $('#share').addEventListener('click', async () => {
+      if (!navigator.share) return log('not supported — fall back to a copy-link button');
+      try {
+        await navigator.share({
+          title: 'JavaScript by Example',
+          text: 'My notes on the DOM',
+          url: location.href
+        });
+        log('shared');
+      } catch (err) {
+        log(err.name === 'AbortError' ? 'you cancelled the share' : err.name + ': ' + err.message);
+      }
+    });
+
+    log('it opens the operating system share sheet — mostly a mobile feature,');
+    log('and it needs both https and a user gesture.');
+  }</script>
+</section>
+
+<section>
+  <h2>Connection and battery</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const c = navigator.connection;
+    if (c) {
+      log('effectiveType →', c.effectiveType, '← 4g, 3g, 2g, slow-2g');
+      log('downlink      →', c.downlink, 'Mbps (rounded, for privacy)');
+      log('rtt           →', c.rtt, 'ms');
+      log('saveData      →', c.saveData, '← the user asked for less data');
+      log('');
+      log('use saveData to skip autoplaying video or high-resolution images.');
+    } else {
+      log('navigator.connection is not available in this browser');
+    }
+
+    log('');
+    if (navigator.getBattery) {
+      navigator.getBattery().then(b =>
+        log('battery →', Math.round(b.level * 100) + '%',
+            b.charging ? '(charging)' : '(on battery)'));
+    } else {
+      log('navigator.getBattery is not available — removed from several browsers');
+      log('because it was a strong fingerprinting signal.');
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>What else is here</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const apis = [
+      ['geolocation', 'where the device is'],
+      ['mediaDevices', 'camera and microphone'],
+      ['serviceWorker', 'offline support and push'],
+      ['storage', 'quota, and asking for persistence'],
+      ['credentials', 'passkeys and saved passwords'],
+      ['wakeLock', 'stop the screen sleeping'],
+      ['vibrate', 'buzz the phone'],
+      ['sendBeacon', 'fire-and-forget analytics on unload'],
+      ['bluetooth', 'Web Bluetooth'],
+      ['usb', 'WebUSB'],
+      ['gpu', 'WebGPU']
+    ];
+
+    apis.forEach(([name, what]) =>
+      log((name in navigator ? '✔ ' : '✘ ') + name.padEnd(16), what));
+
+    log('');
+    log('most of these need https, a user gesture, or an explicit permission —');
+    log('often all three.');
+  }</script>
+</section>
+
+<section>
+  <h2>Fingerprinting</h2>
+  <div class="note warn">Language, timezone, screen size, core count, fonts and canvas
+  rendering combine into an identifier that survives clearing cookies. Browsers are
+  progressively rounding or removing these values. Read what you need for the feature at
+  hand; do not collect them for their own sake.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const signals = [
+      navigator.language,
+      Intl.DateTimeFormat().resolvedOptions().timeZone,
+      screen.width + 'x' + screen.height,
+      navigator.hardwareConcurrency,
+      window.devicePixelRatio,
+      new Date().getTimezoneOffset()
+    ];
+
+    log('six values, freely readable:');
+    signals.forEach(s => log('  ' + s));
+    log('');
+    log('combined:', signals.join('|'));
+    log('that is already enough to distinguish most visitors.');
+  }</script>
+</section>
+
+</body>
+</html>

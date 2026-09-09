@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operators — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="operators">
+
+<h1>Operators</h1>
+<p class="lede">Symbols that combine values into a new value. JavaScript has arithmetic,
+string, comparison, logical, bitwise, assignment and a few one-off operators.</p>
+
+<section>
+  <h2>Arithmetic</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('7 + 2  =', 7 + 2);
+    log('7 - 2  =', 7 - 2);
+    log('7 * 2  =', 7 * 2);
+    log('7 / 2  =', 7 / 2);
+    log('7 % 2  =', 7 % 2, '(remainder)');
+    log('7 ** 2 =', 7 ** 2, '(exponent)');
+
+    let n = 7;
+    log('n++ returns', n++, 'then n is', n);
+    log('++n returns', ++n, 'and n is', n);
+  }</script>
+</section>
+
+<section>
+  <h2>String operators</h2>
+  <p><code>+</code> joins strings. If either side is a string, the other side is converted
+  to one — which is where "12" comes from.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Hello' + ' ' + 'World');
+    log('1' + 2);              // "12"
+    log(1 + 2 + '3');          // 3 then "33" — left to right
+    log('3' + 1 + 2);          // "312"
+    log('5' - 2);              // 3 — minus has no string meaning
+
+    let text = 'Hello';
+    text += ' again';
+    log(text);
+  }</script>
+</section>
+
+<section>
+  <h2>Comparison</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('5 == "5"  →', 5 == '5', '(loose: converts first)');
+    log('5 === "5" →', 5 === '5', '(strict: type must match)');
+    log('5 != "5"  →', 5 != '5');
+    log('5 !== "5" →', 5 !== '5');
+    log('3 < 5     →', 3 < 5);
+    log('3 >= 5    →', 3 >= 5);
+    log('"a" < "b" →', 'a' < 'b', '(alphabetical for strings)');
+    log('"10" < "9"→', '10' < '9', '(string comparison, not numeric!)');
+  }</script>
+</section>
+
+<section>
+  <h2>Logical</h2>
+  <p><code>&amp;&amp;</code> and <code>||</code> return one of their operands, not
+  necessarily a boolean, and they short-circuit.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('true && false →', true && false);
+    log('true || false →', true || false);
+    log('!true         →', !true);
+
+    // The value-returning behaviour, used every day:
+    const name = '';
+    log('name || "guest" →', name || 'guest');
+
+    const user = { admin: true };
+    log('user && user.admin →', user && user.admin);
+
+    // ?? only falls back on null / undefined, not on "" or 0:
+    log('0 || 10 →', 0 || 10);
+    log('0 ?? 10 →', 0 ?? 10);
+  }</script>
+</section>
+
+<section>
+  <h2>The ternary operator</h2>
+  <p>The only operator taking three operands: <code>condition ? whenTrue : whenFalse</code>.</p>
+
+  <div class="stage">
+    <label>Age <input id="age" type="number" value="20" style="width:80px"></label>
+    <span id="verdict"></span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const age = $('#age');
+    const verdict = $('#verdict');
+
+    function check() {
+      const value = Number(age.value);
+      verdict.textContent = value >= 18 ? 'may enter' : 'too young';
+      log(value, '→', verdict.textContent);
+    }
+
+    age.addEventListener('input', check);
+    check();
+  }</script>
+</section>
+
+<section>
+  <h2>The rest of them</h2>
+  <table class="ref">
+    <tr><th>Operator</th><th>Does</th><th>Example</th></tr>
+    <tr><td><code>typeof</code></td><td>type as a string</td><td><code>typeof 1</code> → "number"</td></tr>
+    <tr><td><code>instanceof</code></td><td>prototype chain test</td><td><code>[] instanceof Array</code></td></tr>
+    <tr><td><code>in</code></td><td>property exists</td><td><code>'a' in {a:1}</code></td></tr>
+    <tr><td><code>delete</code></td><td>removes a property</td><td><code>delete obj.a</code></td></tr>
+    <tr><td><code>?.</code></td><td>optional chaining</td><td><code>a?.b?.c</code></td></tr>
+    <tr><td><code>...</code></td><td>spread / rest</td><td><code>[...arr]</code></td></tr>
+    <tr><td><code>,</code></td><td>evaluates both, returns the last</td><td><code>(1, 2)</code> → 2</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const settings = { theme: 'dark' };
+    log("'theme' in settings →", 'theme' in settings);
+    log('typeof settings     →', typeof settings);
+    log('settings?.missing?.deep →', settings?.missing?.deep);
+    log("[...'abc']          →", [...'abc']);
+  }</script>
+</section>
+
+</body>
+</html>

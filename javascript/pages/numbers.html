@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Numbers — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="numbers">
+
+<h1>Numbers</h1>
+<p class="lede">JavaScript has one number type: a 64-bit floating point double. There is no
+separate integer type, which explains most of its arithmetic surprises.</p>
+
+<section>
+  <h2>Writing numbers</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log(42);            // integer
+    log(3.14);          // decimal
+    log(123e5);         // exponent: 12300000
+    log(123e-5);        // 0.00123
+    log(0xff);          // hexadecimal → 255
+    log(0b1010);        // binary → 10
+    log(0o17);          // octal → 15
+    log(1_000_000);     // underscores are ignored, purely for reading
+  }</script>
+</section>
+
+<section>
+  <h2>Precision</h2>
+  <p>A double stores 15–17 significant digits. Beyond that, digits are lost.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('0.1 + 0.2       =', 0.1 + 0.2);
+    log('(0.1*10 + 0.2*10) / 10 =', (0.1 * 10 + 0.2 * 10) / 10);
+
+    log('9007199254740992     =', 9007199254740992);
+    log('9007199254740992 + 1 =', 9007199254740992 + 1, '← unchanged');
+    log('MAX_SAFE_INTEGER     =', Number.MAX_SAFE_INTEGER);
+
+    log('0.1 + 0.7 rounded  =', Math.round((0.1 + 0.7) * 10) / 10);
+  }</script>
+</section>
+
+<section>
+  <h2>Numbers and strings</h2>
+  <p><code>+</code> means concatenation if either side is a string; every other arithmetic
+  operator converts to a number first.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('10 + 20      →', 10 + 20);
+    log('"10" + 20    →', '10' + 20);
+    log('10 + "20"    →', 10 + '20');
+    log('"10" * "2"   →', '10' * '2');
+    log('"10" / "2"   →', '10' / '2');
+    log('"10" - 2     →', '10' - 2);
+    log('"ten" * 2    →', 'ten' * 2);
+    log('10 + 20 + "" →', 10 + 20 + '', '(a string now)');
+  }</script>
+</section>
+
+<section>
+  <h2>NaN and Infinity</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const bad = 100 / 'apple';
+    log('100 / "apple"      →', bad);
+    log('typeof NaN         →', typeof NaN);
+    log('isNaN("text")      →', isNaN('text'), '(coerces first — avoid)');
+    log('Number.isNaN("text")→', Number.isNaN('text'), '(strict — prefer)');
+
+    log('2 / 0              →', 2 / 0);
+    log('typeof Infinity    →', typeof Infinity);
+    log('Number.MAX_VALUE*2 →', Number.MAX_VALUE * 2);
+  }</script>
+</section>
+
+<section>
+  <h2>Converting to a number</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const inputs = ['42', '3.9', '  7  ', '12px', '', 'abc', true, null, undefined, []];
+
+    inputs.forEach(v => {
+      log(
+        String(JSON.stringify(v)).padEnd(12),
+        'Number:', String(Number(v)).padEnd(6),
+        'parseInt:', String(parseInt(v)).padEnd(6),
+        'unary +:', String(+v)
+      );
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Numbers as objects</h2>
+  <p>Never use <code>new Number()</code>. It creates an object that compares by identity.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const plain = 500;
+    const boxed = new Number(500);
+
+    log('typeof plain  →', typeof plain);
+    log('typeof boxed  →', typeof boxed);
+    log('plain == boxed  →', plain == boxed);
+    log('plain === boxed →', plain === boxed);
+    log('new Number(1) === new Number(1) →', new Number(1) === new Number(1));
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="array-methods">
+
+<h1>Array Methods</h1>
+<p class="lede">The important division: some methods change the array in place, others
+return a new one. Mixing them up is a classic source of bugs.</p>
+
+<section>
+  <h2>Mutating vs non-mutating</h2>
+
+  <table class="ref">
+    <tr><th>Changes the array</th><th>Returns a new array</th></tr>
+    <tr><td><code>push pop shift unshift</code></td><td><code>concat slice flat</code></td></tr>
+    <tr><td><code>splice sort reverse fill</code></td><td><code>map filter toSorted toReversed</code></td></tr>
+    <tr><td><code>copyWithin</code></td><td><code>toSpliced with</code></td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = [3, 1, 2];
+
+    const copySorted = [...original].sort();     // safe
+    log('original after copy-sort:', original);
+
+    original.sort();                             // in place
+    log('original after sort():   ', original);
+
+    log('toSorted() (ES2023):', [3, 1, 2].toSorted());
+  }</script>
+</section>
+
+<section>
+  <h2>Adding and removing at the ends</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const queue = ['a', 'b'];
+
+    log('push("c")   returns', queue.push('c'), '→', queue);
+    log('unshift("z")returns', queue.unshift('z'), '→', queue);
+    log('pop()       returns', queue.pop(), '→', queue);
+    log('shift()     returns', queue.shift(), '→', queue);
+
+    // A stack is push/pop; a queue is push/shift.
+  }</script>
+</section>
+
+<section>
+  <h2>splice: insert, delete, replace</h2>
+  <p><code>splice(start, howMany, ...items)</code> — the Swiss army knife, and the one that
+  mutates hardest. It returns whatever it removed.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Banana', 'Orange', 'Apple', 'Mango'];
+
+    let removed = fruit.splice(2, 0, 'Lemon', 'Kiwi');   // insert, remove nothing
+    log('after insert:', fruit, '| removed:', removed);
+
+    removed = fruit.splice(0, 2);                        // remove two
+    log('after remove:', fruit, '| removed:', removed);
+
+    removed = fruit.splice(1, 1, 'Pineapple');           // replace one
+    log('after replace:', fruit, '| removed:', removed);
+
+    // Non-mutating equivalents:
+    const base = ['a', 'b', 'c'];
+    log('toSpliced(1, 1) →', base.toSpliced(1, 1), '| base:', base);
+    log('with(0, "X")    →', base.with(0, 'X'), '| base:', base);
+  }</script>
+</section>
+
+<section>
+  <h2>slice: a copy of a section</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Banana', 'Orange', 'Lemon', 'Apple', 'Mango'];
+
+    log('slice(1)     →', fruit.slice(1));
+    log('slice(1, 3)  →', fruit.slice(1, 3));
+    log('slice(-2)    →', fruit.slice(-2));
+    log('slice()      →', fruit.slice(), '(a shallow copy)');
+    log('original     →', fruit, '(untouched)');
+  }</script>
+</section>
+
+<section>
+  <h2>Joining and flattening</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = [1, 2], b = [3, 4], c = [5];
+
+    log('concat        →', a.concat(b, c));
+    log('spread        →', [...a, ...b, ...c]);
+    log('join("-")     →', ['a', 'b', 'c'].join('-'));
+    log('join()        →', ['a', 'b'].join(), '(comma by default)');
+    log('toString()    →', [1, 2, 3].toString());
+
+    const deep = [1, [2, [3, [4]]]];
+    log('flat()        →', deep.flat());
+    log('flat(2)       →', deep.flat(2));
+    log('flat(Infinity)→', deep.flat(Infinity));
+
+    log('null and undefined become empty:', [1, null, undefined, 2].join('-'));
+  }</script>
+</section>
+
+<section>
+  <h2>fill, copyWithin, at</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('new Array(5).fill(0)  →', new Array(5).fill(0));
+    log('[1,2,3,4].fill(9, 1, 3) →', [1, 2, 3, 4].fill(9, 1, 3));
+    log('[1,2,3,4,5].copyWithin(0, 3) →', [1, 2, 3, 4, 5].copyWithin(0, 3));
+
+    const list = ['a', 'b', 'c'];
+    log('at(0)  →', list.at(0));
+    log('at(-1) →', list.at(-1));
+  }</script>
+</section>
+
+<section>
+  <h2>Try a method</h2>
+  <div class="stage">
+    <select id="method">
+      <option>push("new")</option><option>pop()</option>
+      <option>shift()</option><option>unshift("new")</option>
+      <option>splice(1, 2)</option><option>slice(1, 3)</option>
+      <option>reverse()</option><option>concat(["x"])</option>
+      <option>join(" | ")</option>
+    </select>
+    <button id="reset">Reset</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const START = ['a', 'b', 'c', 'd'];
+    let list = [...START];
+
+    const actions = {
+      'push("new")':   l => l.push('new'),
+      'pop()':         l => l.pop(),
+      'shift()':       l => l.shift(),
+      'unshift("new")':l => l.unshift('new'),
+      'splice(1, 2)':  l => l.splice(1, 2),
+      'slice(1, 3)':   l => l.slice(1, 3),
+      'reverse()':     l => l.reverse(),
+      'concat(["x"])': l => l.concat(['x']),
+      'join(" | ")':   l => l.join(' | ')
+    };
+
+    function run() {
+      const name = $('#method').value;
+      const before = [...list];
+      const returned = actions[name](list);
+
+      log.clear();
+      log('before  ', before);
+      log('call    ', name);
+      log('returned', returned);
+      log('after   ', list);
+      log(JSON.stringify(before) === JSON.stringify(list)
+        ? '→ the array was NOT changed'
+        : '→ the array WAS changed in place');
+    }
+
+    $('#method').addEventListener('change', run);
+    $('#reset').onclick = function () { list = [...START]; log.clear(); log('reset to', list); };
+    run();
+  }</script>
+</section>
+
+</body>
+</html>

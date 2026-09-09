@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>addEventListener — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-event-listener">
+
+<h1>addEventListener</h1>
+<p class="lede">The one correct way to attach a handler. It allows many listeners per event,
+gives you the capture phase, and can be removed again.</p>
+
+<section>
+  <h2>Three ways, one winner</h2>
+
+  <div class="stage">
+    <button id="a" onclick="/* inline */ void 0">inline attribute</button>
+    <button id="b">onclick property</button>
+    <button id="c">addEventListener</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // 1. Inline attribute — markup and behaviour tangled, blocked by CSP.
+    $('#a').setAttribute('onclick', "this.textContent = 'clicked'");
+
+    // 2. onclick property — only ONE handler; the second overwrites the first.
+    $('#b').onclick = () => log('handler 1');
+    $('#b').onclick = () => log('handler 2 — handler 1 is gone');
+
+    // 3. addEventListener — as many as you like, all of them run.
+    $('#c').addEventListener('click', () => log('listener 1'));
+    $('#c').addEventListener('click', () => log('listener 2'));
+    $('#c').addEventListener('click', () => log('listener 3'));
+
+    log('click each button and compare');
+  }</script>
+</section>
+
+<section>
+  <h2>The signature</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('element.addEventListener(type, listener, options)');
+    log('');
+    log('type     — "click", without the "on" prefix');
+    log('listener — a function, or an object with a handleEvent method');
+    log('options  — a boolean (capture) or an object:');
+    log('             { capture, once, passive, signal }');
+
+    log('');
+    const el = document.createElement('button');
+    const handler = { count: 0, handleEvent(e) { this.count++; } };
+    el.addEventListener('click', handler);
+    el.click(); el.click();
+    log('an object listener works too — handleEvent ran', handler.count, 'times');
+    log('and `this` inside it is the object, not the element');
+  }</script>
+</section>
+
+<section>
+  <h2>Removing a listener</h2>
+
+  <div class="stage">
+    <button id="rem-target">click me</button>
+    <button id="rem-off">remove the listener</button>
+    <button id="rem-fail">try to remove an anonymous one</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const target = $('#rem-target');
+
+    function named() { log('named listener ran'); }
+    target.addEventListener('click', named);
+    target.addEventListener('click', () => log('anonymous listener ran'));
+
+    $('#rem-off').addEventListener('click', () => {
+      target.removeEventListener('click', named);
+      log('removed the named one');
+    });
+
+    $('#rem-fail').addEventListener('click', () => {
+      target.removeEventListener('click', () => log('anonymous listener ran'));
+      log('this did nothing — a new arrow is a different function');
+    });
+
+    log('removeEventListener needs the SAME function reference,');
+    log('and the same capture flag it was added with.');
+  }</script>
+</section>
+
+<section>
+  <h2>once</h2>
+
+  <div class="stage">
+    <button id="once-btn">click me repeatedly</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    let plain = 0;
+
+    $('#once-btn').addEventListener('click', () => log('once      → fires only this time'),
+      { once: true });
+
+    $('#once-btn').addEventListener('click', () => log('normal    → fire ' + (++plain)));
+
+    log('the once listener removes itself after the first call —');
+    log('handy for "initialise on first interaction" and for one-shot promises:');
+    log('');
+    log('  const clicked = new Promise(r =>');
+    log('    button.addEventListener("click", r, { once: true }));');
+  }</script>
+</section>
+
+<section>
+  <h2>signal — removing many at once</h2>
+
+  <div class="stage">
+    <div id="zone" style="padding:12px;background:#e2e8f0;border-radius:8px;flex:1">
+      move and click in here
+    </div>
+    <button id="detach">detach everything</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const controller = new AbortController();
+    const zone = $('#zone');
+    let moves = 0;
+
+    zone.addEventListener('click', () => log('click'), { signal: controller.signal });
+    zone.addEventListener('mousemove', () => {
+      if (++moves % 20 === 0) log('mousemove ×' + moves);
+    }, { signal: controller.signal });
+
+    $('#detach').addEventListener('click', () => {
+      controller.abort();
+      zone.textContent = 'listeners detached';
+      log('one abort() removed every listener registered with that signal');
+    });
+
+    log('this is the tidiest way to clean up a component');
+  }</script>
+</section>
+
+<section>
+  <h2>passive</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a scroll or touch listener blocks scrolling until it returns,');
+    log('because the browser has to know whether you will call preventDefault().');
+    log('');
+    log('  el.addEventListener("touchstart", fn, { passive: true })');
+    log('');
+    log('promises not to cancel, so the browser can scroll immediately.');
+    log('Browsers already treat page-level touch and wheel listeners as passive');
+    log('by default — calling preventDefault() in one is then ignored.');
+
+    let supported = false;
+    try {
+      window.addEventListener('test', null, Object.defineProperty({}, 'passive', {
+        get() { supported = true; return false; }
+      }));
+    } catch (err) { /* old browsers */ }
+    log('');
+    log('options-object support detected:', supported);
+  }</script>
+</section>
+
+<section>
+  <h2>capture</h2>
+
+  <div class="stage">
+    <div id="cap-parent" style="padding:12px;background:#dbeafe;border-radius:8px;flex:1">
+      parent <button id="cap-child">child</button>
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const parent = $('#cap-parent');
+
+    parent.addEventListener('click', () => log('  parent, capture phase (runs first)'), true);
+    parent.addEventListener('click', () => log('  parent, bubble phase  (runs last)'));
+    $('#cap-child').addEventListener('click', () => log('  child'));
+
+    log('click the child button');
+    log('');
+    log('capture is rare. Its real uses: intercepting an event before a');
+    log('child can stopPropagation it, and listening for focus/blur, which');
+    log('do not bubble.');
+  }</script>
+</section>
+
+<section>
+  <h2>Throttling a noisy event</h2>
+
+  <div class="stage">
+    <div id="scroller" style="height:80px;overflow:auto;flex:1;background:#e2e8f0;
+         border-radius:8px;padding:8px">
+      <div style="height:400px">scroll me</div>
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    let raw = 0, throttled = 0;
+    let ticking = false;
+
+    $('#scroller').addEventListener('scroll', () => {
+      raw++;
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        throttled++;
+        ticking = false;
+        log.clear();
+        log('scroll events fired :', raw);
+        log('work actually done  :', throttled);
+        log('saved               :', raw - throttled, 'redundant runs');
+      });
+    });
+
+    log('scroll the grey box');
+    log('');
+    log('scroll, resize, mousemove and input can fire dozens of times a second.');
+    log('Coalesce with requestAnimationFrame, or debounce with setTimeout.');
+  }</script>
+</section>
+
+<section>
+  <h2>Leaks</h2>
+  <div class="note warn">A listener keeps its closure — and the element — alive. When you
+  remove an element from the DOM, its own listeners go with it, but a listener you attached
+  to <code>window</code> or <code>document</code> on that element's behalf does not. Remove
+  those explicitly, or register them with an <code>AbortSignal</code>.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the pattern to remember:');
+    log('');
+    log('  function mount(el) {');
+    log('    const ac = new AbortController();');
+    log('    window.addEventListener("resize", onResize, { signal: ac.signal });');
+    log('    document.addEventListener("keydown", onKey, { signal: ac.signal });');
+    log('    return () => ac.abort();        // call this on unmount');
+    log('  }');
+  }</script>
+</section>
+
+</body>
+</html>

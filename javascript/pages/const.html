@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Const — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="const">
+
+<h1>Const</h1>
+<p class="lede"><code>const</code> makes the <b>binding</b> constant, not the value. The name
+can never be pointed at something else — but if it points at an object, that object is still
+free to change.</p>
+
+<section>
+  <h2>Must be assigned at declaration</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const PI = 3.14159;
+    log('PI =', PI);
+
+    try {
+      eval('const missing;');            // no initialiser
+    } catch (err) {
+      log('const with no value →', err.name + ':', err.message);
+    }
+
+    try {
+      PI = 3;
+    } catch (err) {
+      log('reassigning →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Objects assigned to const can change</h2>
+  <p>This is the part that surprises people. The constant is the arrow, not the box it
+  points to.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const car = { type: 'Fiat', model: '500', colour: 'white' };
+
+    car.colour = 'red';                  // changing a property: fine
+    car.owner = 'Ada';                   // adding one: also fine
+    delete car.model;                    // removing one: still fine
+    log(car);
+
+    try {
+      car = { type: 'Volvo' };           // repointing the name: not fine
+    } catch (err) {
+      log('reassigning the object →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>The same goes for arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const cars = ['Saab', 'Volvo', 'BMW'];
+
+    cars[0] = 'Opel';
+    cars.push('Audi');
+    log(cars, 'length', cars.length);
+
+    try {
+      cars = ['Toyota'];
+    } catch (err) {
+      log(err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Really freezing a value</h2>
+  <p>If you want the contents locked too, use <code>Object.freeze()</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const config = Object.freeze({ retries: 3, debug: false });
+
+    config.retries = 99;                 // silently ignored (throws in strict mode)
+    log('after the write:', config);
+    log('frozen?', Object.isFrozen(config));
+
+    // Freezing is shallow — nested objects are still mutable:
+    const deep = Object.freeze({ inner: { n: 1 } });
+    deep.inner.n = 2;
+    log('shallow freeze:', deep);
+  }</script>
+</section>
+
+<section>
+  <h2>Block scope, like let</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const mode = 'production';
+
+    if (true) {
+      const mode = 'debug';              // separate variable inside the block
+      log('inside: ', mode);
+    }
+
+    log('outside:', mode);
+  }</script>
+</section>
+
+<section>
+  <h2>When to use which</h2>
+  <ul>
+    <li><b>const by default.</b> If a name never needs to be repointed, saying so removes a
+    whole category of "where did this change?" questions.</li>
+    <li><b>let</b> for counters, accumulators, and values reassigned in a branch.</li>
+    <li><b>var</b> essentially never in new code.</li>
+  </ul>
+  <div class="note">A <code>const</code> in a <code>for…of</code> loop head is fine — each
+  iteration creates a new binding. A <code>const</code> in a <code>for (let i = 0; …)</code>
+  head is not, because <code>i++</code> reassigns it.</div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES2022–2025 — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="es-2022-25">
+
+<h1>ES2022 – ES2025</h1>
+<p class="lede">The most recent years: private class fields, top-level await, immutable array
+methods, and grouping built into the language.</p>
+
+<section>
+  <h2>ES2022 — class fields</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Counter {
+      count = 0;                       // public field
+      #step;                           // private field
+      static created = 0;              // static field
+      static #registry = new Set();    // static private
+
+      static {                         // static initialisation block
+        Counter.created = 0;
+      }
+
+      constructor(step = 1) {
+        this.#step = step;
+        Counter.created++;
+        Counter.#registry.add(this);
+      }
+
+      increment() { return (this.count += this.#step); }
+      static get registered() { return Counter.#registry.size; }
+      static isCounter(value) { return #step in value; }   // brand check
+    }
+
+    const c = new Counter(5);
+    log(c.increment(), c.increment());
+    log('own keys      →', Object.keys(c), '← #step is invisible');
+    log('JSON          →', JSON.stringify(c));
+    log('created       →', Counter.created, '| registered:', Counter.registered);
+    log('isCounter(c)  →', Counter.isCounter(c));
+    log('isCounter({}) →', Counter.isCounter({}));
+
+    try { eval('c.#step'); }
+    catch (err) { log('reaching in from outside →', err.name);}
+  }</script>
+</section>
+
+<section>
+  <h2>ES2022 — the rest</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Array.prototype.at — negative indexing at last:');
+    log('  [1,2,3].at(-1)     →', [1, 2, 3].at(-1));
+    log('  "hello".at(-1)     →', 'hello'.at(-1));
+    log('  the old way: arr[arr.length - 1]');
+
+    log('');
+    log('Object.hasOwn — a safe hasOwnProperty:');
+    const bare = Object.create(null);
+    bare.x = 1;
+    log('  Object.hasOwn(bare, "x") →', Object.hasOwn(bare, 'x'));
+    try { bare.hasOwnProperty('x'); }
+    catch (err) { log('  bare.hasOwnProperty(…)   →', err.name, '← no prototype');}
+
+    log('');
+    log('Error cause — keep the original when you re-throw:');
+    try {
+      try { JSON.parse('{'); }
+      catch (err) { throw new Error('could not load settings', { cause: err }); }
+    } catch (err) {
+      log('  message →', err.message);
+      log('  cause   →', err.cause.name + ':', err.cause.message.slice(0, 30));
+    }
+
+    log('');
+    log('the d flag on regexes gives match indices:');
+    const m = /(\w+)@(\w+)/d.exec('mail ada@example');
+    log('  match     →', m[0]);
+    log('  indices   →', m.indices[1], 'and', m.indices[2]);
+
+    log('');
+    log('top-level await — in modules only:');
+    log('  const data = await fetch(url).then(r => r.json());');
+    log('  no wrapper IIFE, at the top level of a module.');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2023 — immutable array methods</h2>
+  <p>Four copies of familiar methods that return a new array instead of mutating.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = [3, 1, 2];
+
+    log('mutating:');
+    const copy = [...original];
+    copy.sort();
+    log('  sort()      →', copy, '(and the original would have changed)');
+
+    log('');
+    log('non-mutating:');
+    log('  toSorted()  →', original.toSorted(), '| original:', original);
+    log('  toReversed()→', original.toReversed(), '| original:', original);
+    log('  toSpliced(1,1) →', original.toSpliced(1, 1), '| original:', original);
+    log('  with(0, 99) →', original.with(0, 99), '| original:', original);
+
+    log('');
+    log('this matters in any framework that compares by reference —');
+    log('an in-place sort does not look like a change.');
+
+    log('');
+    log('and searching from the end:');
+    const rows = [{ id: 1, ok: true }, { id: 2, ok: false }, { id: 3, ok: true }];
+    log('  findLast      →', rows.findLast(r => r.ok));
+    log('  findLastIndex →', rows.findLastIndex(r => r.ok));
+
+    log('');
+    log('a # at the start of a file is now allowed, so a script can be');
+    log('executable: #!/usr/bin/env node');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2024</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Object.groupBy and Map.groupBy:');
+    const people = [
+      { name: 'Ada', dept: 'eng' }, { name: 'Alan', dept: 'math' },
+      { name: 'Grace', dept: 'eng' }, { name: 'Edsger', dept: 'math' }
+    ];
+
+    if (typeof Object.groupBy === 'function') {
+      const grouped = Object.groupBy(people, p => p.dept);
+      log('  ', Object.fromEntries(
+        Object.entries(grouped).map(([k, v]) => [k, v.map(p => p.name)])));
+      log('  the reduce version it replaces was five lines.');
+    } else {
+      log('  not supported in this browser yet');
+    }
+
+    log('');
+    log('Promise.withResolvers — the deferred pattern, built in:');
+    if (typeof Promise.withResolvers === 'function') {
+      const { promise, resolve } = Promise.withResolvers();
+      promise.then(v => log('  resolved from outside with', v));
+      setTimeout(() => resolve('a value'), 20);
+      log('  no more: let resolve; new Promise(r => { resolve = r; })');
+    } else {
+      log('  not supported in this browser yet');
+    }
+
+    log('');
+    log('Array.fromAsync — Array.from for async iterables:');
+    log('  supported here →', typeof Array.fromAsync === 'function');
+
+    log('');
+    log('the v flag on regexes — set operations inside a character class:');
+    log('  /[\\p{Letter}--[aeiou]]/v   letters except vowels');
+    log('  supported here →', (() => { try { new RegExp('a', 'v'); return true; }
+                                       catch { return false; } })());
+
+    log('');
+    log('String.prototype.isWellFormed / toWellFormed — for lone surrogates:');
+    if ('isWellFormed' in String.prototype) {
+      log('  "ab".isWellFormed()      →', 'ab'.isWellFormed());
+      log('  "\\ud800".isWellFormed() →', '\ud800'.isWellFormed());
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>ES2025</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Set methods — the operations Set has needed since 2015:');
+    const a = new Set([1, 2, 3, 4]);
+    const b = new Set([3, 4, 5]);
+
+    if (typeof a.union === 'function') {
+      log('  union              →', [...a.union(b)]);
+      log('  intersection       →', [...a.intersection(b)]);
+      log('  difference         →', [...a.difference(b)]);
+      log('  symmetricDifference→', [...a.symmetricDifference(b)]);
+      log('  isSubsetOf         →', new Set([1, 2]).isSubsetOf(a));
+      log('  isDisjointFrom     →', a.isDisjointFrom(new Set([9])));
+    } else {
+      log('  not supported in this browser yet');
+      log('  the old way: new Set([...a].filter(x => b.has(x)))');
+    }
+
+    log('');
+    log('Iterator helpers — lazy map/filter/take on any iterator:');
+    function* naturals() { let n = 1; while (true) yield n++; }
+
+    if (typeof Iterator !== 'undefined' && naturals()[Symbol.iterator] &&
+        typeof naturals().take === 'function') {
+      log('  ', naturals().map(n => n * n).filter(n => n % 2).take(5).toArray());
+      log('  an infinite sequence, evaluated only as far as needed.');
+    } else {
+      log('  not supported in this browser yet');
+    }
+
+    log('');
+    log('RegExp.escape — finally, a safe way to build a pattern from input:');
+    if (typeof RegExp.escape === 'function') {
+      log('  ', RegExp.escape('a.b*c'));
+    } else {
+      log('  not supported yet; the workaround is');
+      log('  s.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")');
+    }
+
+    log('');
+    log('Promise.try — run a function and get a promise either way:');
+    if (typeof Promise.try === 'function') {
+      Promise.try(() => { throw new Error('sync throw'); })
+        .catch(err => log('  a synchronous throw became a rejection:', err.message));
+    } else {
+      log('  not supported yet');
+    }
+
+    log('');
+    log('import attributes:  import data from "./x.json" with { type: "json" }');
+  }</script>
+</section>
+
+<section>
+  <h2>What this browser actually has</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const features = [
+      ['ES2022', 'class fields', () => { class T { #x = 1; has() { return this.#x; } } return new T().has() === 1; }],
+      ['ES2022', 'Array.at', () => [1].at(-1) === 1],
+      ['ES2022', 'Object.hasOwn', () => typeof Object.hasOwn === 'function'],
+      ['ES2022', 'Error cause', () => new Error('a', { cause: 'b' }).cause === 'b'],
+      ['ES2023', 'toSorted', () => typeof [].toSorted === 'function'],
+      ['ES2023', 'findLast', () => typeof [].findLast === 'function'],
+      ['ES2024', 'Object.groupBy', () => typeof Object.groupBy === 'function'],
+      ['ES2024', 'Promise.withResolvers', () => typeof Promise.withResolvers === 'function'],
+      ['ES2024', 'Array.fromAsync', () => typeof Array.fromAsync === 'function'],
+      ['ES2025', 'Set.union', () => typeof new Set().union === 'function'],
+      ['ES2025', 'Iterator.take', () => typeof Iterator !== 'undefined' &&
+                                        typeof Iterator.prototype.take === 'function'],
+      ['ES2025', 'RegExp.escape', () => typeof RegExp.escape === 'function'],
+      ['ES2025', 'Promise.try', () => typeof Promise.try === 'function']
+    ];
+
+    features.forEach(([year, name, test]) => {
+      let ok;
+      try { ok = test(); } catch (err) { ok = false; }
+      log((ok ? '✔' : '✘'), year, name);
+    });
+
+    log('');
+    log('a ✘ is not a problem — it is what a polyfill or a transpiler is for.');
+  }</script>
+</section>
+
+<section>
+  <h2>How a feature gets here</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('TC39, the committee, moves proposals through five stages:');
+    log('');
+    log('  0  strawperson  — an idea');
+    log('  1  proposal     — a champion, and a rough API');
+    log('  2  draft        — the specification is being written');
+    log('  2.7 —             the spec is complete, tests are being written');
+    log('  3  candidate    — implementations start shipping it behind flags');
+    log('  4  finished     — two shipping implementations; it is in the next release');
+    log('');
+    log('every June, whatever reached stage 4 becomes ES<year>.');
+    log('');
+    log('so "ES2025" is a label for a date, not a coherent theme —');
+    log('and browsers ship features long before the yearly cut.');
+    log('');
+    log('worth watching: Temporal (a real date/time API), decorators,');
+    log('pattern matching, records and tuples, the pipeline operator.');
+  }</script>
+</section>
+
+</body>
+</html>

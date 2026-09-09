@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Async / Await — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="async-await">
+
+<h1>Async / Await</h1>
+<p class="lede">Syntax over promises. <code>async</code> makes a function return a promise;
+<code>await</code> pauses inside it until a promise settles — without blocking the page.</p>
+
+<section>
+  <h2>async always returns a promise</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    async function plain() {
+      return 42;                    // wrapped in a resolved promise
+    }
+
+    async function fails() {
+      throw new Error('boom');      // becomes a rejected promise
+    }
+
+    log('plain() returns a', plain().constructor.name);
+    plain().then(v => log('resolved with', v));
+    fails().catch(e => log('rejected with', e.message));
+
+    log('');
+    log('these two are equivalent:');
+    log('  async function f() { return 1; }');
+    log('  function f() { return Promise.resolve(1); }');
+  }</script>
+</section>
+
+<section>
+  <h2>await</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+
+    async function run() {
+      log('1 — before the await');
+      await wait(50);
+      log('3 — after the await, 50ms later');
+      const value = await Promise.resolve('a resolved value');
+      log('4 — await unwraps:', value);
+      log('5 — awaiting a plain value works too:', await 'not a promise');
+    }
+
+    run();
+    log('2 — the caller keeps going while run() is paused');
+  }</script>
+</section>
+
+<section>
+  <h2>The same chain, both ways</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const step = (name, ms) => new Promise(r => setTimeout(() => r(name), ms));
+
+    // with .then
+    step('a', 20)
+      .then(a => step(a + 'b', 20))
+      .then(ab => step(ab + 'c', 20))
+      .then(abc => log('then:  ', abc));
+
+    // with await
+    (async () => {
+      const a = await step('a', 20);
+      const ab = await step(a + 'b', 20);
+      const abc = await step(ab + 'c', 20);
+      log('await: ', abc);
+    })();
+
+    log('the second reads top to bottom, like synchronous code');
+  }</script>
+</section>
+
+<section>
+  <h2>try / catch / finally</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function load(id) {
+      return new Promise((resolve, reject) =>
+        setTimeout(() => (id > 0 ? resolve({ id }) : reject(new Error('bad id'))), 20));
+    }
+
+    async function show(id) {
+      try {
+        const data = await load(id);
+        log('loaded', data);
+      } catch (err) {
+        log('caught', err.message, '— ordinary try/catch, no .catch needed');
+      } finally {
+        log('finished with id =', id);
+      }
+    }
+
+    show(1);
+    setTimeout(() => show(-1), 40);
+  }</script>
+</section>
+
+<section>
+  <h2>Sequential when you did not mean to be</h2>
+  <p>The most common async/await mistake: awaiting inside a loop when the steps are
+  independent.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const job = (name, ms) => new Promise(r => setTimeout(() => r(name), ms));
+    const jobs = [['a', 60], ['b', 60], ['c', 60]];
+
+    async function slow() {
+      const t = Date.now();
+      const out = [];
+      for (const [name, ms] of jobs) out.push(await job(name, ms));
+      log('one at a time →', out, 'in ~' + (Date.now() - t) + 'ms');
+    }
+
+    async function fast() {
+      const t = Date.now();
+      const out = await Promise.all(jobs.map(([name, ms]) => job(name, ms)));
+      log('all together  →', out, 'in ~' + (Date.now() - t) + 'ms');
+    }
+
+    slow();
+    fast();
+
+    log('start them all, then await — unless a step needs the previous result');
+  }</script>
+</section>
+
+<section>
+  <h2>Errors with Promise.all</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const ok = v => Promise.resolve(v);
+    const bad = v => Promise.reject(new Error(v));
+
+    (async () => {
+      try {
+        await Promise.all([ok(1), bad('second failed'), ok(3)]);
+      } catch (err) {
+        log('Promise.all       →', err.message, '← you lose the successful results');
+      }
+
+      const settled = await Promise.allSettled([ok(1), bad('second failed'), ok(3)]);
+      log('Promise.allSettled→', settled.map(r =>
+        r.status === 'fulfilled' ? 'ok:' + r.value : 'err:' + r.reason.message));
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>await is only valid inside async</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      eval('await Promise.resolve(1)');
+    } catch (err) {
+      log('await in a classic script →', err.name);
+    }
+
+    log('workarounds:');
+    log('  • wrap it: (async () => { await … })()');
+    log('  • use .then at the top level');
+    log('  • use an ES module, which allows top-level await');
+
+    // A common bug — await inside a non-async callback:
+    const numbers = [1, 2, 3];
+    const wrong = numbers.map(n => Promise.resolve(n * 2));
+    log('');
+    log('map with an async callback gives promises:', wrong.map(p => p.constructor.name));
+    Promise.all(wrong).then(v => log('await them with Promise.all:', v));
+  }</script>
+</section>
+
+<section>
+  <h2>for await … of</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const delayed = n => new Promise(r => setTimeout(() => r(n), 20));
+
+    (async () => {
+      // Over an array of promises:
+      for await (const value of [delayed('x'), delayed('y'), delayed('z')]) {
+        log('for await:', value);
+      }
+
+      // Over an async generator:
+      async function* ticker(count) {
+        for (let i = 1; i <= count; i++) {
+          await new Promise(r => setTimeout(r, 20));
+          yield 'tick ' + i;
+        }
+      }
+
+      for await (const tick of ticker(3)) log(tick);
+      log('done');
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>A realistic example</h2>
+
+  <div class="stage">
+    <button id="load">load a profile</button>
+    <label><input type="checkbox" id="fail"> make it fail</label>
+    <span id="status" style="font-size:13px;color:var(--ink-faint)"></span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const fakeRequest = (path, ms, shouldFail) => new Promise((resolve, reject) =>
+      setTimeout(() => shouldFail
+        ? reject(new Error('500 on ' + path))
+        : resolve({ path, at: ms + 'ms' }), ms));
+
+    async function loadProfile() {
+      const fail = $('#fail').checked;
+      $('#status').textContent = 'loading…';
+      log.clear();
+
+      try {
+        const user = await fakeRequest('/user', 60, fail);
+        log('1. user   ', user);
+
+        // These two do not depend on each other, so run them together:
+        const [posts, friends] = await Promise.all([
+          fakeRequest('/posts', 80, false),
+          fakeRequest('/friends', 40, false)
+        ]);
+        log('2. posts  ', posts);
+        log('3. friends', friends);
+        log('');
+        log('profile ready');
+      } catch (err) {
+        log('failed:', err.message);
+      } finally {
+        $('#status').textContent = 'idle';
+      }
+    }
+
+    $('#load').addEventListener('click', loadProfile);
+    $('#status').textContent = 'idle';
+    log('press the button');
+  }</script>
+</section>
+
+</body>
+</html>

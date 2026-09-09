@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES2019–2021 — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="es-2019-21">
+
+<h1>ES2019 – ES2021</h1>
+<p class="lede">Three years of small, sharp additions — including two operators
+(<code>?.</code> and <code>??</code>) that changed how everyday code looks.</p>
+
+<section>
+  <h2>ES2019 — arrays and objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('flat and flatMap:');
+    log('  [1,[2,[3,[4]]]].flat()         →', [1, [2, [3, [4]]]].flat());
+    log('  .flat(2)                       →', [1, [2, [3, [4]]]].flat(2));
+    log('  .flat(Infinity)                →', [1, [2, [3, [4]]]].flat(Infinity));
+    log('  ["a b","c"].flatMap(s => s.split(" ")) →',
+        ['a b', 'c'].flatMap(s => s.split(' ')));
+    log('  flat() also removes holes →', [1, , 3].flat());
+
+    log('');
+    log('Object.fromEntries — the inverse of Object.entries:');
+    const scores = { ada: 98, alan: 91 };
+    log('  ', Object.fromEntries(Object.entries(scores).map(([k, v]) => [k, v + 1])));
+    log('  from a Map           →', Object.fromEntries(new Map([['a', 1]])));
+    log('  from URLSearchParams →',
+        Object.fromEntries(new URLSearchParams('a=1&b=2')));
+  }</script>
+</section>
+
+<section>
+  <h2>ES2019 — the rest</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('trimStart and trimEnd:');
+    log('  ', JSON.stringify('  x  '.trimStart()), JSON.stringify('  x  '.trimEnd()));
+
+    log('');
+    log('optional catch binding — omit the parameter you never use:');
+    try { JSON.parse('{'); } catch { log('  caught, without naming the error'); }
+
+    log('');
+    log('Array.prototype.sort became STABLE — equal items keep their order:');
+    const people = [
+      { name: 'Ada', age: 36 }, { name: 'Alan', age: 36 },
+      { name: 'Grace', age: 45 }, { name: 'Edsger', age: 36 }
+    ];
+    log('  ', [...people].sort((a, b) => a.age - b.age).map(p => p.name));
+    log('  before 2019 this order was engine-dependent.');
+
+    log('');
+    log('Symbol.prototype.description:');
+    const sym = Symbol('the label');
+    log('  ', JSON.stringify(sym.description), 'vs', String(sym));
+
+    log('');
+    log('Function.prototype.toString returns the exact source, comments and all:');
+    function documented(a) { /* a comment */ return a; }
+    log('  ', JSON.stringify(documented.toString()));
+    log('  (this page\'s example runner is built on that.)');
+
+    log('');
+    log('JSON became a syntactic subset of JavaScript — U+2028 and U+2029');
+    log('are now legal inside a string literal.');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2020 — optional chaining</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const response = { data: { user: { name: 'Ada' } } };
+    const empty = {};
+
+    log('response.data?.user?.name →', response.data?.user?.name);
+    log('empty.data?.user?.name    →', empty.data?.user?.name, '← undefined, not a crash');
+
+    try { empty.data.user.name; }
+    catch (err) { log('without it                →', err.name); }
+
+    log('');
+    log('three forms:');
+    log('  obj?.prop      property');
+    log('  obj?.[key]     computed →', response?.['data'] !== undefined);
+    log('  fn?.()         call     →', empty.missingMethod?.() );
+
+    log('');
+    log('it short-circuits — nothing to the right runs:');
+    let called = false;
+    const sideEffect = () => { called = true; return 0; };
+    empty.nothing?.[sideEffect()];
+    log('  the index expression ran?', called);
+
+    log('');
+    log('it stops at null and undefined only:');
+    log('  ({a: 0}).a?.toFixed(1) →', ({ a: 0 }).a?.toFixed(1), '← 0 is not nullish');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2020 — nullish coalescing</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const settings = { count: 0, name: '', enabled: false, missing: undefined };
+
+    log('with || (falsy check):');
+    ['count', 'name', 'enabled'].forEach(k =>
+      log('  ' + k.padEnd(8), JSON.stringify(settings[k]), '||  "default" →',
+          JSON.stringify(settings[k] || 'default')));
+
+    log('');
+    log('with ?? (nullish check):');
+    ['count', 'name', 'enabled', 'missing'].forEach(k =>
+      log('  ' + k.padEnd(8), JSON.stringify(settings[k]), '??  "default" →',
+          JSON.stringify(settings[k] ?? 'default')));
+
+    log('');
+    log('?? treats only null and undefined as absent — which is almost');
+    log('always what "a default value" should mean.');
+
+    log('');
+    log('mixing ?? with || or && is a syntax error; parenthesise:');
+    try { eval('a ?? b || c'); }
+    catch (err) { log('  ', err.name, '— write (a ?? b) || c');}
+  }</script>
+</section>
+
+<section>
+  <h2>ES2020 — the rest</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('BigInt — integers with no size limit:');
+    log('  2n ** 64n →', 2n ** 64n);
+    log('  Number.MAX_SAFE_INTEGER →', Number.MAX_SAFE_INTEGER);
+    log('  mixing throws:');
+    try { log(1n + 1); } catch (err) { log('   ', err.name + ':', err.message); }
+
+    log('');
+    log('Promise.allSettled — never rejects:');
+    Promise.allSettled([Promise.resolve(1), Promise.reject(new Error('no'))])
+      .then(r => log('  ', r.map(x => x.status)));
+
+    log('');
+    log('globalThis — one name in every environment:');
+    log('  globalThis === window →', globalThis === window);
+
+    log('');
+    log('String.prototype.matchAll — every match with its groups:');
+    const text = 'a=1, b=2, c=3';
+    for (const m of text.matchAll(/(\w)=(\d)/g)) log('  ', m[1], '→', m[2]);
+
+    log('');
+    log('dynamic import() — load a module on demand, as a promise.');
+    log('import.meta — metadata about the current module.');
+    log('for-in order was finally specified.');
+  }</script>
+</section>
+
+<section>
+  <h2>ES2021</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('String.prototype.replaceAll:');
+    log('  "a-b-c".replace("-", "+")    →', 'a-b-c'.replace('-', '+'), '← first only');
+    log('  "a-b-c".replaceAll("-", "+") →', 'a-b-c'.replaceAll('-', '+'));
+    log('  before: split("-").join("+") or a /g regex');
+
+    log('');
+    log('logical assignment operators:');
+    const config = { retries: 0, name: null };
+    config.retries ||= 3;                   // assigns if falsy  → 3
+    config.name ??= 'anonymous';            // assigns if nullish
+    config.name &&= config.name.toUpperCase();
+    log('  ', config, '← note retries became 3; ??= would have left 0');
+
+    log('');
+    log('numeric separators:');
+    log('  1_000_000   →', 1_000_000);
+    log('  0xFF_FF     →', 0xFF_FF);
+    log('  purely visual — the parser ignores them.');
+
+    log('');
+    log('Promise.any — the first to SUCCEED:');
+    Promise.any([
+      Promise.reject(new Error('a')),
+      new Promise(r => setTimeout(() => r('b succeeded'), 20)),
+      Promise.reject(new Error('c'))
+    ]).then(v => log('  ', v));
+
+    Promise.any([Promise.reject(new Error('x')), Promise.reject(new Error('y'))])
+      .catch(err => log('  all rejected →', err.constructor.name,
+                        'with', err.errors.length, 'errors'));
+
+    log('');
+    log('WeakRef and FinalizationRegistry — for caches that must not keep');
+    log('their contents alive. Rarely the right tool; use them last.');
+    log('  supported here →', typeof WeakRef !== 'undefined');
+  }</script>
+</section>
+
+<section>
+  <h2>Recap</h2>
+
+  <table class="ref">
+    <tr><th>Year</th><th>Highlights</th></tr>
+    <tr><td>2019</td><td><code>flat</code>, <code>flatMap</code>, <code>Object.fromEntries</code>, <code>trimStart/End</code>, stable sort, optional catch binding</td></tr>
+    <tr><td>2020</td><td><b><code>?.</code></b>, <b><code>??</code></b>, BigInt, <code>allSettled</code>, <code>globalThis</code>, <code>matchAll</code>, dynamic <code>import()</code></td></tr>
+    <tr><td>2021</td><td><code>replaceAll</code>, <code>&amp;&amp;= ||= ??=</code>, <code>1_000</code>, <code>Promise.any</code>, WeakRef</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the same code, written in 2015 and today:');
+    log('');
+    log('  // 2015');
+    log('  var name = (user && user.profile && user.profile.name) || "anonymous";');
+    log('');
+    log('  // now');
+    log('  const name = user?.profile?.name ?? "anonymous";');
+  }</script>
+</section>
+
+</body>
+</html>

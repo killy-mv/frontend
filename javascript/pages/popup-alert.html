@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Popup Boxes — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="popup-alert">
+
+<h1>Popup Boxes</h1>
+<p class="lede">Three built-in dialogs: <code>alert</code>, <code>confirm</code> and
+<code>prompt</code>. All three <b>block the whole page</b> until dismissed, which is why
+real applications replace them.</p>
+
+<section>
+  <h2>alert</h2>
+
+  <div class="stage">
+    <button id="a1">a message</button>
+    <button id="a2">a value</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#a1').addEventListener('click', () => {
+      alert('Saved successfully.');
+      log('alert returned', alert('A second line?\nUse \\n for line breaks.'),
+          '← always undefined');
+    });
+
+    $('#a2').addEventListener('click', () => {
+      const value = { id: 1, tags: ['a', 'b'] };
+      alert(value);                    // objects become "[object Object]"
+      alert(JSON.stringify(value, null, 2));
+      log('alert converts its argument with String() — stringify objects yourself');
+    });
+
+    log('alert(message) — one OK button, returns undefined');
+  }</script>
+</section>
+
+<section>
+  <h2>confirm</h2>
+
+  <div class="stage">
+    <button id="c1">ask</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#c1').addEventListener('click', () => {
+      const ok = confirm('Delete this item?');
+      log('confirm returned', ok, '(' + typeof ok + ')');
+      log(ok ? '→ deleting…' : '→ cancelled');
+    });
+
+    log('confirm(question) — OK and Cancel, returns true or false');
+    log('');
+    log('pressing Escape counts as Cancel, so always treat false as "do nothing".');
+  }</script>
+</section>
+
+<section>
+  <h2>prompt</h2>
+
+  <div class="stage">
+    <button id="p1">ask for a name</button>
+    <button id="p2">with a default</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#p1').addEventListener('click', () => {
+      const name = prompt('What is your name?');
+      log('returned:', JSON.stringify(name), '(' + typeof name + ')');
+      if (name === null) log('→ you cancelled');
+      else if (name === '') log('→ you pressed OK on an empty box');
+      else log('→ hello,', name);
+    });
+
+    $('#p2').addEventListener('click', () => {
+      const age = prompt('How old are you?', '30');
+      log('returned:', JSON.stringify(age));
+      log('always a string — convert it:', Number(age), '(' + typeof Number(age) + ')');
+    });
+
+    log('prompt(question, default) — returns the text, or null if cancelled');
+    log('');
+    log('null and "" are different answers. Check for null first.');
+  }</script>
+</section>
+
+<section>
+  <h2>Why they are a problem</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('  • they freeze the page — no rendering, no timers, no animation');
+    log('  • you cannot style them, or fit them into your layout');
+    log('  • the wording of the title bar is up to the browser');
+    log('  • Chrome blocks them inside cross-origin iframes entirely');
+    log('  • a second alert offers "prevent this page creating more dialogs"');
+    log('  • prompt is unusable on some mobile browsers');
+    log('');
+    log('they remain useful for exactly two things:');
+    log('  1. debugging, when you have no console');
+    log('  2. a quick throwaway script');
+  }</script>
+</section>
+
+<section>
+  <h2>The modern replacement: &lt;dialog&gt;</h2>
+
+  <div class="stage">
+    <button id="open-modal">open a real dialog</button>
+  </div>
+  <dialog id="modal" style="border:none;border-radius:12px;padding:20px;
+          box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:340px;font:15px system-ui">
+    <h3 style="margin:0 0 8px">Delete this item?</h3>
+    <p style="margin:0 0 16px;color:#475569">This cannot be undone.</p>
+    <form method="dialog" style="display:flex;gap:8px;justify-content:flex-end">
+      <button value="cancel">Cancel</button>
+      <button value="confirm" style="background:crimson;color:white;border:none;
+              padding:6px 14px;border-radius:6px">Delete</button>
+    </form>
+  </dialog>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const modal = $('#modal');
+
+    $('#open-modal').addEventListener('click', () => {
+      modal.showModal();
+      log('opened — the page behind is inert, but still animating');
+    });
+
+    modal.addEventListener('close', () =>
+      log('closed with returnValue:', JSON.stringify(modal.returnValue)));
+
+    log('<dialog> gives you:');
+    log('  • showModal() — focus trapping and Escape handling for free');
+    log('  • the ::backdrop pseudo-element for the dim overlay');
+    log('  • form method="dialog" to close and report a value');
+    log('  • full CSS control, and no page freeze');
+  }</script>
+</section>
+
+<section>
+  <h2>A promise-based confirm</h2>
+  <p>Wrapping <code>&lt;dialog&gt;</code> in a promise gives you the ergonomics of
+  <code>confirm</code> without the drawbacks.</p>
+
+  <div class="stage">
+    <button id="ask">await ask("Are you sure?")</button>
+  </div>
+  <dialog id="ask-dialog" style="border:none;border-radius:12px;padding:20px;
+          box-shadow:0 20px 60px rgba(0,0,0,.25);font:15px system-ui">
+    <p id="ask-text" style="margin:0 0 16px"></p>
+    <form method="dialog" style="display:flex;gap:8px;justify-content:flex-end">
+      <button value="no">No</button>
+      <button value="yes">Yes</button>
+    </form>
+  </dialog>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const dialog = $('#ask-dialog');
+
+    function ask(question) {
+      $('#ask-text').textContent = question;
+      dialog.showModal();
+      return new Promise(resolve =>
+        dialog.addEventListener('close', () => resolve(dialog.returnValue === 'yes'),
+          { once: true }));
+    }
+
+    $('#ask').addEventListener('click', async () => {
+      log('waiting for an answer…');
+      const answer = await ask('Are you sure?');
+      log('you said', answer);
+      log('the page never froze — timers kept running the whole time');
+    });
+
+    log('the { once: true } listener is what keeps this from leaking');
+  }</script>
+</section>
+
+<section>
+  <h2>beforeunload</h2>
+
+  <div class="stage">
+    <button id="arm">arm the warning</button>
+    <button id="disarm">disarm</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function warn(event) {
+      event.preventDefault();
+      event.returnValue = '';        // required by some browsers
+    }
+
+    $('#arm').addEventListener('click', () => {
+      window.addEventListener('beforeunload', warn);
+      log('armed — now try to close the tab or navigate away');
+    });
+
+    $('#disarm').addEventListener('click', () => {
+      window.removeEventListener('beforeunload', warn);
+      log('disarmed');
+    });
+
+    log('the one dialog you cannot write yourself, and cannot customise:');
+    log('browsers show their own wording to stop it being used to trap people.');
+    log('');
+    log('only arm it when there really is unsaved work.');
+  }</script>
+</section>
+
+</body>
+</html>

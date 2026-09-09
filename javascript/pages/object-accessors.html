@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Getters &amp; Setters — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-accessors">
+
+<h1>Getters &amp; Setters</h1>
+<p class="lede">Properties backed by functions. They look like data from the outside, so you
+can add computation or validation without changing any calling code.</p>
+
+<section>
+  <h2>A computed property</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+
+      get fullName() {
+        return this.firstName + ' ' + this.lastName;
+      },
+
+      set fullName(value) {
+        [this.firstName, this.lastName] = value.split(' ');
+      }
+    };
+
+    log('read: ', person.fullName, '← no parentheses');
+    person.fullName = 'Grace Hopper';
+    log('after writing:', person.firstName, '|', person.lastName);
+  }</script>
+</section>
+
+<section>
+  <h2>Validation in a setter</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const account = {
+      _balance: 100,
+
+      get balance() {
+        return this._balance;
+      },
+
+      set balance(value) {
+        if (typeof value !== 'number' || Number.isNaN(value)) {
+          throw new TypeError('balance must be a number');
+        }
+        if (value < 0) throw new RangeError('balance cannot be negative');
+        this._balance = value;
+      }
+    };
+
+    account.balance = 250;
+    log('balance:', account.balance);
+
+    [-5, 'lots'].forEach(value => {
+      try {
+        account.balance = value;
+      } catch (err) {
+        log('setting to', JSON.stringify(value), '→', err.name + ':', err.message);
+      }
+    });
+
+    log('unchanged:', account.balance);
+  }</script>
+</section>
+
+<section>
+  <h2>Getters do not have to be cheap — but should look it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const report = {
+      rows: [10, 20, 30, 40],
+
+      get total() {
+        log('  (recomputing)');
+        return this.rows.reduce((a, b) => a + b, 0);
+      },
+
+      get average() {
+        return this.total / this.rows.length;
+      }
+    };
+
+    log('total:', report.total);
+    log('average:', report.average);
+    log('total again:', report.total);
+
+    log('');
+    log('a getter runs on EVERY read. Cache it if it is expensive:');
+    const cached = {
+      rows: [1, 2, 3],
+      _sum: null,
+      get sum() {
+        if (this._sum === null) {
+          log('  (computing once)');
+          this._sum = this.rows.reduce((a, b) => a + b, 0);
+        }
+        return this._sum;
+      }
+    };
+    log(cached.sum, cached.sum, cached.sum);
+  }</script>
+</section>
+
+<section>
+  <h2>In classes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Temperature {
+      #celsius = 0;                       // truly private
+
+      constructor(celsius) { this.celsius = celsius; }
+
+      get celsius() { return this.#celsius; }
+      set celsius(value) {
+        if (value < -273.15) throw new RangeError('below absolute zero');
+        this.#celsius = value;
+      }
+
+      get fahrenheit() { return this.#celsius * 9 / 5 + 32; }
+      set fahrenheit(value) { this.celsius = (value - 32) * 5 / 9; }
+
+      get kelvin() { return this.#celsius + 273.15; }
+    }
+
+    const t = new Temperature(25);
+    log('C:', t.celsius, '| F:', t.fahrenheit, '| K:', t.kelvin);
+
+    t.fahrenheit = 212;
+    log('after setting F to 212 → C:', t.celsius);
+
+    try {
+      t.celsius = -300;
+    } catch (err) {
+      log('below absolute zero →', err.name + ':', err.message);
+    }
+
+    log('the private field is invisible:', Object.keys(t), JSON.stringify(t));
+  }</script>
+</section>
+
+<section>
+  <h2>defineProperty</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const obj = { first: 'Ada', last: 'Lovelace' };
+
+    Object.defineProperty(obj, 'initials', {
+      get() { return this.first[0] + this.last[0]; },
+      enumerable: true,
+      configurable: true
+    });
+
+    log('initials →', obj.initials);
+    log('keys:', Object.keys(obj));
+    log('JSON:', JSON.stringify(obj), '← getters are serialised by their value');
+
+    const d = Object.getOwnPropertyDescriptor(obj, 'initials');
+    log('descriptor has get:', typeof d.get, '| set:', typeof d.set);
+  }</script>
+</section>
+
+<section>
+  <h2>Two traps</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // 1. A getter with no setter silently ignores writes (throws in strict mode).
+    const readOnly = { get value() { return 42; } };
+    readOnly.value = 99;
+    log('write to a getter-only property:', readOnly.value);
+
+    // 2. Infinite recursion, the classic:
+    const looping = {
+      get name() {
+        // return this.name;  ← would call itself forever
+        return this._name;
+      },
+      set name(v) { this._name = v; }
+    };
+    looping.name = 'safe';
+    log('with a backing field:', looping.name);
+    log('a getter that reads its own property recurses until the stack blows');
+  }</script>
+</section>
+
+<section>
+  <h2>Live conversion</h2>
+  <div class="stage">
+    <label>°C <input id="c" type="number" value="20" style="width:100px"></label>
+    <label>°F <input id="f" type="number" value="68" style="width:100px"></label>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const reading = {
+      _c: 20,
+      get celsius() { return this._c; },
+      set celsius(v) { this._c = Number(v); },
+      get fahrenheit() { return this._c * 9 / 5 + 32; },
+      set fahrenheit(v) { this._c = (Number(v) - 32) * 5 / 9; }
+    };
+
+    function render(source) {
+      if (source !== 'c') $('#c').value = Math.round(reading.celsius * 100) / 100;
+      if (source !== 'f') $('#f').value = Math.round(reading.fahrenheit * 100) / 100;
+      log.clear();
+      log('celsius   ', reading.celsius.toFixed(2));
+      log('fahrenheit', reading.fahrenheit.toFixed(2));
+      log('kelvin    ', (reading.celsius + 273.15).toFixed(2));
+    }
+
+    $('#c').addEventListener('input', e => { reading.celsius = e.target.value; render('c'); });
+    $('#f').addEventListener('input', e => { reading.fahrenheit = e.target.value; render('f'); });
+    render();
+  }</script>
+</section>
+
+</body>
+</html>

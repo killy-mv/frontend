@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Precedence — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="precedence">
+
+<h1>Precedence</h1>
+<p class="lede">Which operator is applied first when you do not use parentheses. You do not
+need the whole table — you need the half-dozen places where guessing goes wrong.</p>
+
+<section>
+  <h2>The order, roughly</h2>
+
+  <table class="ref">
+    <tr><th>Group</th><th>Operators</th></tr>
+    <tr><td>1 — highest</td><td><code>()</code> grouping</td></tr>
+    <tr><td>2</td><td><code>.</code> <code>[]</code> <code>()</code> call <code>?.</code></td></tr>
+    <tr><td>3</td><td><code>new</code></td></tr>
+    <tr><td>4</td><td><code>++</code> <code>--</code> postfix</td></tr>
+    <tr><td>5</td><td><code>!</code> <code>~</code> unary <code>+ -</code> <code>typeof</code> <code>await</code></td></tr>
+    <tr><td>6</td><td><code>**</code></td></tr>
+    <tr><td>7</td><td><code>* / %</code></td></tr>
+    <tr><td>8</td><td><code>+ -</code></td></tr>
+    <tr><td>9</td><td><code>&lt;&lt; &gt;&gt; &gt;&gt;&gt;</code></td></tr>
+    <tr><td>10</td><td><code>&lt; &gt; &lt;= &gt;= in instanceof</code></td></tr>
+    <tr><td>11</td><td><code>== != === !==</code></td></tr>
+    <tr><td>12–14</td><td><code>&amp;</code> then <code>^</code> then <code>|</code></td></tr>
+    <tr><td>15</td><td><code>&amp;&amp;</code></td></tr>
+    <tr><td>16</td><td><code>||</code> <code>??</code></td></tr>
+    <tr><td>17</td><td><code>? :</code></td></tr>
+    <tr><td>18</td><td><code>=</code> <code>+=</code> and friends</td></tr>
+    <tr><td>19 — lowest</td><td><code>,</code></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>Arithmetic</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('100 + 50 * 3     →', 100 + 50 * 3);
+    log('(100 + 50) * 3   →', (100 + 50) * 3);
+    log('100 / 50 * 2     →', 100 / 50 * 2, '(left to right)');
+    log('2 + 3 + "4"      →', 2 + 3 + '4');
+    log('"2" + 3 + 4      →', '2' + 3 + 4);
+    log('-2 ** 2          → SyntaxError; write (-2) ** 2 =', (-2) ** 2);
+    log('2 ** 3 ** 2      →', 2 ** 3 ** 2, '(** binds right to left)');
+  }</script>
+</section>
+
+<section>
+  <h2>Comparison before logic</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const age = 25;
+
+    log('age > 18 && age < 65   →', age > 18 && age < 65);
+    log('reads as (age > 18) && (age < 65)');
+
+    log('');
+    log('&& binds tighter than ||:');
+    log('true || false && false →', true || false && false);
+    log('(true || false) && false →', (true || false) && false);
+
+    log('');
+    log('so this is a bug:');
+    const role = 'guest';
+    log('role === "admin" || "owner" →', role === 'admin' || 'owner', '← always truthy');
+    log('correct:', role === 'admin' || role === 'owner');
+    log('or:      ', ['admin', 'owner'].includes(role));
+  }</script>
+</section>
+
+<section>
+  <h2>?? cannot be mixed</h2>
+  <p>The language deliberately makes you add parentheses, because the intended grouping is
+  genuinely ambiguous.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      eval('const x = null || undefined ?? "fallback";');
+    } catch (err) {
+      log('mixing || and ?? →', err.name + ':', err.message);
+    }
+
+    log('with parentheses →', (null || undefined) ?? 'fallback');
+    log('the other way    →', null || (undefined ?? 'fallback'));
+  }</script>
+</section>
+
+<section>
+  <h2>typeof and unary operators</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('typeof 1 + 1        →', typeof 1 + 1, '← typeof binds first');
+    log('typeof (1 + 1)      →', typeof (1 + 1));
+    log('!true === false     →', !true === false);
+    log('!(true === false)   →', !(true === false));
+    log('-"3" + 1            →', -'3' + 1);
+  }</script>
+</section>
+
+<section>
+  <h2>Assignment is right-associative and low</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let a, b, c;
+    a = b = c = 5;                    // evaluated right to left
+    log(a, b, c);
+
+    let n = 1;
+    n += 2 * 3;                       // the right side is fully evaluated first
+    log('n += 2 * 3 →', n);
+
+    // The ternary is lower than everything except assignment:
+    const score = 75;
+    const grade = score > 90 ? 'A' : score > 70 ? 'B' : 'C';
+    log('nested ternary →', grade);
+  }</script>
+</section>
+
+<section>
+  <h2>Evaluate an expression</h2>
+  <div class="stage">
+    <input id="expr" value="1 + 2 * 3 ** 2" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const examples = [
+      '1 + 2 * 3',
+      '(1 + 2) * 3',
+      'true || false && false',
+      '"5" - 2 + 1',
+      'typeof 1 + 1',
+      '2 ** 3 ** 2'
+    ];
+
+    function run() {
+      const source = $('#expr').value;
+      log.clear();
+      try {
+        log(source, '→', eval('(' + source + ')'));
+      } catch (err) {
+        log('error:', err.message);
+      }
+      log('');
+      log('other things worth trying:');
+      examples.forEach(e => log('  ' + e));
+    }
+
+    $('#expr').addEventListener('input', run);
+    run();
+  }</script>
+</section>
+
+<section>
+  <h2>The practical rule</h2>
+  <p>Nobody memorises the whole table, and nobody should have to read your code with it
+  open. If an expression mixes two levels and the grouping is not obvious at a glance, add
+  parentheses. They cost nothing at run time.</p>
+</section>
+
+</body>
+</html>

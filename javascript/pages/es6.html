@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES6 (2015) — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="es6">
+
+<h1>ES6 (2015)</h1>
+<p class="lede">Officially ES2015. The largest release in the language's history, and the
+point at which modern JavaScript begins. Everything below is now ordinary.</p>
+
+<section>
+  <h2>let and const</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Block scoping, and no hoisting to a usable state.
+    if (true) {
+      var functionScoped = 'var leaks out of the block';
+      let blockScoped = 'let does not';
+      log(blockScoped);
+    }
+    log('after the block →', functionScoped);
+    log('blockScoped     →', typeof blockScoped, '← not defined here');
+
+    log('');
+    log('the loop-closure problem, fixed by the language:');
+    const withVar = [], withLet = [];
+    for (var i = 0; i < 3; i++) withVar.push(() => i);
+    for (let j = 0; j < 3; j++) withLet.push(() => j);
+    log('  var →', withVar.map(f => f()));
+    log('  let →', withLet.map(f => f()));
+
+    log('');
+    log('const binds the NAME, not the value:');
+    const list = [1, 2];
+    list.push(3);
+    log('  a const array can still be mutated →', list);
+    try { eval('const c = 1; c = 2;'); }
+    catch (err) { log('  but reassigning throws →', err.name);}
+  }</script>
+</section>
+
+<section>
+  <h2>Arrow functions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const double = n => n * 2;
+    const add = (a, b) => a + b;
+    const make = name => ({ name });
+
+    log(double(4), add(1, 2), make('Ada'));
+
+    log('');
+    log('the real reason they exist — lexical this:');
+    const timer = {
+      label: 'timer',
+      startOld() {
+        const self = this;                     // the ES5 dance
+        setTimeout(function () { log('  old style:', self.label); }, 10);
+      },
+      startNew() {
+        setTimeout(() => log('  new style:', this.label), 20);
+      }
+    };
+    timer.startOld();
+    timer.startNew();
+
+    log('');
+    log('an arrow has no this, no arguments, no prototype, and cannot be new-ed.');
+  }</script>
+</section>
+
+<section>
+  <h2>Template literals</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const name = 'Ada', items = 3;
+
+    log(`interpolation: ${name} has ${items} item${items === 1 ? '' : 's'}`);
+    log(`expressions:   ${items * 2}, ${name.toUpperCase()}`);
+    log(`multi-line:
+  line two
+  line three`);
+
+    log('');
+    log('tagged templates — the tag receives the pieces:');
+    const highlight = (strings, ...values) =>
+      strings.reduce((out, str, i) => out + str + (i < values.length ? `«${values[i]}»` : ''), '');
+    log('  ', highlight`Hello ${name}, you have ${items} items`);
+    log('');
+    log('String.raw ignores escapes:', String.raw`a\nb`);
+  }</script>
+</section>
+
+<section>
+  <h2>Destructuring, spread and rest</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const [first, second = 'default', ...rest] = ['a', undefined, 'c', 'd'];
+    log('array  →', { first, second, rest });
+
+    const { name, age: years, city = 'unknown', ...others } =
+      { name: 'Ada', age: 36, role: 'engineer', team: 'analytics' };
+    log('object →', { name, years, city, others });
+
+    log('');
+    log('swapping without a temporary:');
+    let a = 1, b = 2;
+    [a, b] = [b, a];
+    log('  ', a, b);
+
+    log('');
+    log('spread:');
+    log('  merge arrays  →', [...[1, 2], ...[3, 4]]);
+    log('  merge objects →', { ...{ a: 1 }, ...{ b: 2 } });
+    log('  copy          →', [...'hello']);
+    log('  as arguments  →', Math.max(...[3, 9, 2]));
+
+    log('');
+    log('rest parameters and default parameters:');
+    const tally = (label = 'total', ...values) => `${label}: ${values.length}`;
+    log('  ', tally());
+    log('  ', tally('items', 1, 2, 3));
+  }</script>
+</section>
+
+<section>
+  <h2>Classes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Shape {
+      constructor(name) { this.name = name; }
+      area() { return 0; }
+      describe() { return `${this.name}: ${this.area()}`; }
+      static create(name) { return new this(name); }
+    }
+
+    class Circle extends Shape {
+      constructor(r) { super('circle'); this.r = r; }
+      area() { return +(Math.PI * this.r ** 2).toFixed(2); }
+      get diameter() { return this.r * 2; }
+    }
+
+    const c = new Circle(3);
+    log(c.describe(), '| diameter', c.diameter);
+    log('instanceof Shape →', c instanceof Shape);
+    log('');
+    log('it is syntax over prototypes — nothing new underneath:');
+    log('  typeof Circle →', typeof Circle);
+    log('  Circle.prototype.area →', typeof Circle.prototype.area);
+  }</script>
+</section>
+
+<section>
+  <h2>Promises</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const delay = (ms, value) => new Promise(resolve => setTimeout(() => resolve(value), ms));
+
+    delay(20, 'first')
+      .then(v => { log('then →', v); return delay(20, 'second'); })
+      .then(v => log('then →', v))
+      .catch(err => log('catch →', err.message))
+      .finally(() => log('finally (ES2018)'));
+
+    Promise.all([delay(10, 'a'), delay(30, 'b')]).then(v => log('all →', v));
+    Promise.race([delay(10, 'quick'), delay(50, 'slow')]).then(v => log('race →', v));
+
+    log('the callback pyramid became a flat chain.');
+  }</script>
+</section>
+
+<section>
+  <h2>Map, Set and Symbol</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const objectKey = { id: 1 };
+    const map = new Map([['string key', 1], [objectKey, 2], [NaN, 3]]);
+
+    log('Map size    →', map.size);
+    log('object key  →', map.get(objectKey), '← impossible with a plain object');
+    log('NaN as key  →', map.get(NaN), '← works, unlike ===');
+    log('iterable    →', [...map.keys()].map(k => typeof k));
+
+    const set = new Set([1, 2, 2, 3, 3, 3]);
+    log('');
+    log('Set         →', [...set], '| has(2):', set.has(2));
+    log('deduplicate →', [...new Set(['a', 'b', 'a'])]);
+
+    log('');
+    const id = Symbol('id');
+    const withSymbol = { name: 'Ada', [id]: 7 };
+    log('Symbol key  →', withSymbol[id]);
+    log('invisible to →', Object.keys(withSymbol), 'and to JSON:',
+        JSON.stringify(withSymbol));
+    log('well-known  →', typeof Symbol.iterator, '— how for…of works');
+  }</script>
+</section>
+
+<section>
+  <h2>Iterators, generators and for…of</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('for…of walks any iterable:');
+    for (const ch of 'héy') log('  ' + ch);
+    log('  a Map:', [...new Map([['a', 1]])]);
+
+    log('');
+    log('a generator produces values lazily:');
+    function* fibonacci() {
+      let [a, b] = [0, 1];
+      while (true) { yield a; [a, b] = [b, a + b]; }
+    }
+    const fib = fibonacci();
+    log('  first 8 →', Array.from({ length: 8 }, () => fib.next().value));
+
+    log('');
+    log('and any object can become iterable:');
+    const range = {
+      from: 1, to: 4,
+      *[Symbol.iterator]() { for (let i = this.from; i <= this.to; i++) yield i; }
+    };
+    log('  ', [...range]);
+  }</script>
+</section>
+
+<section>
+  <h2>Modules</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the syntax that replaced every module format before it:');
+    log('');
+    log('  export const PI = 3.14;');
+    log('  export default function area(r) { … }');
+    log('  export { a, b as c };');
+    log('');
+    log('  import area, { PI } from "./circle.js";');
+    log('  import * as circle from "./circle.js";');
+    log('  const m = await import("./lazy.js");        // ES2020');
+    log('');
+    log('and in HTML:');
+    log('  <script type="module" src="app.js"><\/script>');
+    log('');
+    log('modules are strict, deferred, and fetched with CORS rules —');
+    log('which is why this page uses classic scripts, so it works from file://.');
+  }</script>
+</section>
+
+<section>
+  <h2>The rest of ES6</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('shorthand properties and methods:');
+    const x = 1, y = 2;
+    log('  ', { x, y, sum() { return this.x + this.y; } }.sum());
+
+    log('');
+    log('computed keys:');
+    const key = 'dynamic';
+    log('  ', { [key + 'Key']: true });
+
+    log('');
+    log('new methods:');
+    log('  Array.from       →', Array.from('abc'));
+    log('  Array.of         →', Array.of(7));
+    log('  array.find       →', [1, 5, 9].find(n => n > 4));
+    log('  array.findIndex  →', [1, 5, 9].findIndex(n => n > 4));
+    log('  array.fill       →', new Array(3).fill(0));
+    log('  array.includes   →', [1, 2].includes(2), '(ES2016, strictly)');
+    log('  string.includes  →', 'hello'.includes('ell'));
+    log('  string.startsWith→', 'hello'.startsWith('he'));
+    log('  string.repeat    →', 'ab'.repeat(3));
+    log('  Object.assign    →', Object.assign({}, { a: 1 }, { b: 2 }));
+    log('  Number.isInteger →', Number.isInteger(5.0));
+    log('  Math.trunc       →', Math.trunc(-4.7));
+    log('  ** operator      →', 2 ** 10, '(ES2016, strictly)');
+    log('  Proxy / Reflect  →', typeof Proxy, '/', typeof Reflect);
+    log('  WeakMap/WeakSet  →', typeof WeakMap, '/', typeof WeakSet);
+    log('  typed arrays     →', new Uint8Array([1, 2, 3]));
+  }</script>
+</section>
+
+</body>
+</html>

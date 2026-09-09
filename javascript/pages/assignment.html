@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assignment — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="assignment">
+
+<h1>Assignment</h1>
+<p class="lede"><code>=</code> puts a value in a variable. Every arithmetic and logical
+operator has a compound form that reads the variable, applies the operator, and writes it
+back.</p>
+
+<section>
+  <h2>Arithmetic assignment</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let x = 10;
+    log('start   ', x);
+
+    x += 5;  log('x += 5  ', x);
+    x -= 3;  log('x -= 3  ', x);
+    x *= 2;  log('x *= 2  ', x);
+    x /= 4;  log('x /= 4  ', x);
+    x %= 4;  log('x %= 4  ', x);
+    x **= 3; log('x **= 3 ', x);
+  }</script>
+</section>
+
+<section>
+  <h2>String assignment</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let message = 'Hello';
+    message += ', ';
+    message += 'World';
+    message += '!';
+
+    log(message);
+    log('length:', message.length);
+  }</script>
+</section>
+
+<section>
+  <h2>Logical assignment</h2>
+  <p>Three operators that assign only when the current value fails a test. They
+  short-circuit, so the right-hand side is not even evaluated when it is not needed.</p>
+
+  <table class="ref">
+    <tr><th>Operator</th><th>Assigns when the left side is</th></tr>
+    <tr><td><code>||=</code></td><td>falsy (<code>0</code>, <code>""</code>, <code>null</code>, …)</td></tr>
+    <tr><td><code>&amp;&amp;=</code></td><td>truthy</td></tr>
+    <tr><td><code>??=</code></td><td><code>null</code> or <code>undefined</code> only</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let a = '';
+    a ||= 'default';
+    log("'' ||= 'default'  →", a);
+
+    let b = 0;
+    b ??= 99;
+    log('0 ??= 99          →', b, '(0 is not null, so it stays)');
+
+    let c = null;
+    c ??= 99;
+    log('null ??= 99       →', c);
+
+    let d = 'set';
+    d &&= d.toUpperCase();
+    log("'set' &&= upper   →", d);
+
+    // The pattern this replaces:
+    const options = { retries: 0 };
+    options.retries ??= 3;
+    options.timeout ??= 5000;
+    log(options);
+  }</script>
+</section>
+
+<section>
+  <h2>Chaining and the value of an assignment</h2>
+  <p>An assignment is an expression: it evaluates to the value assigned. That is what makes
+  chaining work.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let p, q, r;
+    p = q = r = 0;
+    log(p, q, r);
+
+    let n = 5;
+    log('the expression (n = 12) evaluates to', (n = 12));
+
+    // Which is why this common shape works:
+    let match;
+    const words = ['one', 'two', 'three'];
+    if ((match = words.find(w => w.length === 5))) {
+      log('found:', match);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Copying values vs copying references</h2>
+  <p>Assigning a primitive copies the value. Assigning an object copies the
+  <b>reference</b> — both names now point at the same thing.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let n1 = 10;
+    let n2 = n1;
+    n2 = 20;
+    log('primitives:', 'n1 =', n1, ' n2 =', n2);
+
+    let o1 = { count: 10 };
+    let o2 = o1;
+    o2.count = 20;
+    log('objects:   ', 'o1 =', o1, ' o2 =', o2, '← same object');
+
+    let o3 = { ...o1 };      // a shallow copy
+    o3.count = 30;
+    log('after spread:', 'o1 =', o1, ' o3 =', o3);
+  }</script>
+</section>
+
+<section>
+  <h2>Destructuring assignment</h2>
+  <p>The left side can be a pattern instead of a name.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const [first, second] = ['a', 'b', 'c'];
+    log(first, second);
+
+    const { name, city = 'unknown' } = { name: 'Ada' };
+    log(name, city);
+
+    // Swapping without a temporary variable:
+    let left = 1, right = 2;
+    [left, right] = [right, left];
+    log('swapped:', left, right);
+  }</script>
+</section>
+
+</body>
+</html>

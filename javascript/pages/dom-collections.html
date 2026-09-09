@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTMLCollection — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-collections">
+
+<h1>HTMLCollection</h1>
+<p class="lede">The array-like returned by <code>getElementsByTagName</code>,
+<code>getElementsByClassName</code> and <code>.children</code>. It is <b>live</b>: it
+re-reflects the document every time you read it.</p>
+
+<section>
+  <h2>It looks like an array</h2>
+
+  <div class="stage" id="pen" style="display:block">
+    <p class="row">alpha</p>
+    <p class="row">beta</p>
+    <p class="row">gamma</p>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const rows = document.getElementsByClassName('row');
+
+    log('type      →', rows.constructor.name);
+    log('length    →', rows.length);
+    log('index     →', rows[0].textContent);
+    log('last      →', rows[rows.length - 1].textContent);
+    log('isArray   →', Array.isArray(rows));
+
+    log('');
+    log('but it has almost no methods of its own:');
+    log('  own methods →', Object.getOwnPropertyNames(HTMLCollection.prototype)
+      .filter(k => typeof HTMLCollection.prototype[k] === 'function'));
+    log('  forEach     →', typeof rows.forEach);
+    log('  map         →', typeof rows.map);
+  }</script>
+</section>
+
+<section>
+  <h2>namedItem</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const holder = document.createElement('div');
+    holder.innerHTML = '<a id="home">Home</a><a name="away">Away</a>';
+    const links = holder.getElementsByTagName('a');
+
+    log('by index      →', links[0].textContent);
+    log('namedItem("home") →', links.namedItem('home').textContent);
+    log('shorthand links.home →', links.home.textContent);
+    log('by name attribute →', links.away.textContent);
+    log('missing       →', links.namedItem('nope'));
+
+    log('');
+    log('this is why document.forms.signup works without a query.');
+  }</script>
+</section>
+
+<section>
+  <h2>Live means live</h2>
+
+  <div class="stage">
+    <button id="add">add a row above</button>
+    <button id="del">remove one</button>
+  </div>
+  <script class="run">{
+    const { log } = demo();
+
+    const live = document.getElementsByClassName('row');
+    const staticList = document.querySelectorAll('.row');
+    const pen = document.getElementById('pen');
+    let n = 3;
+
+    function report(action) {
+      log(action.padEnd(10),
+          'live:', String(live.length).padEnd(3),
+          'querySelectorAll snapshot:', staticList.length);
+    }
+
+    document.getElementById('add').addEventListener('click', () => {
+      const p = document.createElement('p');
+      p.className = 'row';
+      p.textContent = 'row ' + (++n);
+      pen.append(p);
+      report('added');
+    });
+
+    document.getElementById('del').addEventListener('click', () => {
+      if (live.length) live[live.length - 1].remove();
+      report('removed');
+    });
+
+    report('start');
+    log('');
+    log('the snapshot was taken once and never changes.');
+  }</script>
+</section>
+
+<section>
+  <h2>The live-collection trap</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const holder = document.createElement('div');
+    holder.innerHTML = '<p>a</p><p>b</p><p>c</p><p>d</p>';
+    const live = holder.getElementsByTagName('p');
+
+    log('before:', holder.innerHTML, '| length:', live.length);
+
+    // Removing while iterating forward SKIPS elements:
+    for (let i = 0; i < live.length; i++) live[i].remove();
+
+    log('after a forward loop:', holder.innerHTML, '← two survived');
+
+    log('');
+    log('three fixes:');
+
+    const h2 = document.createElement('div');
+    h2.innerHTML = '<p>a</p><p>b</p><p>c</p><p>d</p>';
+    const l2 = h2.getElementsByTagName('p');
+    for (let i = l2.length - 1; i >= 0; i--) l2[i].remove();
+    log('  1. loop backwards      →', JSON.stringify(h2.innerHTML));
+
+    const h3 = document.createElement('div');
+    h3.innerHTML = '<p>a</p><p>b</p><p>c</p><p>d</p>';
+    Array.from(h3.getElementsByTagName('p')).forEach(p => p.remove());
+    log('  2. copy to an array    →', JSON.stringify(h3.innerHTML));
+
+    const h4 = document.createElement('div');
+    h4.innerHTML = '<p>a</p><p>b</p><p>c</p><p>d</p>';
+    h4.querySelectorAll('p').forEach(p => p.remove());
+    log('  3. use querySelectorAll →', JSON.stringify(h4.innerHTML));
+  }</script>
+</section>
+
+<section>
+  <h2>Making it a real array</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rows = document.getElementsByClassName('row');
+
+    const a = Array.from(rows);
+    const b = [...rows];
+    const c = Array.prototype.slice.call(rows);      // the pre-ES6 way
+
+    log('Array.from →', a.length, 'items,', Array.isArray(a));
+    log('spread     →', b.length, 'items,', Array.isArray(b));
+    log('slice.call →', c.length, 'items,', Array.isArray(c));
+
+    log('');
+    log('Array.from also takes a mapping function:');
+    log('  ', Array.from(rows, el => el.textContent));
+
+    log('');
+    log('the copy is a snapshot — the collection keeps updating, the array does not');
+  }</script>
+</section>
+
+<section>
+  <h2>Live or static?</h2>
+
+  <table class="ref">
+    <tr><th>Source</th><th>Returns</th><th>Live?</th></tr>
+    <tr><td><code>getElementsByTagName</code></td><td>HTMLCollection</td><td>yes</td></tr>
+    <tr><td><code>getElementsByClassName</code></td><td>HTMLCollection</td><td>yes</td></tr>
+    <tr><td><code>el.children</code></td><td>HTMLCollection</td><td>yes</td></tr>
+    <tr><td><code>document.forms</code>, <code>.images</code>, <code>.links</code></td><td>HTMLCollection</td><td>yes</td></tr>
+    <tr><td><code>el.childNodes</code></td><td>NodeList</td><td>yes</td></tr>
+    <tr><td><code>querySelectorAll</code></td><td>NodeList</td><td>no</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const el = document.body;
+
+    log('children   →', el.children.constructor.name);
+    log('childNodes →', el.childNodes.constructor.name, '← a NodeList, but still live');
+    log('querySelectorAll →', document.querySelectorAll('p').constructor.name,
+        '← the same type, and NOT live');
+
+    log('');
+    log('so "NodeList" does not mean static, and "HTMLCollection" always means live.');
+    log('The only reliable rule: querySelectorAll is the static one.');
+  }</script>
+</section>
+
+<section>
+  <h2>When live is what you want</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a live collection is a standing query. Keep one when you want a');
+    log('running count that stays correct without re-querying:');
+    log('');
+    log('  const errors = form.getElementsByClassName("invalid");');
+    log('  const canSubmit = () => errors.length === 0;');
+    log('');
+    log('but never hold one across a loop that changes the document —');
+    log('the length moves under your feet.');
+  }</script>
+</section>
+
+</body>
+</html>

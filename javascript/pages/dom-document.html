@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Document Object — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-document">
+
+<h1>The Document Object</h1>
+<p class="lede"><code>document</code> owns the page: it is where you start every search, and
+where you create every new node.</p>
+
+<section>
+  <h2>Structural shortcuts</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('documentElement →', document.documentElement.tagName, '(the <html> element)');
+    log('head            →', document.head.children.length, 'children');
+    log('body            →', document.body.children.length, 'children');
+    log('doctype         →', document.doctype.name);
+    log('scripts         →', document.scripts.length);
+    log('links           →', document.links.length);
+    log('images          →', document.images.length);
+    log('forms           →', document.forms.length);
+    log('activeElement   →', document.activeElement.tagName);
+  }</script>
+</section>
+
+<section>
+  <h2>Metadata</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('title        →', document.title);
+    log('URL          →', document.URL);
+    log('baseURI      →', document.baseURI);
+    log('characterSet →', document.characterSet);
+    log('contentType  →', document.contentType);
+    log('lastModified →', document.lastModified);
+    log('readyState   →', document.readyState);
+    log('visibility   →', document.visibilityState);
+
+    log('');
+    log('title is writable — watch the browser tab:');
+    const original = document.title;
+    document.title = '⭐ ' + original;
+    setTimeout(() => { document.title = original; log('…and set back'); }, 1500);
+  }</script>
+</section>
+
+<section>
+  <h2>Finding elements</h2>
+
+  <div class="stage">
+    <p class="finder" id="one">first</p>
+    <p class="finder">second</p>
+    <p class="finder" data-role="last">third</p>
+  </div>
+  <script class="run">{
+    const { log } = demo();
+
+    log('getElementById       →', document.getElementById('one').textContent);
+    log('getElementsByClassName→', document.getElementsByClassName('finder').length);
+    log('getElementsByTagName →', document.getElementsByTagName('p').length, '(whole page)');
+    log('querySelector        →', document.querySelector('.finder').textContent);
+    log('querySelectorAll     →', document.querySelectorAll('.finder').length);
+    log('attribute selector   →', document.querySelector('[data-role="last"]').textContent);
+
+    log('');
+    log('missing element:');
+    log('  getElementById("nope")  →', document.getElementById('nope'));
+    log('  querySelector(".nope")  →', document.querySelector('.nope'));
+    log('  querySelectorAll(".nope") →', document.querySelectorAll('.nope').length, 'items');
+  }</script>
+</section>
+
+<section>
+  <h2>Creating nodes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const el = document.createElement('a');
+    el.href = '#top';
+    el.textContent = 'a link';
+
+    const text = document.createTextNode(' plus loose text');
+    const comment = document.createComment('a note for developers');
+    const frag = document.createDocumentFragment();
+
+    frag.append(el, text, comment);
+
+    const holder = document.createElement('div');
+    holder.appendChild(frag);
+
+    log('built:', holder.innerHTML);
+    log('the fragment is now empty:', frag.childNodes.length);
+
+    log('');
+    log('cloneNode copies a subtree:');
+    const shallow = holder.cloneNode(false);
+    const deep = holder.cloneNode(true);
+    log('  shallow →', shallow.innerHTML || '(empty)');
+    log('  deep    →', deep.innerHTML);
+  }</script>
+</section>
+
+<section>
+  <h2>write() — and why not to use it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('document.write() inserts text at the parser position while the page loads.');
+    log('Calling it AFTER load calls document.open() first, which erases the page.');
+    log('');
+    log('so this page will not demonstrate it live. The equivalent, safely:');
+    log('  const p = document.createElement("p");');
+    log('  p.textContent = "hello";');
+    log('  document.body.append(p);');
+
+    log('');
+    log('document.write exists?', typeof document.write);
+    log('(it is also blocked for external scripts on slow connections)');
+  }</script>
+</section>
+
+<section>
+  <h2>Ready states</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('right now readyState is', document.readyState);
+
+    document.addEventListener('readystatechange', () =>
+      log('changed to', document.readyState));
+
+    document.addEventListener('DOMContentLoaded', () =>
+      log('DOMContentLoaded — the tree is built; images may still be loading'));
+
+    window.addEventListener('load', () =>
+      log('load — everything, including images and stylesheets, has arrived'));
+
+    log('');
+    log('loading     — still parsing HTML');
+    log('interactive — parsed, deferred scripts about to run');
+    log('complete    — every subresource is in');
+  }</script>
+</section>
+
+<section>
+  <h2>Collections are live</h2>
+
+  <div class="stage">
+    <div id="pen"><span class="chip">a</span></div>
+    <button id="grow">add a chip</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const live = document.getElementsByClassName('chip');       // HTMLCollection
+    const snapshot = document.querySelectorAll('.chip');        // static NodeList
+
+    log('at the start — live:', live.length, '| snapshot:', snapshot.length);
+
+    $('#grow').addEventListener('click', () => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      chip.textContent = String.fromCharCode(97 + live.length);
+      $('#pen').append(' ', chip);
+      log('after adding — live:', live.length, '| snapshot:', snapshot.length);
+    });
+
+    log('press the button: only the live collection grows');
+  }</script>
+</section>
+
+</body>
+</html>

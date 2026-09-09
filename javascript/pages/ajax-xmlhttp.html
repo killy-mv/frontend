@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XMLHttpRequest — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="ajax-xmlhttp">
+
+<h1>XMLHttpRequest</h1>
+<p class="lede">The original AJAX object. You will not write new code with it, but you will
+read it — and it still does two things <code>fetch</code> cannot.</p>
+
+<section>
+  <h2>The shape of a request</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const url = URL.createObjectURL(new Blob(
+      [JSON.stringify({ id: 1, name: 'Ada' })], { type: 'application/json' }));
+
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('GET', url);                       // 1. configure
+    xhr.responseType = 'json';                  // 2. how to parse the body
+
+    xhr.onload = () => {                        // 3. success (any status)
+      log('onload — status', xhr.status, xhr.statusText || '');
+      log('  response →', xhr.response);
+      log('  a 404 also reaches onload; check the status yourself');
+    };
+
+    xhr.onerror = () => log('onerror — the request could not be made at all');
+
+    xhr.send();                                 // 4. go
+
+    log('send() returned immediately — readyState is', xhr.readyState,
+        'and the callbacks above have not run yet');
+  }</script>
+</section>
+
+<section>
+  <h2>readyState</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const states = ['UNSENT', 'OPENED', 'HEADERS_RECEIVED', 'LOADING', 'DONE'];
+
+    const url = URL.createObjectURL(new Blob(['hello from a blob'], { type: 'text/plain' }));
+    const xhr = new XMLHttpRequest();
+
+    xhr.onreadystatechange = () => {
+      log('readyState', xhr.readyState, '→', states[xhr.readyState]);
+      if (xhr.readyState === 4) {
+        log('');
+        log('status →', xhr.status, '| responseText →', JSON.stringify(xhr.responseText));
+      }
+    };
+
+    xhr.open('GET', url);
+    xhr.send();
+
+    log('the classic idiom, still in a lot of code:');
+    log('  if (xhr.readyState === 4 && xhr.status === 200) { … }');
+    log('');
+  }</script>
+</section>
+
+<section>
+  <h2>The event set</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const url = URL.createObjectURL(new Blob(
+      ['x'.repeat(200000)], { type: 'text/plain' }));
+
+    const xhr = new XMLHttpRequest();
+    const fired = [];
+
+    ['loadstart', 'progress', 'load', 'loadend', 'error', 'abort', 'timeout']
+      .forEach(type => xhr.addEventListener(type, event => {
+        fired.push(type);
+        if (type === 'progress') {
+          log('progress:', event.loaded, 'of',
+              event.lengthComputable ? event.total : 'unknown', 'bytes');
+        }
+      }));
+
+    xhr.addEventListener('loadend', () => {
+      log('');
+      log('events, in order:', fired);
+      log('');
+      log('load    — finished, any status');
+      log('error   — network failure only');
+      log('abort   — you called abort()');
+      log('timeout — xhr.timeout was exceeded');
+      log('loadend — always last, whatever happened');
+    });
+
+    xhr.open('GET', url);
+    xhr.send();
+  }</script>
+</section>
+
+<section>
+  <h2>Upload progress — the thing fetch cannot do</h2>
+
+  <div class="stage">
+    <input type="file" id="file">
+    <button id="upload">simulate an upload</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#upload').addEventListener('click', () => {
+      log.clear();
+
+      const file = $('#file').files[0];
+      const body = file || new Blob(['x'.repeat(2000000)]);
+      log('uploading', file ? file.name : 'a 2MB placeholder',
+          '(' + (body.size / 1048576).toFixed(2) + 'MB)');
+
+      const xhr = new XMLHttpRequest();
+
+      // xhr.upload is a second EventTarget, for the request body:
+      xhr.upload.addEventListener('progress', event => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          log('  ' + percent + '%  ' + '█'.repeat(Math.round(percent / 5)));
+        }
+      });
+
+      xhr.upload.addEventListener('load', () => log('  upload finished'));
+      xhr.addEventListener('load', () => log('server responded:', xhr.status));
+      xhr.addEventListener('error', () =>
+        log('the POST itself failed — expected, since example.invalid does not exist.'));
+      xhr.addEventListener('loadend', () =>
+        log('  but the upload progress above is real'));
+
+      xhr.open('POST', 'https://example.invalid/upload');
+      xhr.send(body);
+    });
+
+    log('fetch has no upload progress at all. If you need a progress bar for');
+    log('an upload, XMLHttpRequest is still the answer in 2026 —');
+    log('or a ReadableStream body, which is not yet widely supported.');
+  }</script>
+</section>
+
+<section>
+  <h2>Aborting and timing out</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const url = URL.createObjectURL(new Blob(['data'], { type: 'text/plain' }));
+
+    const a = new XMLHttpRequest();
+    a.open('GET', url);
+    a.addEventListener('abort', () => log('request A: abort event fired'));
+    a.addEventListener('loadend', () => log('request A: readyState', a.readyState));
+    a.send();
+    a.abort();
+
+    const b = new XMLHttpRequest();
+    b.timeout = 1;                        // 1ms — will not be met by a real host
+    b.open('GET', 'https://example.invalid/slow');
+    b.addEventListener('timeout', () => log('request B: timed out'));
+    b.addEventListener('error', () => log('request B: network error (also expected)'));
+    b.send();
+
+    log('xhr.timeout is a plain number of milliseconds — simpler than');
+    log('AbortSignal.timeout, and it has been there since 2011.');
+  }</script>
+</section>
+
+<section>
+  <h2>Headers</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const url = URL.createObjectURL(new Blob(['{}'], { type: 'application/json' }));
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('GET', url);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');  // must follow open()
+
+    xhr.onload = () => {
+      log('one header →', JSON.stringify(xhr.getResponseHeader('content-type')));
+      log('');
+      log('all of them →');
+      log(xhr.getAllResponseHeaders().trim() || '  (none exposed)');
+      log('');
+      log('cross-origin, only the "simple" headers are readable unless the');
+      log('server sends Access-Control-Expose-Headers.');
+    };
+
+    xhr.send();
+
+    log('setRequestHeader must come AFTER open() and BEFORE send().');
+    log('Some headers are forbidden: Host, Referer, Cookie, Content-Length…');
+  }</script>
+</section>
+
+<section>
+  <h2>Wrapping it in a promise</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function request(method, url, { body = null, headers = {}, onProgress } = {}) {
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.responseType = 'json';
+        Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+
+        if (onProgress) xhr.upload.addEventListener('progress', onProgress);
+
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300)
+          ? resolve(xhr.response)
+          : reject(new Error('HTTP ' + xhr.status));
+        xhr.onerror = () => reject(new Error('network error'));
+        xhr.ontimeout = () => reject(new Error('timeout'));
+
+        xhr.send(body);
+      });
+    }
+
+    const url = URL.createObjectURL(new Blob(
+      [JSON.stringify({ ok: true, from: 'a promisified XHR' })],
+      { type: 'application/json' }));
+
+    request('GET', url).then(data => log('resolved →', data));
+    request('GET', 'https://example.invalid/x').catch(err => log('rejected →', err.message));
+
+    log('this is what every AJAX helper library was, before fetch existed.');
+  }</script>
+</section>
+
+<section>
+  <h2>XHR vs fetch</h2>
+
+  <table class="ref">
+    <tr><th></th><th>XMLHttpRequest</th><th>fetch</th></tr>
+    <tr><td>style</td><td>events</td><td>promises</td></tr>
+    <tr><td>404 handling</td><td>onload, check status</td><td>resolves, check <code>ok</code></td></tr>
+    <tr><td>cancel</td><td><code>abort()</code></td><td>AbortController</td></tr>
+    <tr><td>timeout</td><td><code>timeout</code> property</td><td>AbortSignal.timeout</td></tr>
+    <tr><td>upload progress</td><td><b>yes</b></td><td>no</td></tr>
+    <tr><td>download progress</td><td>yes</td><td>yes, via streams</td></tr>
+    <tr><td>streaming</td><td>no</td><td>yes</td></tr>
+    <tr><td>in a worker</td><td>yes</td><td>yes</td></tr>
+    <tr><td>service worker interception</td><td>no</td><td>yes</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('reach for XMLHttpRequest only when you need upload progress.');
+    log('For everything else, fetch — and let a service worker see it.');
+  }</script>
+</section>
+
+</body>
+</html>

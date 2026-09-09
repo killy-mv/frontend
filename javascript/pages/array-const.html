@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array Const — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="array-const">
+
+<h1>Array Const</h1>
+<p class="lede">Declaring an array with <code>const</code> protects the name, not the
+contents. The array can still grow, shrink and be reordered.</p>
+
+<section>
+  <h2>What is protected</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const cars = ['Saab', 'Volvo', 'BMW'];
+
+    cars[0] = 'Opel';        // allowed
+    cars.push('Audi');       // allowed
+    cars.pop();              // allowed
+    cars.sort();             // allowed
+    log('after all that:', cars);
+
+    try {
+      cars = ['Toyota'];     // not allowed: repointing the name
+    } catch (err) {
+      log('reassignment →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Must be initialised</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const ok = [];
+    log('empty array is fine:', ok);
+
+    try {
+      eval('const later; later = [];');
+    } catch (err) {
+      log('const with no value →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Block scope</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const items = ['outer'];
+
+    if (true) {
+      const items = ['inner'];       // a different array, same name
+      log('inside: ', items);
+    }
+
+    log('outside:', items);
+  }</script>
+</section>
+
+<section>
+  <h2>Freezing the contents too</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const locked = Object.freeze(['a', 'b', 'c']);
+
+    locked[0] = 'z';                 // silently ignored in sloppy mode
+    log('after write:', locked);
+
+    try {
+      locked.push('d');              // this one does throw
+    } catch (err) {
+      log('push on a frozen array →', err.name + ':', err.message);
+    }
+
+    log('isFrozen:', Object.isFrozen(locked));
+
+    // Frozen means the slots, not the objects inside them:
+    const rows = Object.freeze([{ n: 1 }]);
+    rows[0].n = 99;
+    log('shallow freeze:', rows);
+  }</script>
+</section>
+
+<section>
+  <h2>Working without mutation</h2>
+  <p>If you want a value that truly never changes, do not change it — derive a new array
+  instead. Every one of these leaves the original alone.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const base = ['b', 'a', 'c'];
+
+    log('add:     ', [...base, 'd']);
+    log('prepend: ', ['z', ...base]);
+    log('remove:  ', base.filter(x => x !== 'a'));
+    log('replace: ', base.map(x => (x === 'a' ? 'A' : x)));
+    log('sort:    ', base.toSorted());
+    log('reverse: ', base.toReversed());
+    log('splice:  ', base.toSpliced(1, 1));
+    log('set one: ', base.with(0, 'B'));
+    log('base is still:', base);
+  }</script>
+</section>
+
+<section>
+  <h2>The habit</h2>
+  <ul>
+    <li>Declare arrays with <code>const</code> by default — you almost never repoint the name.</li>
+    <li>Use <code>let</code> only when you really do reassign, e.g.
+    <code>list = list.filter(…)</code>.</li>
+    <li>Prefer the non-mutating methods when other code holds a reference to the same array.</li>
+  </ul>
+</section>
+
+</body>
+</html>

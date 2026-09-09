@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Function Definitions — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-definitions">
+
+<h1>Function Definitions</h1>
+<p class="lede">Five ways to make a function. They differ in hoisting, in whether they have
+their own <code>this</code>, and in whether they have a name.</p>
+
+<section>
+  <h2>Declaration</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('callable before it is written →', square(4));
+
+    function square(n) {
+      return n * n;
+    }
+
+    log('name:', square.name, '| length (declared parameters):', square.length);
+    log('fully hoisted, so order does not matter');
+  }</script>
+</section>
+
+<section>
+  <h2>Expression</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const square = function (n) {
+      return n * n;
+    };
+
+    log(square(5), '| name:', square.name, '← inferred from the variable');
+
+    // A named function expression: the name is visible only inside itself,
+    // which is useful for recursion and for stack traces.
+    const factorial = function fact(n) {
+      return n <= 1 ? 1 : n * fact(n - 1);
+    };
+    log('factorial(5) →', factorial(5));
+    log('the inner name leaks out?', typeof fact);
+  }</script>
+</section>
+
+<section>
+  <h2>Arrow</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const square = n => n * n;
+    const add = (a, b) => a + b;
+    const noop = () => {};
+    const makeUser = name => ({ name });        // parentheses for an object literal
+
+    log(square(6), add(1, 2), noop(), makeUser('Ada'));
+
+    log('');
+    log('an arrow has no this, no arguments, no prototype:');
+    log('  typeof square.prototype →', typeof square.prototype);
+    log('  a normal function has one:', typeof (function () {}).prototype);
+  }</script>
+</section>
+
+<section>
+  <h2>Method shorthand</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const calculator = {
+      value: 0,
+      add(n) { this.value += n; return this; },
+      get result() { return this.value; },
+      *steps() { yield 1; yield 2; }              // a generator method
+    };
+
+    log(calculator.add(5).add(3).result);
+    log('generator method:', [...calculator.steps()]);
+
+    // The shorthand is not just shorter — it can use super:
+    const base = { greet() { return 'hello'; } };
+    const child = {
+      __proto__: base,
+      greet() { return super.greet() + ' world'; }
+    };
+    log('with super:', child.greet());
+  }</script>
+</section>
+
+<section>
+  <h2>The Function constructor</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const add = new Function('a', 'b', 'return a + b');
+    log('add(3, 4) →', add(3, 4));
+
+    log('');
+    log('it compiles a string at run time, which means:');
+    log('  • no access to the surrounding scope');
+    log('  • blocked by a strict Content Security Policy');
+    log('  • unoptimisable, and a security risk with untrusted input');
+
+    const outer = 'not visible';
+    const probe = new Function('return typeof outer');
+    log('  can it see `outer`?', probe());
+  }</script>
+</section>
+
+<section>
+  <h2>Immediately invoked</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const result = (function () {
+      const private1 = 'hidden';
+      return private1.toUpperCase();
+    })();
+
+    log('IIFE result:', result);
+    log('private1 escaped?', typeof private1);
+
+    // The modern equivalent for most uses is just a block, or a module:
+    {
+      const alsoPrivate = 'hidden by the block';
+      log(alsoPrivate);
+    }
+
+    // Still useful for top-level await before modules:
+    (async () => {
+      await Promise.resolve();
+      log('an async IIFE finished');
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing them</h2>
+
+  <table class="ref">
+    <tr><th>Form</th><th>Hoisted</th><th>Own <code>this</code></th><th><code>arguments</code></th><th><code>new</code></th></tr>
+    <tr><td>declaration</td><td>yes</td><td>yes</td><td>yes</td><td>yes</td></tr>
+    <tr><td>expression</td><td>no</td><td>yes</td><td>yes</td><td>yes</td></tr>
+    <tr><td>arrow</td><td>no</td><td>no</td><td>no</td><td>no</td></tr>
+    <tr><td>method shorthand</td><td>n/a</td><td>yes</td><td>yes</td><td>no</td></tr>
+    <tr><td><code>new Function</code></td><td>no</td><td>yes</td><td>yes</td><td>yes</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function declared() {}
+    const expressed = function () {};
+    const arrow = () => {};
+    const obj = { method() {} };
+
+    [['declared', declared], ['expressed', expressed],
+     ['arrow', arrow], ['method', obj.method]].forEach(([label, fn]) =>
+      log(label.padEnd(11),
+          'name:' + String(fn.name).padEnd(11),
+          'prototype:' + typeof fn.prototype));
+  }</script>
+</section>
+
+</body>
+</html>

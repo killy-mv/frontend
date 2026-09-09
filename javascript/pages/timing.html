@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Timing Events — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="timing">
+
+<h1>Timing Events</h1>
+<p class="lede"><code>setTimeout</code> runs something once, later.
+<code>setInterval</code> runs it over and over. Both return an id you use to cancel.</p>
+
+<section>
+  <h2>setTimeout</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('scheduling…');
+
+    const id = setTimeout(() => log('this ran after 300ms'), 300);
+
+    log('setTimeout returned an id:', typeof id === 'number' ? id : String(id));
+
+    // Extra arguments are passed on to the callback:
+    setTimeout((a, b) => log('arguments were forwarded:', a, b), 100, 'first', 'second');
+
+    // Cancelling:
+    const doomed = setTimeout(() => log('you should never see this'), 200);
+    clearTimeout(doomed);
+    log('cancelled one before it ran');
+  }</script>
+</section>
+
+<section>
+  <h2>setInterval</h2>
+
+  <div class="stage">
+    <button id="start">start</button>
+    <button id="stop">stop</button>
+    <span id="clock" style="font:600 15px ui-monospace, monospace"></span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    let id = null;
+
+    $('#start').addEventListener('click', () => {
+      if (id !== null) return log('already running');
+      let ticks = 0;
+      id = setInterval(() => {
+        ticks++;
+        $('#clock').textContent = new Date().toLocaleTimeString();
+        if (ticks % 5 === 0) log('tick', ticks);
+      }, 200);
+      log('started, id', id);
+    });
+
+    $('#stop').addEventListener('click', () => {
+      clearInterval(id);
+      log(id === null ? 'was not running' : 'stopped id ' + id);
+      id = null;
+    });
+
+    log('an interval runs until you clear it — even if the page is idle');
+    log('losing the id means you can never stop it');
+  }</script>
+</section>
+
+<section>
+  <h2>The delay is a minimum</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const start = performance.now();
+
+    setTimeout(() => log('asked 0ms   → actually', (performance.now() - start).toFixed(1) + 'ms'), 0);
+    setTimeout(() => log('asked 50ms  → actually', (performance.now() - start).toFixed(1) + 'ms'), 50);
+
+    // Block the thread so the timers above cannot fire on schedule:
+    const until = performance.now() + 120;
+    while (performance.now() < until) { /* busy */ }
+
+    log('blocked the thread for 120ms first');
+    log('');
+    log('the timer only queues the callback. It runs when the stack is empty,');
+    log('so a slow function delays every timer behind it.');
+  }</script>
+</section>
+
+<section>
+  <h2>Interval drift</h2>
+  <p>An interval fires on a schedule regardless of how long the callback takes, so slow work
+  makes the callbacks pile up. Chained timeouts never overlap.</p>
+
+  <div class="stage">
+    <button id="race">run both for 1 second</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#race').addEventListener('click', () => {
+      log.clear();
+
+      // A: setInterval — fires every 100ms no matter what
+      let aTicks = 0;
+      const aStart = performance.now();
+      const aId = setInterval(() => {
+        aTicks++;
+        const t = performance.now() + 30;
+        while (performance.now() < t) { /* 30ms of work */ }
+      }, 100);
+
+      // B: chained setTimeout — always 100ms BETWEEN runs
+      let bTicks = 0;
+      const bStart = performance.now();
+      function bTick() {
+        bTicks++;
+        const t = performance.now() + 30;
+        while (performance.now() < t) { /* the same 30ms */ }
+        if (performance.now() - bStart < 1000) setTimeout(bTick, 100);
+      }
+      setTimeout(bTick, 100);
+
+      setTimeout(() => {
+        clearInterval(aId);
+        log('setInterval        →', aTicks, 'runs in',
+            Math.round(performance.now() - aStart) + 'ms');
+        log('chained setTimeout →', bTicks, 'runs in',
+            Math.round(performance.now() - bStart) + 'ms');
+        log('');
+        log('the interval tries to keep the RATE; the chain keeps the GAP.');
+        log('For anything that can run long, chain.');
+      }, 1050);
+
+      log('running…');
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Debounce</h2>
+  <p>Wait until the events stop. Use it for search-as-you-type and resize.</p>
+
+  <div class="stage">
+    <input id="search" placeholder="type quickly" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function debounce(fn, wait) {
+      let timer;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), wait);
+      };
+    }
+
+    let keystrokes = 0, searches = 0;
+
+    const search = debounce(term => {
+      searches++;
+      log('search #' + searches, 'for', JSON.stringify(term),
+          '| keystrokes so far:', keystrokes);
+    }, 400);
+
+    $('#search').addEventListener('input', e => {
+      keystrokes++;
+      search(e.target.value);
+    });
+
+    log('one request per pause, not one per keystroke');
+  }</script>
+</section>
+
+<section>
+  <h2>Throttle</h2>
+  <p>Run at most once per interval. Use it for scroll and mousemove.</p>
+
+  <div class="stage">
+    <div id="pad" style="flex:1;height:60px;background:#e2e8f0;border-radius:8px;
+         display:grid;place-items:center">move the mouse here</div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function throttle(fn, wait) {
+      let last = 0;
+      return (...args) => {
+        const now = Date.now();
+        if (now - last < wait) return;
+        last = now;
+        fn(...args);
+      };
+    }
+
+    let moves = 0, handled = 0;
+
+    const report = throttle(() => {
+      handled++;
+      log.clear();
+      log('mousemove events:', moves);
+      log('actually handled :', handled);
+      log('ratio            :', (moves / handled).toFixed(1) + ':1');
+    }, 250);
+
+    $('#pad').addEventListener('mousemove', () => { moves++; report(); });
+
+    log('debounce waits for silence; throttle enforces a maximum rate.');
+  }</script>
+</section>
+
+<section>
+  <h2>A promise-based sleep</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    (async () => {
+      log('start');
+      await sleep(150);
+      log('150ms later');
+      await sleep(150);
+      log('300ms later');
+
+      // A cancellable one:
+      function sleepUntil(ms, signal) {
+        return new Promise((resolve, reject) => {
+          const id = setTimeout(resolve, ms);
+          signal.addEventListener('abort', () => {
+            clearTimeout(id);
+            reject(new DOMException('cancelled', 'AbortError'));
+          }, { once: true });
+        });
+      }
+
+      const ac = new AbortController();
+      setTimeout(() => ac.abort(), 100);
+      try {
+        await sleepUntil(500, ac.signal);
+        log('finished');
+      } catch (err) {
+        log('cancelled after 100ms:', err.name);
+      }
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>The other schedulers</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('setTimeout(fn, 0)      — next macrotask; clamped to ~4ms when nested');
+    log('queueMicrotask(fn)     — before the next render, after this script');
+    log('requestAnimationFrame  — just before the next paint; use for animation');
+    log('requestIdleCallback    — when the browser has spare time');
+    log('');
+
+    const order = [];
+    setTimeout(() => order.push('setTimeout'), 0);
+    queueMicrotask(() => order.push('microtask'));
+    requestAnimationFrame(() => order.push('rAF'));
+    Promise.resolve().then(() => order.push('promise'));
+    order.push('synchronous');
+
+    setTimeout(() => log('order was:', order), 60);
+
+    log('supported here:');
+    ['setTimeout', 'setInterval', 'queueMicrotask',
+     'requestAnimationFrame', 'requestIdleCallback']
+      .forEach(n => log('  ' + (n in window ? '✔ ' : '✘ ') + n));
+  }</script>
+</section>
+
+<section>
+  <h2>Timers in a hidden tab</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('switch to another tab for a few seconds, then come back:');
+
+    let ticks = 0;
+    const start = Date.now();
+    const id = setInterval(() => {
+      ticks++;
+      if (ticks % 10 === 0) {
+        const elapsed = Date.now() - start;
+        log(ticks, 'ticks in', elapsed + 'ms —',
+            'expected', Math.round(elapsed / 200), 'if never throttled');
+      }
+      if (ticks >= 60) { clearInterval(id); log('stopped'); }
+    }, 200);
+
+    log('');
+    log('background tabs clamp timers to about once a second, and');
+    log('requestAnimationFrame stops entirely. Never rely on a timer');
+    log('to measure elapsed time — read the clock instead.');
+  }</script>
+</section>
+
+</body>
+</html>

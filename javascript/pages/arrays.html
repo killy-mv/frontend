@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrays — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="arrays">
+
+<h1>Arrays</h1>
+<p class="lede">An ordered list of values under one name, indexed from zero. Arrays are
+objects, so they are held by reference and can hold anything — including other arrays.</p>
+
+<section>
+  <h2>Creating one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const literal = ['Saab', 'Volvo', 'BMW'];        // always use this
+    const empty = [];
+    const mixed = [1, 'two', true, null, { a: 1 }, [2, 3]];
+
+    log(literal);
+    log(mixed);
+
+    // The constructor is available but treacherous:
+    log('new Array(3)      →', new Array(3), 'length', new Array(3).length);
+    log('new Array(1, 2, 3)→', new Array(1, 2, 3));
+    log('Array.of(3)       →', Array.of(3));
+    log('Array.from("abc") →', Array.from('abc'));
+    log('Array.from({length:4}, (_, i) => i * 2) →',
+        Array.from({ length: 4 }, (_, i) => i * 2));
+  }</script>
+</section>
+
+<section>
+  <h2>Reading and writing by index</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Banana', 'Orange', 'Apple'];
+
+    log('fruit[0]       →', fruit[0]);
+    log('fruit[2]       →', fruit[2]);
+    log('fruit[9]       →', fruit[9], '(no error, just undefined)');
+    log('fruit.at(-1)   →', fruit.at(-1), '(counts from the end)');
+    log('fruit[fruit.length - 1] →', fruit[fruit.length - 1]);
+
+    fruit[0] = 'Kiwi';
+    log('after fruit[0] = "Kiwi":', fruit);
+  }</script>
+</section>
+
+<section>
+  <h2>length</h2>
+  <p><code>length</code> is one more than the highest index — and it is writable, which is
+  a quick way to truncate.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const list = ['a', 'b', 'c'];
+    log(list, 'length', list.length);
+
+    list[list.length] = 'd';           // append by index
+    log('appended:', list);
+
+    list[7] = 'h';                     // a sparse array
+    log('after list[7] = "h":', list, 'length', list.length);
+    log('list[5] →', list[5]);
+
+    list.length = 2;                   // truncate
+    log('length = 2 →', list);
+  }</script>
+</section>
+
+<section>
+  <h2>Arrays are objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const arr = [1, 2, 3];
+
+    log('typeof arr        →', typeof arr);
+    log('Array.isArray(arr)→', Array.isArray(arr));
+    log('arr instanceof Array →', arr instanceof Array);
+
+    // Which means you can bolt properties on — but do not:
+    arr.label = 'oops';
+    log('arr.label →', arr.label, '| length is still', arr.length);
+    log('the property is skipped by array methods:', arr.map(n => n * 2));
+
+    // If you want named keys, you wanted an object:
+    const better = { label: 'good', values: [1, 2, 3] };
+    log(better);
+  }</script>
+</section>
+
+<section>
+  <h2>Nested arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const grid = [
+      [1, 2, 3],
+      [4, 5, 6],
+      [7, 8, 9]
+    ];
+
+    log('grid[1][2] →', grid[1][2]);
+    log('rows:', grid.length, 'columns:', grid[0].length);
+
+    grid.forEach(row => log(row.map(n => String(n).padStart(3)).join('')));
+
+    log('flattened:', grid.flat());
+    log('column sums:', grid[0].map((_, c) => grid.reduce((sum, row) => sum + row[c], 0)));
+  }</script>
+</section>
+
+<section>
+  <h2>A to-do list</h2>
+  <div class="stage">
+    <input id="task" placeholder="a new task" style="flex:1">
+    <button id="add">Add</button>
+    <button id="remove">Remove first</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const tasks = ['buy milk', 'write notes'];
+
+    function render() {
+      log.clear();
+      if (!tasks.length) { log('(nothing left)'); return; }
+      tasks.forEach((task, i) => log((i + 1) + '. ' + task));
+      log('— ' + tasks.length + ' item(s)');
+    }
+
+    $('#add').onclick = function () {
+      const value = $('#task').value.trim();
+      if (value) { tasks.push(value); $('#task').value = ''; render(); }
+    };
+
+    $('#remove').onclick = function () {
+      tasks.shift();
+      render();
+    };
+
+    render();
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forms — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-forms">
+
+<h1>Forms</h1>
+<p class="lede">Reading what a user typed, validating it before it goes anywhere, and
+stopping the browser from navigating away.</p>
+
+<section>
+  <h2>Reading the fields</h2>
+
+  <div class="stage" style="display:block">
+    <form id="signup" style="display:grid;gap:6px;max-width:340px">
+      <input name="username" placeholder="username" value="ada">
+      <input name="email" type="email" placeholder="email" value="ada@example.com">
+      <input name="age" type="number" value="36">
+      <label><input name="terms" type="checkbox" checked> accept terms</label>
+      <select name="plan">
+        <option value="free">Free</option>
+        <option value="pro" selected>Pro</option>
+      </select>
+      <button type="submit">submit</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const form = $('#signup');
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();               // stop the page reloading
+      log.clear();
+
+      log('by name:');
+      log('  username →', form.username.value);
+      log('  age      →', form.age.value, '(a', typeof form.age.value + ')');
+      log('  age as a number →', form.age.valueAsNumber);
+      log('  terms    →', form.terms.checked);
+      log('  plan     →', form.plan.value);
+
+      log('');
+      log('all of it, via FormData:');
+      const data = new FormData(form);
+      for (const [key, value] of data) log('  ' + key.padEnd(10), value);
+      log('');
+      log('as an object:', Object.fromEntries(data));
+      log('  note: an unchecked box is absent, not false');
+    });
+
+    log('fill the form and press submit');
+  }</script>
+</section>
+
+<section>
+  <h2>preventDefault</h2>
+  <div class="note warn">Without <code>event.preventDefault()</code> in the submit handler,
+  the browser leaves the page — and your JavaScript never finishes. The same call stops a
+  link navigating, a checkbox ticking, or the right-click menu appearing.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the three you use most:');
+    log('  event.preventDefault()  — cancel the browser default');
+    log('  event.stopPropagation() — stop the event bubbling upward');
+    log('  return false            — both, but only in an inline onsubmit handler');
+
+    log('');
+    log('a submit handler that throws never reaches preventDefault,');
+    log('so put it on the first line.');
+  }</script>
+</section>
+
+<section>
+  <h2>Live validation</h2>
+
+  <div class="stage" style="display:block">
+    <form id="live" style="display:grid;gap:6px;max-width:340px">
+      <input name="handle" placeholder="3–12 letters" required
+             pattern="[a-z]{3,12}" title="lowercase letters only">
+      <input name="years" type="number" min="0" max="120" placeholder="age" required>
+      <button>check</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const form = $('#live');
+
+    function report() {
+      log.clear();
+      Array.from(form.elements).forEach(el => {
+        if (!el.name) return;
+        const v = el.validity;
+        const flags = Object.keys(Object.getPrototypeOf(v))
+          .filter(k => v[k] === true);
+        log(el.name.padEnd(8),
+            (el.checkValidity() ? '✔ valid  ' : '✘ invalid'),
+            flags.length ? flags.join(', ') : '',
+            el.validationMessage ? '— ' + el.validationMessage : '');
+      });
+      log('');
+      log('the whole form:', form.checkValidity() ? 'valid' : 'invalid');
+    }
+
+    form.addEventListener('input', report);
+    form.addEventListener('submit', e => { e.preventDefault(); report(); });
+    report();
+  }</script>
+</section>
+
+<section>
+  <h2>Custom validity</h2>
+
+  <div class="stage">
+    <input id="pw" type="password" placeholder="password" value="short">
+    <input id="pw2" type="password" placeholder="repeat" value="different">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const pw = $('#pw');
+    const pw2 = $('#pw2');
+
+    function check() {
+      log.clear();
+
+      if (pw.value.length < 8) pw.setCustomValidity('at least 8 characters');
+      else pw.setCustomValidity('');
+
+      if (pw2.value !== pw.value) pw2.setCustomValidity('the passwords do not match');
+      else pw2.setCustomValidity('');
+
+      log('password →', pw.validationMessage || 'ok');
+      log('repeat   →', pw2.validationMessage || 'ok');
+      log('');
+      log('a non-empty custom message makes the field invalid;');
+      log('setCustomValidity("") clears it.');
+    }
+
+    pw.addEventListener('input', check);
+    pw2.addEventListener('input', check);
+    check();
+  }</script>
+</section>
+
+<section>
+  <h2>Selects and radio groups</h2>
+
+  <div class="stage">
+    <select id="colour">
+      <option value="r">red</option>
+      <option value="g" selected>green</option>
+      <option value="b">blue</option>
+    </select>
+    <span>
+      <label><input type="radio" name="size" value="s"> S</label>
+      <label><input type="radio" name="size" value="m" checked> M</label>
+      <label><input type="radio" name="size" value="l"> L</label>
+    </span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const select = $('#colour');
+
+    function show() {
+      log.clear();
+      log('select.value        →', select.value);
+      log('selectedIndex       →', select.selectedIndex);
+      log('selected option text→', select.options[select.selectedIndex].text);
+      log('all options         →', Array.from(select.options, o => o.value));
+
+      const size = $('input[name="size"]:checked');
+      log('');
+      log('checked radio       →', size ? size.value : 'none');
+      log('  (find it with the :checked selector)');
+    }
+
+    select.addEventListener('change', show);
+    $('.stage').addEventListener('change', e => { if (e.target.type === 'radio') show(); });
+    show();
+  }</script>
+</section>
+
+<section>
+  <h2>Events that fire while typing</h2>
+
+  <div class="stage">
+    <input id="watch" placeholder="type, then click away">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const input = $('#watch');
+
+    ['focus', 'input', 'change', 'blur'].forEach(type =>
+      input.addEventListener(type, e =>
+        log(type.padEnd(7), '→', JSON.stringify(e.target.value))));
+
+    log('input  — every keystroke, paste, or autofill');
+    log('change — only when the value settled and focus left');
+    log('focus / blur — do not bubble; use focusin / focusout if you need that');
+  }</script>
+</section>
+
+<section>
+  <h2>Submitting without leaving the page</h2>
+
+  <div class="stage" style="display:block">
+    <form id="ajaxish" style="display:flex;gap:6px">
+      <input name="message" placeholder="a message" value="hello" style="flex:1">
+      <button>send</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const form = $('#ajaxish');
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+
+      const body = new URLSearchParams(new FormData(form));
+      const button = form.querySelector('button');
+
+      button.disabled = true;
+      log('would POST:', body.toString());
+
+      // Stand-in for a real request:
+      await new Promise(r => setTimeout(r, 400));
+
+      log('server said: ok');
+      button.disabled = false;
+      form.reset();
+      log('after reset the field is', JSON.stringify(form.message.value),
+          '← reset restores the default, it does not clear');
+    });
+
+    log('press send');
+  }</script>
+</section>
+
+</body>
+</html>

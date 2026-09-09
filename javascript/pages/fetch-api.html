@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fetch — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="fetch-api">
+
+<h1>Fetch</h1>
+<p class="lede">The modern way to make an HTTP request. It returns a promise, and — the part
+that catches everyone out — a 404 is <b>not</b> an error.</p>
+
+<div class="note warn">Opened from <code>file://</code>, a real network request is blocked by
+the browser. The examples below fetch <code>blob:</code> and <code>data:</code> URLs so they
+run anywhere; the internet examples are marked and will report the failure honestly.</div>
+
+<section>
+  <h2>The shape of it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A stand-in server: a blob URL that behaves like a JSON endpoint.
+    const api = URL.createObjectURL(new Blob(
+      [JSON.stringify({ id: 1, name: 'Ada', roles: ['admin', 'dev'] })],
+      { type: 'application/json' }));
+
+    fetch(api)
+      .then(response => {
+        log('1. the promise resolves with a Response');
+        log('   ok         →', response.ok);
+        log('   status     →', response.status, response.statusText);
+        log('   type       →', response.type);
+        log('   headers    →', response.headers.get('content-type'));
+        return response.json();          // 2. reading the body is ALSO a promise
+      })
+      .then(data => {
+        log('2. the body resolves with the parsed JSON');
+        log('   data →', data);
+      })
+      .catch(err => log('failed:', err.message));
+
+    log('two promises: one for the headers, one for the body.');
+  }</script>
+</section>
+
+<section>
+  <h2>With async/await</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const api = URL.createObjectURL(new Blob(
+      [JSON.stringify([{ id: 1, title: 'first' }, { id: 2, title: 'second' }])],
+      { type: 'application/json' }));
+
+    (async () => {
+      try {
+        const response = await fetch(api);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const posts = await response.json();
+        log('got', posts.length, 'posts:', posts);
+      } catch (err) {
+        log('failed:', err.message);
+      }
+    })();
+
+    log('the same request, three lines shorter');
+  }</script>
+</section>
+
+<section>
+  <h2>A 404 does not reject</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('fetch only rejects when the request could not be MADE at all:');
+    log('  • no network');
+    log('  • DNS failure');
+    log('  • blocked by CORS');
+    log('  • the request was aborted');
+    log('');
+    log('a 404, a 500, a 403 — all of those are successful responses that');
+    log('happen to carry a bad status. You must check response.ok yourself:');
+    log('');
+    log('  const response = await fetch(url);');
+    log('  if (!response.ok) throw new Error(`HTTP ${response.status}`);');
+
+    // Demonstrated with a request the browser really will refuse:
+    fetch('https://example.invalid/nothing')
+      .then(r => log('resolved with', r.status))
+      .catch(err => {
+        log('');
+        log('a request to a non-existent host:');
+        log('  rejected with', err.name + ':', err.message);
+        log('  note how little detail you get — that is deliberate.');
+      });
+  }</script>
+</section>
+
+<section>
+  <h2>Reading the body</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const url = URL.createObjectURL(new Blob(['{"answer":42}'], { type: 'application/json' }));
+
+    (async () => {
+     try {
+      log('a Response body can be read ONCE, as one of:');
+      log('  .json()        → a parsed object');
+      log('  .text()        → a string');
+      log('  .blob()        → binary, for files and images');
+      log('  .arrayBuffer() → raw bytes');
+      log('  .formData()    → for multipart responses');
+      log('');
+
+      log('.text()  →', await (await fetch(url)).text());
+      log('.json()  →', await (await fetch(url)).json());
+      log('.blob()  →', String(await (await fetch(url)).blob()),
+          '(' + (await (await fetch(url)).blob()).size + ' bytes)');
+
+      log('');
+      const once = await fetch(url);
+      await once.json();
+      try {
+        await once.text();
+      } catch (err) {
+        log('reading twice →', err.name + ':', err.message);
+        log('  clone it first if you need two readers: response.clone()');
+      }
+      log('bodyUsed →', once.bodyUsed);
+     } catch (err) {
+      log('this browser refused to fetch a blob: URL from file://');
+      log('  ' + err.name + ':', err.message);
+     }
+    })();
+  }</script>
+</section>
+
+<section>
+  <h2>Options</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('fetch(url, options) — everything is optional:');
+    log('');
+    log('  method    "GET" | "POST" | "PUT" | "PATCH" | "DELETE"');
+    log('  headers   { "Content-Type": "application/json" }');
+    log('  body      a string, FormData, URLSearchParams, Blob or stream');
+    log('  mode      "cors" | "no-cors" | "same-origin"');
+    log('  credentials "omit" | "same-origin" | "include"');
+    log('  cache     "default" | "no-store" | "reload" | "force-cache"');
+    log('  signal    an AbortSignal');
+    log('  redirect  "follow" | "error" | "manual"');
+    log('');
+    log('a typical POST:');
+    log('');
+    log('  await fetch("/api/posts", {');
+    log('    method: "POST",');
+    log('    headers: { "Content-Type": "application/json" },');
+    log('    body: JSON.stringify({ title, body })');
+    log('  });');
+    log('');
+    log('with a file, use FormData and set NO Content-Type —');
+    log('the browser must add the multipart boundary itself.');
+
+    // The Request object holds exactly these options:
+    const request = new Request('https://api.example.com/posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{"title":"hi"}'
+    });
+    log('');
+    log('a Request object:', request.method, request.url);
+    log('its headers:', [...request.headers]);
+  }</script>
+</section>
+
+<section>
+  <h2>Cancelling</h2>
+
+  <div class="stage">
+    <button id="start">start a slow request</button>
+    <button id="cancel">cancel it</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    let controller = null;
+
+    // A "slow endpoint": a promise that resolves after a delay, wired to the
+    // same AbortSignal a real fetch would use.
+    function slowFetch(signal) {
+      return new Promise((resolve, reject) => {
+        const id = setTimeout(() => resolve('the data'), 3000);
+        signal.addEventListener('abort', () => {
+          clearTimeout(id);
+          reject(new DOMException('The user aborted a request.', 'AbortError'));
+        }, { once: true });
+      });
+    }
+
+    $('#start').addEventListener('click', async () => {
+      controller = new AbortController();
+      log('requesting… (3 seconds)');
+      try {
+        log('got:', await slowFetch(controller.signal));
+      } catch (err) {
+        if (err.name === 'AbortError') log('cancelled — no error to report to the user');
+        else log('failed:', err.message);
+      }
+    });
+
+    $('#cancel').addEventListener('click', () => {
+      if (controller) controller.abort();
+      else log('nothing in flight');
+    });
+
+    log('the real thing:');
+    log('  const ac = new AbortController();');
+    log('  fetch(url, { signal: ac.signal });');
+    log('  ac.abort();');
+    log('');
+    log('and a built-in timeout:');
+    log('  fetch(url, { signal: AbortSignal.timeout(5000) })');
+    log('  AbortSignal.timeout supported →', typeof AbortSignal.timeout === 'function');
+  }</script>
+</section>
+
+<section>
+  <h2>A reusable wrapper</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    async function api(url, { timeout = 8000, ...options } = {}) {
+      const response = await fetch(url, {
+        ...options,
+        signal: AbortSignal.timeout ? AbortSignal.timeout(timeout) : undefined,
+        headers: { Accept: 'application/json', ...options.headers }
+      });
+
+      if (!response.ok) {
+        // Try to read the server's error message before giving up.
+        const detail = await response.text().catch(() => '');
+        const error = new Error(`HTTP ${response.status}: ${detail.slice(0, 120)}`);
+        error.status = response.status;
+        throw error;
+      }
+
+      return response.status === 204 ? null : response.json();
+    }
+
+    const good = URL.createObjectURL(new Blob(['{"ok":true}'], { type: 'application/json' }));
+
+    api(good)
+      .then(data => log('success →', data))
+      .catch(err => log('success case failed here:', err.name));
+    api('https://example.invalid/x')
+      .catch(err => log('failure →', err.name + ':', err.message.slice(0, 60)));
+
+    log('one place for: the status check, the timeout, the headers, the parse.');
+  }</script>
+</section>
+
+<section>
+  <h2>CORS</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a request to another origin is only readable if THAT server says so:');
+    log('  Access-Control-Allow-Origin: https://your-site.example');
+    log('');
+    log('the rules, briefly:');
+    log('  • same origin        → always allowed');
+    log('  • simple cross-origin (GET/POST, plain headers) → sent, but the');
+    log('    response is unreadable without the header');
+    log('  • anything else      → a preflight OPTIONS request first');
+    log('  • credentials:"include" needs Allow-Credentials, and');
+    log('    Allow-Origin cannot then be "*"');
+    log('');
+    log('this page is on', location.origin === 'null' ? 'an opaque origin (file://)' : location.origin);
+    log('');
+    log('CORS is enforced by the browser, not the server. curl has no such');
+    log('restriction — which is why "it works in Postman" proves nothing.');
+  }</script>
+</section>
+
+<section>
+  <h2>Streaming a response</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const url = URL.createObjectURL(new Blob(
+      [Array.from({ length: 20 }, (_, i) => 'line ' + i).join('\n')],
+      { type: 'text/plain' }));
+
+    (async () => {
+      try {
+        const response = await fetch(url);
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let received = 0, chunks = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks++;
+          received += value.length;
+          decoder.decode(value, { stream: true });
+        }
+
+        log('read', received, 'bytes in', chunks, 'chunk(s)');
+      } catch (err) {
+        log('could not stream here:', err.name + ':', err.message);
+      }
+
+      log('');
+      log('streaming lets you show a progress bar, or start parsing before');
+      log('the download finishes — response.json() must wait for all of it.');
+      log('');
+      log('with a Content-Length header you get a real percentage:');
+      log('  const total = +response.headers.get("content-length");');
+      log('  progress.value = received / total;');
+    })();
+  }</script>
+</section>
+
+</body>
+</html>

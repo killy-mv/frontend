@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iterables — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="iterables">
+
+<h1>Iterables</h1>
+<p class="lede">An object is iterable if it has a <code>Symbol.iterator</code> method. That
+one method is what makes <code>for…of</code>, spread and destructuring work.</p>
+
+<section>
+  <h2>What is iterable already</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const candidates = [
+      ['Array', [1, 2]],
+      ['String', 'ab'],
+      ['Set', new Set([1])],
+      ['Map', new Map()],
+      ['NodeList', document.querySelectorAll('h2')],
+      ['arguments', (function () { return arguments; })(1, 2)],
+      ['plain object', { a: 1 }],
+      ['number', 42]
+    ];
+
+    candidates.forEach(([name, value]) =>
+      log(name.padEnd(14), typeof value?.[Symbol.iterator] === 'function' ? 'iterable' : 'NOT iterable'));
+  }</script>
+</section>
+
+<section>
+  <h2>Where iterability is used</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const set = new Set(['a', 'b', 'c']);
+
+    for (const v of set) log('for…of:', v);
+    log('spread:      ', [...set]);
+    log('destructure: ', (([first, second]) => first + second)([...set]));
+    log('Array.from:  ', Array.from(set));
+
+    const [head, ...tail] = 'hello';
+    log('rest in destructuring:', head, tail);
+
+    log('Math.max with spread:', Math.max(...new Set([3, 9, 1])));
+  }</script>
+</section>
+
+<section>
+  <h2>The protocol, by hand</h2>
+  <p>An iterator is an object with a <code>next()</code> method returning
+  <code>{ value, done }</code>. <code>for…of</code> just calls it repeatedly.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const it = ['x', 'y'][Symbol.iterator]();
+
+    log(it.next());
+    log(it.next());
+    log(it.next());
+
+    log('');
+    log('for…of, written out:');
+    const manual = ['a', 'b'][Symbol.iterator]();
+    let step = manual.next();
+    while (!step.done) {
+      log('  value:', step.value);
+      step = manual.next();
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Making your own iterable</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const range = {
+      from: 1,
+      to: 5,
+      [Symbol.iterator]() {
+        let current = this.from;
+        const last = this.to;
+        return {
+          next() {
+            return current <= last
+              ? { value: current++, done: false }
+              : { value: undefined, done: true };
+          }
+        };
+      }
+    };
+
+    for (const n of range) log(n);
+    log('spread:', [...range]);
+    log('sum:', [...range].reduce((a, b) => a + b));
+  }</script>
+</section>
+
+<section>
+  <h2>Generators do it for you</h2>
+  <p>A <code>function*</code> returns an iterator automatically. <code>yield</code> hands
+  out the next value and pauses until it is asked again.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function* range(from, to, step = 1) {
+      for (let n = from; n <= to; n += step) yield n;
+    }
+
+    log([...range(1, 10, 3)]);
+
+    function* fibonacci() {
+      let [a, b] = [0, 1];
+      while (true) {           // infinite, but lazy — nothing runs until asked
+        yield a;
+        [a, b] = [b, a + b];
+      }
+    }
+
+    const fib = fibonacci();
+    log('first 10 fibonacci:', Array.from({ length: 10 }, () => fib.next().value));
+
+    // A generator as a class member:
+    class Deck {
+      constructor(cards) { this.cards = cards; }
+      *[Symbol.iterator]() { yield* this.cards; }
+    }
+    log('custom class:', [...new Deck(['A♠', 'K♥'])]);
+  }</script>
+</section>
+
+<section>
+  <h2>Iterable vs array-like</h2>
+  <p>Array-like means "has <code>length</code> and numeric keys". The two are independent —
+  <code>Array.from</code> handles both.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const arrayLike = { 0: 'a', 1: 'b', length: 2 };
+
+    log('Array.from(arrayLike) →', Array.from(arrayLike));
+
+    try {
+      log([...arrayLike]);
+    } catch (err) {
+      log('spreading it →', err.name + ':', err.message);
+    }
+
+    log('');
+    log('Array.from also takes a mapping function:');
+    log(Array.from('123', Number));
+    log(Array.from({ length: 5 }, (_, i) => i * i));
+  }</script>
+</section>
+
+</body>
+</html>

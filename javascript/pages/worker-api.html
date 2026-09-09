@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Workers — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="worker-api">
+
+<h1>Web Workers</h1>
+<p class="lede">A second thread. It has no DOM, no <code>window</code> and no shared
+variables — it talks to the page by message only. That restriction is what makes it safe.</p>
+
+<div class="note warn">A worker is loaded like a script, so the same-origin rule applies.
+From <code>file://</code> the examples below fall back to a blob URL, and some browsers
+block even that. If you see a <code>SecurityError</code>, serve the folder over http.</div>
+
+<section>
+  <h2>Why you need one</h2>
+
+  <div class="stage">
+    <button id="block">count primes on the main thread</button>
+    <span id="spinner" style="display:inline-block;width:20px">⏳</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // A deliberately slow, purely CPU-bound job:
+    function countPrimes(limit) {
+      let count = 0;
+      for (let n = 2; n < limit; n++) {
+        let prime = true;
+        for (let d = 2; d * d <= n; d++) if (n % d === 0) { prime = false; break; }
+        if (prime) count++;
+      }
+      return count;
+    }
+
+    // Keep a spinner turning so the freeze is visible:
+    const frames = ['⏳', '⌛'];
+    let f = 0;
+    setInterval(() => { $('#spinner').textContent = frames[f++ % 2]; }, 120);
+
+    $('#block').addEventListener('click', () => {
+      log('starting — watch the spinner stop');
+      const t = performance.now();
+      const primes = countPrimes(2000000);
+      log(primes, 'primes in', Math.round(performance.now() - t) + 'ms');
+      log('the spinner, every animation and every click was frozen for that long');
+    });
+
+    log('this is the problem a worker solves');
+  }</script>
+</section>
+
+<section>
+  <h2>The same job, off the main thread</h2>
+
+  <div class="stage">
+    <button id="run">count primes in a worker</button>
+    <span id="spin2" style="display:inline-block;width:20px">⏳</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // The worker's whole source, as a string. Normally this lives in its own
+    // file and you write: new Worker('prime-worker.js')
+    const source = `
+      self.onmessage = function (event) {
+        const limit = event.data.limit;
+        let count = 0;
+        for (let n = 2; n < limit; n++) {
+          let prime = true;
+          for (let d = 2; d * d <= n; d++) if (n % d === 0) { prime = false; break; }
+          if (prime) count++;
+          if (n % 200000 === 0) self.postMessage({ type: 'progress', n });
+        }
+        self.postMessage({ type: 'done', count });
+      };
+    `;
+
+    const frames = ['⏳', '⌛'];
+    let f = 0;
+    setInterval(() => { $('#spin2').textContent = frames[f++ % 2]; }, 120);
+
+    let worker = null;
+    try {
+      worker = new Worker(URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
+    } catch (err) {
+      log('could not start a worker:', err.name + ':', err.message);
+    }
+
+    if (worker) {
+      let started = 0;
+
+      worker.onmessage = event => {
+        if (event.data.type === 'progress') log('  …reached', event.data.n);
+        else log(event.data.count, 'primes in', Math.round(performance.now() - started) + 'ms',
+                 '— and the spinner never stopped');
+      };
+
+      worker.onerror = event => log('worker error:', event.message);
+
+      $('#run').addEventListener('click', () => {
+        log('posting to the worker…');
+        started = performance.now();
+        worker.postMessage({ limit: 2000000 });
+      });
+
+      log('the worker is running; the page stays responsive');
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>The message API</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('in the page:');
+    log('  const worker = new Worker("worker.js");');
+    log('  worker.postMessage({ cmd: "start", n: 10 });');
+    log('  worker.onmessage = e => console.log(e.data);');
+    log('  worker.terminate();               // stop it immediately');
+    log('');
+    log('in the worker:');
+    log('  self.onmessage = e => { … };');
+    log('  self.postMessage(result);');
+    log('  self.close();                     // stop itself');
+    log('');
+    log('both sides can also use addEventListener("message", …).');
+    log('');
+    log('messages are STRUCTURED CLONED, not shared:');
+
+    const original = { list: [1, 2, 3], when: new Date(), nested: { deep: true } };
+    const copy = structuredClone(original);
+    copy.list.push(4);
+    log('  original.list →', original.list);
+    log('  the copy      →', copy.list, '← completely separate');
+
+    try {
+      structuredClone({ fn: () => 1 });
+    } catch (err) {
+      log('  functions cannot cross:', err.name);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>A worker that answers questions</h2>
+
+  <div class="stage">
+    <input id="expr" value="fib(30)" style="flex:1">
+    <button id="ask">evaluate</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const source = `
+      function fib(n) { return n < 2 ? n : fib(n - 1) + fib(n - 2); }
+      function fact(n) { return n <= 1 ? 1 : n * fact(n - 1); }
+
+      self.onmessage = function (event) {
+        const { id, expr } = event.data;
+        try {
+          const value = Function('fib', 'fact', 'return (' + expr + ')')(fib, fact);
+          self.postMessage({ id, value: String(value) });
+        } catch (err) {
+          self.postMessage({ id, error: err.message });
+        }
+      };
+    `;
+
+    let worker = null, nextId = 0;
+    const pending = new Map();
+
+    try {
+      worker = new Worker(URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
+      worker.onmessage = event => {
+        const { id, value, error } = event.data;
+        const resolve = pending.get(id);
+        pending.delete(id);
+        if (resolve) resolve(error ? 'error: ' + error : value);
+      };
+    } catch (err) {
+      log('worker unavailable:', err.name);
+    }
+
+    // Wrap the message protocol in a promise — the usual pattern.
+    function ask(expr) {
+      if (!worker) return Promise.resolve('(no worker)');
+      const id = ++nextId;
+      worker.postMessage({ id, expr });
+      return new Promise(resolve => pending.set(id, resolve));
+    }
+
+    $('#ask').addEventListener('click', async () => {
+      const expr = $('#expr').value;
+      const t = performance.now();
+      log(expr, '…');
+      log('  =', await ask(expr), 'in', Math.round(performance.now() - t) + 'ms');
+    });
+
+    log('try fib(32), fact(20), or 2 ** 40');
+    log('the request/response ids are what let several be in flight at once');
+  }</script>
+</section>
+
+<section>
+  <h2>What a worker can and cannot do</h2>
+
+  <table class="ref">
+    <tr><th>Available</th><th>Not available</th></tr>
+    <tr><td><code>fetch</code>, <code>XMLHttpRequest</code></td><td><code>document</code>, the DOM</td></tr>
+    <tr><td><code>setTimeout</code>, <code>setInterval</code></td><td><code>window</code>, <code>parent</code></td></tr>
+    <tr><td><code>IndexedDB</code>, Cache API</td><td><code>localStorage</code></td></tr>
+    <tr><td><code>importScripts()</code>, ES modules</td><td><code>alert</code>, <code>confirm</code></td></tr>
+    <tr><td><code>WebSocket</code>, <code>Crypto</code></td><td>anything that renders</td></tr>
+    <tr><td>OffscreenCanvas</td><td>the page's variables</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the global inside a worker is `self`, of type');
+    log('  DedicatedWorkerGlobalScope (or SharedWorkerGlobalScope)');
+    log('');
+    log('three kinds of worker:');
+    log('  Worker        — private to one page. What you want 95% of the time.');
+    log('  SharedWorker  — one instance shared by several tabs of an origin.');
+    log('  ServiceWorker — a network proxy that outlives the page. For offline.');
+    log('');
+    log('supported here:');
+    [['Worker', typeof Worker !== 'undefined'],
+     ['SharedWorker', typeof SharedWorker !== 'undefined'],
+     ['serviceWorker', 'serviceWorker' in navigator],
+     ['OffscreenCanvas', typeof OffscreenCanvas !== 'undefined']]
+      .forEach(([n, ok]) => log('  ' + (ok ? '✔' : '✘') + ' ' + n));
+  }</script>
+</section>
+
+<section>
+  <h2>Transferables — moving instead of copying</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('cloning a 50MB buffer costs 50MB and takes real time.');
+    log('Transferring hands the memory over instead — instantly, but the');
+    log('sender loses access:');
+    log('');
+    log('  const buffer = new ArrayBuffer(50 * 1024 * 1024);');
+    log('  worker.postMessage(buffer, [buffer]);   // note the second argument');
+    log('  buffer.byteLength;                      // now 0');
+
+    const buffer = new ArrayBuffer(1024);
+    log('');
+    log('before transfer → byteLength', buffer.byteLength);
+
+    // structuredClone accepts the same transfer list, so we can show it here:
+    structuredClone(buffer, { transfer: [buffer] });
+    log('after transfer  → byteLength', buffer.byteLength, '← detached');
+
+    log('');
+    log('transferable types: ArrayBuffer, MessagePort, ImageBitmap,');
+    log('OffscreenCanvas, ReadableStream and friends.');
+  }</script>
+</section>
+
+<section>
+  <h2>When a worker is worth it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('✔ image and video processing');
+    log('✔ parsing or transforming a large JSON/CSV file');
+    log('✔ compression, encryption, hashing');
+    log('✔ pathfinding, physics, simulation');
+    log('✔ syntax highlighting or diffing a large document');
+    log('');
+    log('✘ anything I/O bound — a fetch already does not block');
+    log('✘ work measured in single-digit milliseconds; the message');
+    log('  round-trip and the clone would cost more than the work');
+    log('');
+    log('this machine reports', navigator.hardwareConcurrency, 'logical cores,');
+    log('so a pool of', Math.max(1, navigator.hardwareConcurrency - 1),
+        'workers would leave one for the UI.');
+  }</script>
+</section>
+
+</body>
+</html>

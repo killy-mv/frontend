@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animations — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+<style>
+  .track { position: relative; height: 56px; background: #e2e8f0; border-radius: 8px;
+           overflow: hidden; }
+  .dot { position: absolute; top: 8px; left: 0; width: 40px; height: 40px;
+         border-radius: 50%; background: var(--accent); }
+  .slide { transition: transform .4s ease, background-color .4s ease; }
+  .slide.moved { transform: translateX(220px); background: crimson; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.6); } }
+  .pulsing { animation: pulse .5s ease-in-out infinite alternate; }
+</style>
+</head>
+<body data-topic="dom-animations">
+
+<h1>Animations</h1>
+<p class="lede">Four ways to move something, from the one you should reach for first to the
+one you should reach for last.</p>
+
+<section>
+  <h2>1. A CSS transition, triggered by a class</h2>
+  <p>The browser animates it on the compositor. Your JavaScript does one thing: toggle a
+  class.</p>
+
+  <div class="stage" style="display:block">
+    <div class="track"><div id="a" class="dot slide"></div></div>
+    <button id="go-a" style="margin-top:8px">toggle</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const dot = $('#a');
+
+    $('#go-a').addEventListener('click', () => {
+      const moved = dot.classList.toggle('moved');
+      log(moved ? 'added .moved' : 'removed .moved');
+    });
+
+    dot.addEventListener('transitionend', e =>
+      log('  transitionend:', e.propertyName, 'after', e.elapsedTime + 's'));
+
+    log('the CSS does the work:');
+    log('  .slide       { transition: transform .4s ease; }');
+    log('  .slide.moved { transform: translateX(220px); }');
+  }</script>
+</section>
+
+<section>
+  <h2>2. A CSS keyframe animation</h2>
+
+  <div class="stage" style="display:block">
+    <div class="track"><div id="b" class="dot" style="left:110px"></div></div>
+    <button id="go-b" style="margin-top:8px">start / stop</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const dot = $('#b');
+
+    $('#go-b').addEventListener('click', () => {
+      const on = dot.classList.toggle('pulsing');
+      log(on ? 'animation running' : 'animation removed');
+      log('  getAnimations():', dot.getAnimations().length);
+    });
+
+    dot.addEventListener('animationiteration', () => log('  one iteration finished'));
+
+    log('@keyframes pulse { from { transform: scale(1) } to { transform: scale(1.6) } }');
+    log('.pulsing { animation: pulse .5s ease-in-out infinite alternate; }');
+  }</script>
+</section>
+
+<section>
+  <h2>3. The Web Animations API</h2>
+  <p>The same engine as CSS, but described in JavaScript and returning a controllable
+  object.</p>
+
+  <div class="stage" style="display:block">
+    <div class="track"><div id="c" class="dot"></div></div>
+    <div style="margin-top:8px">
+      <button id="play">play</button>
+      <button id="pause">pause</button>
+      <button id="reverse">reverse</button>
+      <button id="faster">speed ×2</button>
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const animation = $('#c').animate(
+      [
+        { transform: 'translateX(0)', background: '#2563eb' },
+        { transform: 'translateX(110px)', background: 'goldenrod', offset: 0.5 },
+        { transform: 'translateX(220px)', background: 'crimson' }
+      ],
+      { duration: 1500, iterations: Infinity, direction: 'alternate', easing: 'ease-in-out' }
+    );
+
+    animation.pause();
+
+    $('#play').addEventListener('click', () => { animation.play(); log('play'); });
+    $('#pause').addEventListener('click', () => {
+      animation.pause();
+      log('paused at', Math.round(animation.currentTime) + 'ms');
+    });
+    $('#reverse').addEventListener('click', () => { animation.reverse(); log('reversed'); });
+    $('#faster').addEventListener('click', () => {
+      animation.playbackRate = animation.playbackRate === 1 ? 2 : 1;
+      log('playbackRate →', animation.playbackRate);
+    });
+
+    log('animation.playState →', animation.playState);
+    log('it also gives you a promise:');
+    log('  animation.finished.then(…)   — but this one never finishes');
+  }</script>
+</section>
+
+<section>
+  <h2>4. requestAnimationFrame</h2>
+  <p>You compute every frame yourself. Necessary for physics, canvas, and anything that
+  depends on live input.</p>
+
+  <div class="stage" style="display:block">
+    <div class="track"><div id="d" class="dot"></div></div>
+    <button id="go-d" style="margin-top:8px">bounce for 3s</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const dot = $('#d');
+
+    $('#go-d').addEventListener('click', () => {
+      log.clear();
+      const start = performance.now();
+      let frames = 0;
+
+      function frame(now) {
+        const elapsed = now - start;
+        frames++;
+
+        // A sine wave, driven by TIME, not by frame count:
+        const x = 110 + Math.sin(elapsed / 300) * 105;
+        dot.style.transform = 'translateX(' + x.toFixed(1) + 'px)';
+
+        if (elapsed < 3000) requestAnimationFrame(frame);
+        else log('done —', frames, 'frames in', Math.round(elapsed) + 'ms',
+                 '≈', Math.round(frames / (elapsed / 1000)), 'fps');
+      }
+
+      requestAnimationFrame(frame);
+      log('running…');
+    });
+
+    log('rAF fires just before the next repaint, usually 60 times a second,');
+    log('and pauses entirely when the tab is hidden.');
+  }</script>
+</section>
+
+<section>
+  <h2>Why not setInterval</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('setInterval(fn, 16) is wrong for animation because:');
+    log('  • 16ms is not the real frame interval on every display');
+    log('  • it drifts, and keeps firing in a hidden tab');
+    log('  • it can fire twice between two paints, wasting the work');
+
+    log('');
+    log('and always animate transform / opacity where you can —');
+    log('changing left, top, width or height forces a full layout each frame.');
+
+    const cheap = ['transform', 'opacity', 'filter'];
+    const costly = ['left', 'top', 'width', 'height', 'margin', 'padding'];
+    log('');
+    log('compositor only :', cheap.join(', '));
+    log('triggers layout :', costly.join(', '));
+  }</script>
+</section>
+
+<section>
+  <h2>Respect the user's setting</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const query = matchMedia('(prefers-reduced-motion: reduce)');
+
+    log('prefers-reduced-motion →', query.matches ? 'reduce' : 'no-preference');
+    log('');
+    log('honour it in CSS:');
+    log('  @media (prefers-reduced-motion: reduce) {');
+    log('    * { animation: none !important; transition: none !important; }');
+    log('  }');
+    log('');
+    log('or in JS:');
+    log('  const duration = query.matches ? 0 : 400;');
+
+    query.addEventListener('change', e =>
+      log('the setting changed →', e.matches ? 'reduce' : 'no-preference'));
+  }</script>
+</section>
+
+</body>
+</html>

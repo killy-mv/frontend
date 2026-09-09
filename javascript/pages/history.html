@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>window.history — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="history">
+
+<h1>window.history</h1>
+<p class="lede">The tab's back/forward list. You can move through it, and — with the History
+API — add entries of your own without loading a new page.</p>
+
+<section>
+  <h2>What you can see</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('history.length →', history.length, 'entries in this tab');
+    log('history.state  →', history.state, '← whatever you last pushed');
+    log('scrollRestoration →', history.scrollRestoration);
+
+    log('');
+    log('what you cannot see, for privacy:');
+    log('  • the URLs of the other entries');
+    log('  • how far forward you can go');
+    log('  • anything about other tabs');
+    log('');
+    log('history.length counts entries, not pages — a redirect that used');
+    log('location.replace does not add one.');
+  }</script>
+</section>
+
+<section>
+  <h2>Moving through it</h2>
+
+  <div class="stage">
+    <button id="back">back()</button>
+    <button id="forward">forward()</button>
+    <button id="go2">go(-2)</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#back').addEventListener('click', () => { log('going back…'); history.back(); });
+    $('#forward').addEventListener('click', () => { log('going forward…'); history.forward(); });
+    $('#go2').addEventListener('click', () => { log('going back two…'); history.go(-2); });
+
+    log('back()    ≡ go(-1)');
+    log('forward() ≡ go(1)');
+    log('go(0)     ≡ reload');
+    log('');
+    log('all of them are asynchronous, and silently do nothing if there is');
+    log('no entry to move to. There is no way to test whether one exists.');
+  }</script>
+</section>
+
+<section>
+  <h2>pushState</h2>
+  <p>Change the URL and record a state object, with no request to the server. This is what
+  every single-page-app router is built on.</p>
+
+  <div class="stage">
+    <button id="push">pushState</button>
+    <button id="replace">replaceState</button>
+    <span id="where" style="font-size:13px;color:var(--ink-faint)"></span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const where = $('#where');
+    let n = 0;
+
+    function show(action) {
+      where.textContent = location.pathname.split('/').pop() + location.search;
+      log(action.padEnd(14),
+          'search:', JSON.stringify(location.search).padEnd(14),
+          'state:', JSON.stringify(history.state),
+          '| length:', history.length);
+    }
+
+    function attempt(action, fn) {
+      try { fn(); show(action); }
+      catch (err) {
+        log(action, 'failed:', err.name);
+        log('  ' + err.message);
+        log('  → the History API needs a real origin. Serve this folder over');
+        log('    http (npx serve, python -m http.server) and it will work.');
+      }
+    }
+
+    $('#push').addEventListener('click', () =>
+      attempt('pushState', () =>
+        history.pushState({ page: ++n }, '', '?page=' + n)));
+
+    $('#replace').addEventListener('click', () =>
+      attempt('replaceState', () =>
+        history.replaceState({ page: n, edited: true }, '', '?page=' + n + '&edited')));
+
+    window.addEventListener('popstate', event =>
+      log('popstate — the user moved. state:', JSON.stringify(event.state)));
+
+    show('at load');
+    log('');
+    log('push  → adds an entry; Back returns to the previous one');
+    log('replace → rewrites the current entry; Back skips it');
+  }</script>
+</section>
+
+<section>
+  <h2>popstate</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('popstate fires when the user moves between two entries of the SAME');
+    log('document — pressing Back, Forward, or your own history.go().');
+    log('');
+    log('it does NOT fire when:');
+    log('  • you call pushState or replaceState yourself');
+    log('  • the page first loads (Chrome and Firefox agree on this now)');
+    log('');
+    log('so a router usually looks like:');
+    log('');
+    log('  function navigate(path, push = true) {');
+    log('    if (push) history.pushState({ path }, "", path);');
+    log('    render(path);                     // you call render yourself');
+    log('  }');
+    log('  window.addEventListener("popstate", e => render(e.state.path));');
+    log('  render(location.pathname);          // and once at startup');
+  }</script>
+</section>
+
+<section>
+  <h2>A tiny router</h2>
+
+  <div class="stage">
+    <button data-route="home">Home</button>
+    <button data-route="about">About</button>
+    <button data-route="contact">Contact</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const views = {
+      home: 'Welcome to the home page.',
+      about: 'A page about this demo.',
+      contact: 'How to get in touch.'
+    };
+
+    // The hash is used instead of pushState so this works from file:// too.
+    function render() {
+      const route = location.hash.slice(1) || 'home';
+      log.clear();
+      log('route →', route);
+      log(views[route] || 'Not found.');
+      log('');
+      log('history.length:', history.length, '| hash:', JSON.stringify(location.hash));
+    }
+
+    $('.stage').querySelectorAll('button[data-route]').forEach(button =>
+      button.addEventListener('click', () => { location.hash = button.dataset.route; }));
+
+    window.addEventListener('hashchange', render);
+    render();
+
+    log('');
+    log('press Back after clicking a few — the router follows.');
+  }</script>
+</section>
+
+<section>
+  <h2>scrollRestoration</h2>
+
+  <div class="stage">
+    <button id="manual">set to manual</button>
+    <button id="auto">set to auto</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#manual').addEventListener('click', () => {
+      history.scrollRestoration = 'manual';
+      log('manual — you restore the scroll position yourself');
+    });
+
+    $('#auto').addEventListener('click', () => {
+      history.scrollRestoration = 'auto';
+      log('auto — the browser restores it (the default)');
+    });
+
+    log('current:', history.scrollRestoration);
+    log('');
+    log('set it to "manual" in an app that re-renders on navigation,');
+    log('otherwise the browser scrolls to a position in content that has');
+    log('not been rendered yet.');
+  }</script>
+</section>
+
+<section>
+  <h2>What not to do</h2>
+  <div class="note warn">Do not push a history entry on every keystroke or filter change —
+  the user's Back button becomes useless. Use <code>replaceState</code> for transient state
+  (a search term, an open panel) and <code>pushState</code> only where Back should mean
+  "undo this navigation".</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('rules of thumb:');
+    log('  changed page/view      → pushState');
+    log('  changed a filter or tab→ replaceState');
+    log('  opened a modal         → pushState, so Back closes it');
+    log('  typed in a search box  → replaceState, debounced');
+    log('');
+    log('and always render from the URL at startup, so a copied link works.');
+  }</script>
+</section>
+
+</body>
+</html>

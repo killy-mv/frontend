@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Performance — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="performance">
+
+<h1>Performance</h1>
+<p class="lede">Measure before you optimise. Almost all of it comes down to three things:
+do less work, touch the DOM less, and do not block the main thread.</p>
+
+<section>
+  <h2>Measuring</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function timeIt(label, fn, runs = 1) {
+      const start = performance.now();
+      for (let i = 0; i < runs; i++) fn();
+      const ms = performance.now() - start;
+      log(label.padEnd(22), ms.toFixed(2), 'ms');
+      return ms;
+    }
+
+    const data = Array.from({ length: 100000 }, (_, i) => i);
+
+    timeIt('for loop', () => {
+      let sum = 0;
+      for (let i = 0; i < data.length; i++) sum += data[i];
+    });
+
+    timeIt('for…of', () => {
+      let sum = 0;
+      for (const n of data) sum += n;
+    });
+
+    timeIt('forEach', () => {
+      let sum = 0;
+      data.forEach(n => { sum += n; });
+    });
+
+    timeIt('reduce', () => data.reduce((a, b) => a + b, 0));
+
+    log('');
+    log('numbers this close are noise — run each a few times before believing them');
+  }</script>
+</section>
+
+<section>
+  <h2>DOM writes are the expensive part</h2>
+  <p>Each insertion into the live document can cause layout work. Build off-document, then
+  insert once.</p>
+
+  <div class="stage">
+    <button id="slow">1000 separate appends</button>
+    <button id="fast">One fragment</button>
+    <button id="html">One innerHTML</button>
+    <div id="target" style="display:none"></div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const target = $('#target');
+    const N = 1000;
+
+    function reset() { target.innerHTML = ''; }
+
+    $('#slow').onclick = function () {
+      reset();
+      const t = performance.now();
+      for (let i = 0; i < N; i++) {
+        const li = document.createElement('div');
+        li.textContent = 'row ' + i;
+        target.appendChild(li);              // touches the live DOM every time
+      }
+      log('separate appends:', (performance.now() - t).toFixed(1), 'ms');
+    };
+
+    $('#fast').onclick = function () {
+      reset();
+      const t = performance.now();
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < N; i++) {
+        const li = document.createElement('div');
+        li.textContent = 'row ' + i;
+        fragment.appendChild(li);            // off-document, free
+      }
+      target.appendChild(fragment);          // one insertion
+      log('document fragment:', (performance.now() - t).toFixed(1), 'ms');
+    };
+
+    $('#html').onclick = function () {
+      reset();
+      const t = performance.now();
+      let html = '';
+      for (let i = 0; i < N; i++) html += '<div>row ' + i + '</div>';
+      target.innerHTML = html;               // one parse
+      log('innerHTML string: ', (performance.now() - t).toFixed(1), 'ms');
+    };
+
+    log('click each one — the gap grows with N');
+  }</script>
+</section>
+
+<section>
+  <h2>Reading layout forces a reflow</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const box = document.createElement('div');
+    box.style.cssText = 'width:50px;height:50px;position:absolute;left:-9999px';
+    document.body.appendChild(box);
+
+    // Bad: write, read, write, read… each read flushes pending layout.
+    let t = performance.now();
+    for (let i = 0; i < 300; i++) {
+      box.style.width = (50 + i % 10) + 'px';
+      box.offsetWidth;                       // forces layout right now
+    }
+    const thrash = performance.now() - t;
+
+    // Better: batch the reads, then the writes.
+    t = performance.now();
+    const widths = [];
+    for (let i = 0; i < 300; i++) widths.push(box.offsetWidth);
+    for (let i = 0; i < 300; i++) box.style.width = (50 + i % 10) + 'px';
+    const batched = performance.now() - t;
+
+    box.remove();
+
+    log('interleaved (thrashing):', thrash.toFixed(1), 'ms');
+    log('batched:                ', batched.toFixed(1), 'ms');
+  }</script>
+</section>
+
+<section>
+  <h2>Cache repeated work</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function slowSquare(n) {
+      for (let i = 0; i < 1e5; i++);        // pretend this is expensive
+      return n * n;
+    }
+
+    function memoise(fn) {
+      const cache = new Map();
+      return function (arg) {
+        if (cache.has(arg)) return cache.get(arg);
+        const value = fn(arg);
+        cache.set(arg, value);
+        return value;
+      };
+    }
+
+    const fast = memoise(slowSquare);
+
+    let t = performance.now();
+    for (let i = 0; i < 20; i++) slowSquare(7);
+    log('uncached, 20 calls:', (performance.now() - t).toFixed(1), 'ms');
+
+    t = performance.now();
+    for (let i = 0; i < 20; i++) fast(7);
+    log('memoised, 20 calls:', (performance.now() - t).toFixed(1), 'ms');
+  }</script>
+</section>
+
+<section>
+  <h2>Throttle and debounce</h2>
+  <p>Events like <code>input</code>, <code>scroll</code> and <code>resize</code> fire far
+  faster than you need to react.</p>
+
+  <div class="stage">
+    <input id="field" placeholder="type quickly" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function debounce(fn, wait) {
+      let timer;
+      return function (...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), wait);
+      };
+    }
+
+    let raw = 0, debounced = 0;
+
+    $('#field').addEventListener('input', () => {
+      raw++;
+      report();
+    });
+
+    $('#field').addEventListener('input', debounce(() => {
+      debounced++;
+      report();
+    }, 300));
+
+    function report() {
+      log.clear();
+      log('input events fired :', raw);
+      log('debounced calls    :', debounced);
+      log('saved              :', raw - debounced, 'calls');
+    }
+
+    report();
+  }</script>
+</section>
+
+<section>
+  <h2>Do not block the main thread</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('A long synchronous loop freezes rendering, scrolling and input.');
+    log('Options, in order of preference:');
+    log('  1. do less work (a better algorithm, or paginate)');
+    log('  2. break it into chunks with setTimeout / requestIdleCallback');
+    log('  3. move it to a Web Worker, off the main thread entirely');
+
+    log('');
+    const t = performance.now();
+    let sum = 0;
+    for (let i = 0; i < 5e6; i++) sum += i;
+    log('5 million iterations took', (performance.now() - t).toFixed(0), 'ms');
+    log('anything over ~16 ms drops a frame at 60 fps');
+  }</script>
+</section>
+
+<section>
+  <h2>What actually matters</h2>
+  <ol>
+    <li>Network: fewer and smaller files beat every micro-optimisation.</li>
+    <li>Rendering: batch DOM changes, avoid layout thrashing.</li>
+    <li>Algorithms: a Set lookup instead of a nested loop turns O(n²) into O(n).</li>
+    <li>Only then: loop style, and it almost never matters.</li>
+  </ol>
+</section>
+
+</body>
+</html>

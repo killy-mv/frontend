@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Syntax — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-syntax">
+
+<h1>JSON Syntax</h1>
+<p class="lede">The whole grammar fits on one page — that is the point of it.</p>
+
+<section>
+  <h2>The grammar</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('value   := object | array | string | number | true | false | null');
+    log('object  := "{" [ member ("," member)* ] "}"');
+    log('member  := string ":" value');
+    log('array   := "[" [ value ("," value)* ] "]"');
+    log('string  := double-quoted, with backslash escapes');
+    log('number  := -? int frac? exp?      (decimal only)');
+    log('');
+    log('whitespace is allowed between any two tokens: space, tab,');
+    log('newline and carriage return. Nothing else.');
+    log('');
+    log('there is no other rule. That is the entire specification.');
+  }</script>
+</section>
+
+<section>
+  <h2>Every valid document</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const documents = [
+      '{"a":1}',
+      '[1,2,3]',
+      '"just a string"',
+      '42',
+      '-0.5e10',
+      'true',
+      'null',
+      '{}',
+      '[]',
+      '[{"a":[{"b":null}]}]'
+    ];
+
+    documents.forEach(text => {
+      const value = JSON.parse(text);
+      log(text.padEnd(22), '→', typeof value, JSON.stringify(value));
+    });
+
+    log('');
+    log('a top-level string, number or boolean is legal JSON.');
+    log('Older parsers insisted on an object or array; JSON.parse does not.');
+  }</script>
+</section>
+
+<section>
+  <h2>Strings</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('always double quotes. Inside, these must be escaped:');
+    log('  \\"  quote      \\\\  backslash   \\/  solidus (optional)');
+    log('  \\b  backspace  \\f  form feed    \\n  newline');
+    log('  \\r  return     \\t  tab          \\uXXXX  any code point');
+    log('');
+
+    const tricky = 'He said "hi"\nand left\ttabbed \\ backslash';
+    log('a JavaScript string:', JSON.stringify(tricky));
+    log('parsed back equals the original?', JSON.parse(JSON.stringify(tricky)) === tricky);
+
+    log('');
+    log('a literal newline inside a JSON string is illegal:');
+    try { JSON.parse('"line1\nline2"'); }
+    catch (err) { log('  ', err.name, '— it must be written as \\n'); }
+
+    log('');
+    log('unicode survives either way:');
+    log('  ', JSON.stringify('héllo → 日本 → 🎉'));
+    log('  ', JSON.parse('"h\\u00e9llo"'));
+    log('');
+    log('and lone surrogates are escaped for you (ES2019):');
+    log('  ', JSON.stringify('\ud800'));
+  }</script>
+</section>
+
+<section>
+  <h2>Numbers</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const valid = ['0', '-0', '42', '-17', '3.14', '1e10', '1E+10', '2e-3', '0.5'];
+    const invalid = ['01', '+1', '.5', '5.', 'Infinity', 'NaN', '0x1F', '1_000', '1.2.3'];
+
+    log('valid:');
+    valid.forEach(n => log('  ' + n.padEnd(8), '→', JSON.parse(n)));
+
+    log('');
+    log('invalid:');
+    invalid.forEach(n => {
+      try { JSON.parse(n); log('  ' + n.padEnd(8), '→ parsed?!'); }
+      catch (err) { log('  ' + n.padEnd(8), '→', err.name); }
+    });
+
+    log('');
+    log('the rules: no leading zero, no leading +, a digit either side of');
+    log('the point, and no special values.');
+    log('');
+    log('precision is not part of the format — but every JavaScript parser');
+    log('reads numbers as 64-bit floats:');
+    log('  JSON.parse("12345678901234567890") →', JSON.parse('12345678901234567890'));
+    log('  the original digits are gone. Send big ids as STRINGS.');
+  }</script>
+</section>
+
+<section>
+  <h2>Objects and arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('keys must be quoted strings — even when they look like identifiers:');
+    log('  {"name": "Ada"}     ✔');
+    log('  {name: "Ada"}       ✘');
+    log('  {1: "one"}          ✘   but {"1": "one"} ✔');
+    log('');
+
+    log('duplicate keys are not forbidden by the grammar. The last wins:');
+    log('  ', JSON.parse('{"a":1,"a":2}'));
+    log('  (other languages differ — some error, some keep the first)');
+
+    log('');
+    log('order is preserved by JSON.parse for string keys…');
+    log('  ', JSON.parse('{"z":1,"a":2,"m":3}'));
+    log('…but integer-like keys are reordered, as in any JS object:');
+    log('  ', JSON.parse('{"2":"b","1":"a","x":"c"}'));
+
+    log('');
+    log('arrays may mix types, and nest as deep as you like:');
+    log('  ', JSON.parse('[1,"two",true,null,[3],{"four":4}]'));
+  }</script>
+</section>
+
+<section>
+  <h2>Whitespace and formatting</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const compact = '{"a":1,"b":[2,3]}';
+    const pretty = `{
+      "a" : 1 ,
+      "b" : [ 2 , 3 ]
+    }`;
+
+    log('these two parse to exactly the same value:');
+    log('  ', JSON.stringify(JSON.parse(compact)));
+    log('  ', JSON.stringify(JSON.parse(pretty)));
+    log('equal →', JSON.stringify(JSON.parse(compact)) === JSON.stringify(JSON.parse(pretty)));
+
+    log('');
+    log('so formatting is purely for humans. Send compact over the wire,');
+    log('indent when a person will read it:');
+    log('');
+    log(JSON.stringify({ a: 1, b: [2, 3] }, null, 2));
+  }</script>
+</section>
+
+<section>
+  <h2>Reading a parse error</h2>
+
+  <div class="stage" style="display:block">
+    <textarea id="broken" rows="4" style="width:100%;font:13px ui-monospace,monospace">{"name": "Ada", "age": 36,}</textarea>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function check() {
+      log.clear();
+      const text = $('#broken').value;
+
+      try {
+        log('✔ valid →', JSON.parse(text));
+      } catch (err) {
+        log('✘', err.message);
+
+        // Modern engines report a position — point at it.
+        const match = err.message.match(/position (\d+)/);
+        if (match) {
+          const pos = Number(match[1]);
+          log('');
+          log(text.slice(Math.max(0, pos - 30), pos + 30));
+          log(' '.repeat(Math.min(pos, 30)) + '^');
+        }
+        log('');
+        log('the usual culprits: a trailing comma, a single quote,');
+        log('an unescaped newline, or an HTML error page where you');
+        log('expected JSON (it starts with "<").');
+      }
+    }
+
+    $('#broken').addEventListener('input', check);
+    check();
+  }</script>
+</section>
+
+<section>
+  <h2>Relatives of JSON</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('JSON5      — comments, trailing commas, unquoted keys, hex.');
+    log('             Nice for config files, needs a library.');
+    log('JSONC      — JSON with comments. What tsconfig.json really is.');
+    log('NDJSON     — one JSON value per line. Streamable, appendable.');
+    log('JSON Lines — the same idea, the same format.');
+    log('JSON Schema— a JSON document describing the shape of another.');
+    log('JSONPath   — a query language, like XPath for JSON.');
+    log('BSON/CBOR  — binary encodings of the same data model.');
+    log('');
+    log('NDJSON, which you can build with two lines:');
+    const rows = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const nd = rows.map(r => JSON.stringify(r)).join('\n');
+    log(nd);
+    log('');
+    log('and read back line by line, without loading it all:');
+    log('  ', nd.split('\n').map(line => JSON.parse(line).id));
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Type Conversion — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="type-conversion">
+
+<h1>Type Conversion</h1>
+<p class="lede">Explicit conversion is something you write. Coercion is something the engine
+does for you when an operator meets the wrong type. The rules are learnable.</p>
+
+<section>
+  <h2>To string</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('String(123)      →', JSON.stringify(String(123)));
+    log('String(true)     →', JSON.stringify(String(true)));
+    log('String(null)     →', JSON.stringify(String(null)));
+    log('String(undefined)→', JSON.stringify(String(undefined)));
+    log('String([1,2])    →', JSON.stringify(String([1, 2])));
+    log('String({})       →', JSON.stringify(String({})));
+    log('(123).toString() →', JSON.stringify((123).toString()));
+    log('123 + ""         →', JSON.stringify(123 + ''));
+
+    try {
+      String(null.toString);
+    } catch (err) {
+      log('null.toString()  →', err.name, '← String() is safer');
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>To number</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const values = ['42', '4.2', '', '  ', 'abc', '12px', true, false,
+                    null, undefined, [], [5], [1, 2], {}];
+
+    values.forEach(v => log(
+      String(JSON.stringify(v)).padEnd(12),
+      'Number:', String(Number(v)).padEnd(6),
+      '+v:', String(+v).padEnd(6),
+      'parseInt:', String(parseInt(v))
+    ));
+
+    log('');
+    log('note: Number("") is 0, but Number("abc") is NaN');
+    log('and Number([]) is 0, while Number([1,2]) is NaN');
+  }</script>
+</section>
+
+<section>
+  <h2>To boolean</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the eight falsy values:');
+    log('  false, 0, -0, 0n, "", null, undefined, NaN');
+    log('everything else is truthy');
+
+    log('');
+    log('Boolean("false") →', Boolean('false'));
+    log('Boolean("0")     →', Boolean('0'));
+    log('Boolean([])      →', Boolean([]));
+    log('Boolean({})      →', Boolean({}));
+    log('!!"" →', !!'', '| !!" " →', !!' ');
+  }</script>
+</section>
+
+<section>
+  <h2>Coercion by operator</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('+ with a string means concatenation:');
+    log('  1 + "2"       →', 1 + '2');
+    log('  1 + 2 + "3"   →', 1 + 2 + '3');
+    log('  "1" + 2 + 3   →', '1' + 2 + 3);
+    log('  [] + {}       →', typeof ([] + {}), JSON.stringify([] + {}));
+
+    log('');
+    log('every other arithmetic operator converts to number:');
+    log('  "6" * "2"     →', '6' * '2');
+    log('  "6" - 2       →', '6' - 2);
+    log('  true + true   →', true + true);
+    log('  "3" * []      →', '3' * []);
+    log('  null + 1      →', null + 1);
+    log('  undefined + 1 →', undefined + 1);
+  }</script>
+</section>
+
+<section>
+  <h2>How objects convert</h2>
+  <p>An object is asked for a primitive: <code>valueOf()</code> first for numeric contexts,
+  <code>toString()</code> for string contexts. You can override both.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const money = {
+      amount: 42,
+      valueOf() { log('  valueOf called'); return this.amount; },
+      toString() { log('  toString called'); return '€' + this.amount; }
+    };
+
+    log('money * 2:');
+    log('  →', money * 2);
+
+    log('`${money}`:');
+    log('  →', `${money}`);
+
+    log('money + 1:');
+    log('  →', money + 1, '← + prefers valueOf');
+
+    log('');
+    log('default Date behaviour:');
+    const d = new Date(0);
+    log('  d + "" is a string:', typeof (d + ''));
+    log('  d * 1 is a number: ', d * 1);
+  }</script>
+</section>
+
+<section>
+  <h2>Converting user input</h2>
+  <p>Form fields are always strings. Convert once, at the boundary.</p>
+
+  <div class="stage">
+    <input id="a" value="10" style="width:110px">
+    <input id="b" value="5" style="width:110px">
+  </div>
+  <script class="run">{
+    const { log, $, $$ } = demo();
+
+    function show() {
+      const rawA = $('#a').value;
+      const rawB = $('#b').value;
+
+      log.clear();
+      log('raw values are strings:', JSON.stringify(rawA), JSON.stringify(rawB));
+      log('a + b (concatenation) →', rawA + rawB);
+      log('Number(a) + Number(b) →', Number(rawA) + Number(rawB));
+      log('a - b (auto-converts) →', rawA - rawB);
+      log('parseFloat sum        →', parseFloat(rawA) + parseFloat(rawB));
+      log('valid numbers?        →', !isNaN(Number(rawA)) && !isNaN(Number(rawB)));
+    }
+
+    $$('input').forEach(el => el.addEventListener('input', show));
+    show();
+  }</script>
+</section>
+
+<section>
+  <h2>Rules worth remembering</h2>
+  <ul>
+    <li>Convert explicitly at the edges of your program: <code>Number(input.value)</code>.</li>
+    <li>Use <code>===</code> so no comparison ever coerces behind your back.</li>
+    <li><code>+</code> is the only operator that prefers strings.</li>
+    <li><code>null</code> becomes <code>0</code> in arithmetic; <code>undefined</code>
+    becomes <code>NaN</code>.</li>
+  </ul>
+</section>
+
+</body>
+</html>

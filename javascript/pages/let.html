@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Let — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="let">
+
+<h1>Let</h1>
+<p class="lede"><code>let</code> declares a variable that lives only inside the block it was
+declared in. That one difference from <code>var</code> fixes several long-standing traps.</p>
+
+<section>
+  <h2>Block scope</h2>
+  <p>A block is any pair of curly braces. A <code>let</code> declared inside one does not
+  exist outside it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let x = 'outer';
+
+    {
+      let x = 'inner';        // a different variable entirely
+      log('inside the block: ', x);
+    }
+
+    log('outside the block:', x);
+  }</script>
+</section>
+
+<section>
+  <h2>var ignores blocks</h2>
+  <p>The same code with <code>var</code> has only one variable, and the block overwrites it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    var y = 'outer';
+
+    {
+      var y = 'inner';        // the very same variable
+    }
+
+    log('after the block, y is:', y);
+  }</script>
+</section>
+
+<section>
+  <h2>The loop counter classic</h2>
+  <p>With <code>var</code> the three callbacks share one counter, which has reached 3 by the
+  time they run. With <code>let</code> each iteration gets a fresh binding.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const withVar = [];
+    for (var i = 0; i < 3; i++) {
+      withVar.push(() => i);
+    }
+
+    const withLet = [];
+    for (let j = 0; j < 3; j++) {
+      withLet.push(() => j);
+    }
+
+    log('var →', withVar.map(fn => fn()));
+    log('let →', withLet.map(fn => fn()));
+  }</script>
+</section>
+
+<section>
+  <h2>Redeclaring</h2>
+  <p><code>let</code> refuses to declare the same name twice in the same scope — which is
+  almost always a mistake you wanted to be told about.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Written as text and evaluated, because a real duplicate declaration
+    // is a SyntaxError: the script would not run at all.
+    try {
+      eval('let dup = 1; let dup = 2;');
+    } catch (err) {
+      log(err.name + ':', err.message);
+    }
+
+    // var allows it silently:
+    eval('var ok = 1; var ok = 2;');
+    log('var redeclared without complaint');
+  }</script>
+</section>
+
+<section>
+  <h2>The temporal dead zone</h2>
+  <p><code>var</code> variables read as <code>undefined</code> before their declaration line.
+  <code>let</code> variables throw instead — the gap between entering the scope and reaching
+  the declaration is called the temporal dead zone.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('var before declaration:', typeof hoistedVar, '→', hoistedVar);
+    var hoistedVar = 'assigned later';
+
+    try {
+      log(deadZone);
+    } catch (err) {
+      log('let before declaration →', err.name + ':', err.message);
+    }
+    let deadZone = 'assigned later';
+  }</script>
+</section>
+
+<section>
+  <h2>let and the global object</h2>
+  <p>A top-level <code>var</code> becomes a property of <code>window</code>.
+  <code>let</code> does not.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // var escapes this block and lands on the global object;
+    // let stays put, wherever "put" happens to be.
+    var globalVar = 'var value';
+    let globalLet = 'let value';
+
+    log('window.globalVar →', window.globalVar);
+    log('window.globalLet →', window.globalLet);
+  }</script>
+</section>
+
+</body>
+</html>

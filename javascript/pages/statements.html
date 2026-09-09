@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Statements — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="statements">
+
+<h1>Statements</h1>
+<p class="lede">A program is a list of statements. The browser executes them one at a time,
+in the order they are written.</p>
+
+<section>
+  <h2>One instruction per line</h2>
+  <p>A statement is made of values, operators, expressions, keywords and comments. The
+  semicolon ends it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let a = 5;              // a declaration
+    let b = 6;
+    let c = a + b;          // an expression assigned to a variable
+    log(c);                 // a function call
+  }</script>
+</section>
+
+<section>
+  <h2>Semicolons</h2>
+  <p>JavaScript inserts semicolons for you when a line clearly ends — this is
+  <i>automatic semicolon insertion</i>. It usually gets it right, but not always.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Several statements on one line need real semicolons:
+    let x = 1; let y = 2; let z = x + y;
+    log('x + y =', z);
+
+    // The famous case where ASI bites: return sees a line break and stops.
+    function broken() {
+      return
+      { value: 42 };
+    }
+    function fixed() {
+      return {
+        value: 42
+      };
+    }
+
+    log('broken() →', broken());
+    log('fixed()  →', fixed());
+  }</script>
+
+  <div class="note">Write the semicolons. It costs nothing and removes a whole class of bug.</div>
+</section>
+
+<section>
+  <h2>White space and line length</h2>
+  <p>JavaScript ignores extra spaces and blank lines, so use them for readability. Long
+  statements are usually broken after an operator.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let    person   =   'Ada';        // legal, just ugly
+    let greeting =
+      'Hello, ' +
+      person +
+      '. Welcome back.';
+
+    log(greeting);
+  }</script>
+</section>
+
+<section>
+  <h2>Code blocks</h2>
+  <p>Curly braces group statements so they can be executed together — the body of a
+  function, a loop or an <code>if</code>.</p>
+
+  <div class="stage">
+    <button id="run">Run the block</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function report(name) {           // everything in these braces is one block
+      const now = new Date();
+      log('Hello ' + name);
+      log('The time is ' + now.toLocaleTimeString());
+    }
+
+    $('#run').onclick = function () {
+      report('Ada');
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>Keywords that start a statement</h2>
+  <table class="ref">
+    <tr><th>Keyword</th><th>Does</th></tr>
+    <tr><td><code>var</code> / <code>let</code> / <code>const</code></td><td>declares a variable</td></tr>
+    <tr><td><code>if</code> … <code>else</code></td><td>runs a block conditionally</td></tr>
+    <tr><td><code>switch</code></td><td>picks one of many blocks</td></tr>
+    <tr><td><code>for</code> / <code>while</code> / <code>do</code></td><td>repeats a block</td></tr>
+    <tr><td><code>break</code> / <code>continue</code></td><td>leaves or skips an iteration</td></tr>
+    <tr><td><code>function</code> / <code>class</code></td><td>declares a function or class</td></tr>
+    <tr><td><code>return</code></td><td>ends a function and hands back a value</td></tr>
+    <tr><td><code>try</code> / <code>catch</code> / <code>throw</code></td><td>error handling</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

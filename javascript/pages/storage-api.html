@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Web Storage — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="storage-api">
+
+<h1>Web Storage</h1>
+<p class="lede"><code>localStorage</code> and <code>sessionStorage</code>: a synchronous
+string-to-string map, about 5MB per origin, that never goes to the server.</p>
+
+<div class="note warn">Storage is keyed by origin. From <code>file://</code> browsers give
+each file an opaque origin or block storage entirely, so values may not survive a reload.
+Serve the folder over http for the full behaviour.</div>
+
+<section>
+  <h2>The whole API</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      localStorage.setItem('demo', 'hello');
+
+      log('setItem(key, value)  → stores a STRING');
+      log('getItem("demo")      →', JSON.stringify(localStorage.getItem('demo')));
+      log('getItem("missing")   →', localStorage.getItem('missing'), '← null, not undefined');
+      log('length               →', localStorage.length, 'keys');
+      log('key(0)               →', localStorage.key(0));
+
+      localStorage.removeItem('demo');
+      log('after removeItem     →', localStorage.getItem('demo'));
+
+      log('');
+      log('property access works too, but avoid it:');
+      localStorage.viaProperty = 'set like an object';
+      log('  localStorage.viaProperty →', localStorage.viaProperty);
+      log('  it breaks on keys named "length", "clear", "getItem"…');
+      delete localStorage.viaProperty;
+    } catch (err) {
+      log('storage unavailable:', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Everything is a string</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const values = [42, true, null, undefined, [1, 2], { a: 1 }, new Date(2026, 0, 1)];
+
+    log('what setItem does to each type:');
+    values.forEach(v => {
+      localStorage.setItem('t', v);
+      const back = localStorage.getItem('t');
+      log('  ' + String(typeof v).padEnd(9),
+          JSON.stringify(v === undefined ? 'undefined' : v).padEnd(24),
+          '→', JSON.stringify(back));
+    });
+    localStorage.removeItem('t');
+
+    log('');
+    log('so always go through JSON:');
+    const settings = { theme: 'dark', fontSize: 14, tags: ['a', 'b'] };
+    localStorage.setItem('settings', JSON.stringify(settings));
+    const restored = JSON.parse(localStorage.getItem('settings'));
+    log('  stored  →', localStorage.getItem('settings'));
+    log('  parsed  →', restored, '| fontSize is a', typeof restored.fontSize);
+    localStorage.removeItem('settings');
+  }</script>
+</section>
+
+<section>
+  <h2>A safe wrapper</h2>
+
+  <div class="stage">
+    <input id="key" value="theme" style="width:120px">
+    <input id="val" value='{"mode":"dark"}' style="flex:1">
+    <button id="save">save</button>
+    <button id="load">load</button>
+    <button id="drop">remove</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const store = {
+      get(key, fallback = null) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw === null ? fallback : JSON.parse(raw);
+        } catch (err) {
+          return fallback;                 // corrupt JSON, or storage disabled
+        }
+      },
+      set(key, value) {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+          return true;
+        } catch (err) {
+          return false;                    // quota exceeded, or private mode
+        }
+      },
+      remove(key) { try { localStorage.removeItem(key); } catch (err) { /* ignore */ } }
+    };
+
+    $('#save').addEventListener('click', () => {
+      let value;
+      try { value = JSON.parse($('#val').value); }
+      catch (err) { value = $('#val').value; }
+      log('set →', store.set($('#key').value, value));
+    });
+
+    $('#load').addEventListener('click', () =>
+      log('get →', store.get($('#key').value, '(default)')));
+
+    $('#drop').addEventListener('click', () => {
+      store.remove($('#key').value);
+      log('removed');
+    });
+
+    log('every call is wrapped: storage throws in private mode, when the');
+    log('quota is full, and when a value was written by an older version');
+    log('of your code and no longer parses.');
+  }</script>
+</section>
+
+<section>
+  <h2>local vs session</h2>
+
+  <table class="ref">
+    <tr><th></th><th>localStorage</th><th>sessionStorage</th></tr>
+    <tr><td>lifetime</td><td>until deleted</td><td>until the tab closes</td></tr>
+    <tr><td>shared across tabs</td><td>yes</td><td>no</td></tr>
+    <tr><td>survives a reload</td><td>yes</td><td>yes</td></tr>
+    <tr><td>survives a duplicate-tab</td><td>yes</td><td>yes (copied)</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const stamp = new Date().toLocaleTimeString();
+
+    if (!localStorage.getItem('firstSeen')) localStorage.setItem('firstSeen', stamp);
+    if (!sessionStorage.getItem('tabOpened')) sessionStorage.setItem('tabOpened', stamp);
+
+    log('first ever visit (localStorage)  →', localStorage.getItem('firstSeen'));
+    log('this tab opened (sessionStorage) →', sessionStorage.getItem('tabOpened'));
+    log('now                              →', stamp);
+
+    log('');
+    log('reload this page: both stay.');
+    log('open it in a new tab: firstSeen stays, tabOpened is new.');
+
+    log('');
+    log('keys in localStorage  :', Object.keys(localStorage));
+    log('keys in sessionStorage:', Object.keys(sessionStorage));
+  }</script>
+</section>
+
+<section>
+  <h2>The storage event</h2>
+  <p>Fires in <i>other</i> tabs of the same origin — a free cross-tab message channel.</p>
+
+  <div class="stage">
+    <button id="broadcast">write a value</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#broadcast').addEventListener('click', () => {
+      localStorage.setItem('ping', String(Date.now()));
+      log('wrote — this tab does NOT get the event, other tabs do');
+    });
+
+    window.addEventListener('storage', event => {
+      log('storage event:');
+      log('  key      →', event.key);
+      log('  oldValue →', event.oldValue);
+      log('  newValue →', event.newValue);
+      log('  url      →', event.url.split('/').pop());
+    });
+
+    log('open this page in a second tab, then press the button in one of them.');
+    log('');
+    log('for real cross-tab messaging, BroadcastChannel is cleaner:');
+    log('  supported here →', typeof BroadcastChannel === 'function');
+  }</script>
+</section>
+
+<section>
+  <h2>Quota</h2>
+
+  <div class="stage">
+    <button id="fill">try to store 10MB</button>
+    <button id="clean">clean up</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#fill').addEventListener('click', () => {
+      const chunk = 'x'.repeat(256 * 1024);          // 256KB
+      let stored = 0;
+      try {
+        for (let i = 0; i < 40; i++) {
+          localStorage.setItem('big-' + i, chunk);
+          stored += chunk.length;
+        }
+        log('stored', (stored / 1048576).toFixed(1) + 'MB without complaint');
+      } catch (err) {
+        log('stopped at', (stored / 1048576).toFixed(1) + 'MB');
+        log('  ' + err.name + ':', err.message);
+        log('  this is why every setItem belongs in a try/catch');
+      }
+    });
+
+    $('#clean').addEventListener('click', () => {
+      Object.keys(localStorage).filter(k => k.startsWith('big-'))
+        .forEach(k => localStorage.removeItem(k));
+      log('removed the test keys | remaining:', localStorage.length);
+    });
+
+    if (navigator.storage && navigator.storage.estimate) {
+      navigator.storage.estimate().then(e =>
+        log('estimate: using', (e.usage / 1048576).toFixed(1) + 'MB of',
+            (e.quota / 1048576).toFixed(0) + 'MB across all storage APIs'));
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>When not to use it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('✘ tokens and passwords — any XSS on your page reads them instantly.');
+    log('  Use an HttpOnly cookie for anything the server trusts.');
+    log('');
+    log('✘ large or structured data — it is synchronous, so a 3MB');
+    log('  JSON.parse blocks the main thread. Use IndexedDB.');
+    log('');
+    log('✘ anything you cannot afford to lose — the browser may clear it');
+    log('  under storage pressure, and the user can wipe it at any time.');
+    log('');
+    log('✔ UI preferences, a draft, a "seen this tip" flag, a small cache.');
+
+    log('');
+    log('the alternatives:');
+    log('  IndexedDB       — async, large, structured, transactional');
+    log('  Cache API       — whole HTTP responses, for offline');
+    log('  cookies         — when the SERVER needs the value');
+    log('  persist request — navigator.storage.persist(), asks not to be evicted');
+  }</script>
+</section>
+
+</body>
+</html>

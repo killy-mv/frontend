@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Navigating the Tree — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-navigation">
+
+<h1>Navigating the Tree</h1>
+<p class="lede">From any node you can reach its parent, its children and its siblings. Every
+property comes in two flavours: one that counts text and comments, and one that does not.</p>
+
+<section>
+  <h2>The sample</h2>
+
+  <div class="stage" id="family" style="display:block">
+    <div id="grandparent">
+      <p id="uncle">uncle</p>
+      <div id="parent">
+        <span id="first">first</span>
+        <span id="me">me</span>
+        <span id="last">last</span>
+      </div>
+      <p id="aunt">aunt</p>
+    </div>
+  </div>
+
+  <script class="run">{
+    const { log, $ } = demo();
+    log($('#grandparent').outerHTML.replace(/\n\s+/g, '\n'));
+  }</script>
+</section>
+
+<section>
+  <h2>Upwards</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const me = document.getElementById('me');
+
+    log('parentNode      →', me.parentNode.id);
+    log('parentElement   →', me.parentElement.id);
+    log('grandparent     →', me.parentElement.parentElement.id);
+    log('closest("div")  →', me.closest('div').id, '← nearest matching ancestor');
+    log('closest("#family") →', me.closest('#family').id);
+
+    log('');
+    log('the two differ only at the very top:');
+    log('  html.parentNode    →', document.documentElement.parentNode.nodeName);
+    log('  html.parentElement →', document.documentElement.parentElement);
+  }</script>
+</section>
+
+<section>
+  <h2>Downwards</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const parent = document.getElementById('parent');
+
+    log('childNodes      →', parent.childNodes.length, 'nodes',
+        '← includes the whitespace between tags');
+    log('children        →', parent.children.length, 'elements');
+    log('');
+    log('firstChild          →', parent.firstChild.nodeName,
+        JSON.stringify(parent.firstChild.textContent));
+    log('firstElementChild   →', parent.firstElementChild.id);
+    log('lastElementChild    →', parent.lastElementChild.id);
+    log('childElementCount   →', parent.childElementCount);
+    log('hasChildNodes()     →', parent.hasChildNodes());
+
+    log('');
+    log('the ids in order:', Array.from(parent.children, el => el.id));
+  }</script>
+</section>
+
+<section>
+  <h2>Sideways</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const me = document.getElementById('me');
+
+    log('previousElementSibling →', me.previousElementSibling.id);
+    log('nextElementSibling     →', me.nextElementSibling.id);
+    log('previousSibling        →', me.previousSibling.nodeName, '(the whitespace)');
+
+    const first = document.getElementById('first');
+    const last = document.getElementById('last');
+    log('');
+    log('the ends return null:');
+    log('  first.previousElementSibling →', first.previousElementSibling);
+    log('  last.nextElementSibling      →', last.nextElementSibling);
+
+    log('');
+    log('all siblings, including me:',
+        Array.from(me.parentElement.children, el => el.id));
+    log('all siblings, excluding me:',
+        Array.from(me.parentElement.children).filter(el => el !== me).map(el => el.id));
+  }</script>
+</section>
+
+<section>
+  <h2>Node or element?</h2>
+
+  <table class="ref">
+    <tr><th>Counts every node</th><th>Elements only</th></tr>
+    <tr><td><code>childNodes</code></td><td><code>children</code></td></tr>
+    <tr><td><code>firstChild</code></td><td><code>firstElementChild</code></td></tr>
+    <tr><td><code>lastChild</code></td><td><code>lastElementChild</code></td></tr>
+    <tr><td><code>previousSibling</code></td><td><code>previousElementSibling</code></td></tr>
+    <tr><td><code>nextSibling</code></td><td><code>nextElementSibling</code></td></tr>
+    <tr><td><code>parentNode</code></td><td><code>parentElement</code></td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const parent = document.getElementById('parent');
+
+    log('every child node of #parent:');
+    parent.childNodes.forEach((node, i) =>
+      log('  ' + i, node.nodeType === 1 ? 'element  <' + node.tagName.toLowerCase() + '>'
+                                        : 'text     ' + JSON.stringify(node.textContent)));
+
+    log('');
+    log('the whitespace nodes come from the newlines in the HTML source.');
+    log('Write <div><span>a</span><span>b</span></div> on one line and they vanish.');
+  }</script>
+</section>
+
+<section>
+  <h2>Walking the whole tree</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const root = document.getElementById('grandparent');
+
+    // Recursion:
+    (function walk(node, depth) {
+      log('  '.repeat(depth) + '<' + node.tagName.toLowerCase() + '>' +
+          (node.id ? ' #' + node.id : ''));
+      Array.from(node.children).forEach(child => walk(child, depth + 1));
+    })(root, 0);
+
+    log('');
+    log('or let the browser flatten it for you:');
+    log('  ', Array.from(root.querySelectorAll('*'), el => el.id || el.tagName));
+  }</script>
+</section>
+
+<section>
+  <h2>TreeWalker</h2>
+  <p>For a filtered traversal — text nodes only, say — without building an array.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const walker = document.createTreeWalker(
+      document.getElementById('grandparent'),
+      NodeFilter.SHOW_TEXT,
+      { acceptNode: node => node.textContent.trim()
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT }
+    );
+
+    const texts = [];
+    while (walker.nextNode()) texts.push(walker.currentNode.textContent.trim());
+
+    log('non-empty text nodes:', texts);
+    log('');
+    log('this is how "highlight every occurrence of a word" is implemented —');
+    log('you cannot use innerHTML for that without destroying the existing nodes.');
+  }</script>
+</section>
+
+<section>
+  <h2>Relationships</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const me = document.getElementById('me');
+    const parent = document.getElementById('parent');
+    const uncle = document.getElementById('uncle');
+
+    log('parent.contains(me)  →', parent.contains(me));
+    log('uncle.contains(me)   →', uncle.contains(me));
+    log('me.contains(me)      →', me.contains(me), '← an element contains itself');
+    log('me.isConnected       →', me.isConnected);
+    log('detached element     →', document.createElement('p').isConnected);
+
+    log('');
+    log('compareDocumentPosition returns a bitmask:');
+    const bits = me.compareDocumentPosition(uncle);
+    log('  raw          →', bits);
+    log('  PRECEDING?   →', Boolean(bits & Node.DOCUMENT_POSITION_PRECEDING));
+    log('  CONTAINS?    →', Boolean(bits & Node.DOCUMENT_POSITION_CONTAINS));
+  }</script>
+</section>
+
+</body>
+</html>

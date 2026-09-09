@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hoisting — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="hoisting">
+
+<h1>Hoisting</h1>
+<p class="lede">Before running a scope, JavaScript registers every declaration in it.
+Declarations are known from the start; <b>assignments</b> still happen where you wrote them.</p>
+
+<section>
+  <h2>var declarations are hoisted, values are not</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('before the declaration, x is', x);
+
+    var x = 5;
+
+    log('after the declaration, x is', x);
+
+    log('');
+    log('what the engine effectively runs:');
+    log('  var x;          ← hoisted to the top');
+    log('  log(x);         ← undefined');
+    log('  x = 5;          ← the assignment stays put');
+  }</script>
+</section>
+
+<section>
+  <h2>let and const are hoisted too — but unusable</h2>
+  <p>They exist from the top of the block, but reading one before its declaration throws.
+  That window is the <b>temporal dead zone</b>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      log(notYet);
+    } catch (err) {
+      log('reading a let early →', err.name + ':', err.message);
+    }
+
+    let notYet = 'now it works';
+    log(notYet);
+
+    log('');
+    log('the TDZ is why this is an error rather than "undefined" —');
+    log('it turns a silent bug into a loud one.');
+  }</script>
+</section>
+
+<section>
+  <h2>Function declarations are fully hoisted</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('called before it is defined →', greet('Ada'));
+
+    function greet(name) {
+      return 'Hello, ' + name;
+    }
+
+    log('this is why "helpers at the bottom" style works');
+  }</script>
+</section>
+
+<section>
+  <h2>Function expressions are not</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      arrowFn();
+    } catch (err) {
+      log('const arrow →', err.name + ':', err.message);
+    }
+
+    try {
+      varFn();
+    } catch (err) {
+      log('var function expression →', err.name + ':', err.message);
+    }
+
+    const arrowFn = () => 'defined later';
+    var varFn = function () { return 'also later'; };
+
+    log('after both lines:', arrowFn(), '|', varFn());
+  }</script>
+</section>
+
+<section>
+  <h2>The classic surprise</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    var value = 'global';
+
+    function show() {
+      log('inside, before assignment:', value);   // not "global"!
+      var value = 'local';
+      log('inside, after assignment: ', value);
+    }
+
+    show();
+    log('outside:', value);
+
+    log('');
+    log('the inner `var value` is hoisted to the top of show(),');
+    log('so it shadows the outer one for the whole function.');
+  }</script>
+</section>
+
+<section>
+  <h2>Classes are not hoisted usefully</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      new Thing();
+    } catch (err) {
+      log('new Thing() before the class →', err.name + ':', err.message);
+    }
+
+    class Thing {
+      constructor() { this.made = true; }
+    }
+
+    log('after the declaration:', new Thing());
+  }</script>
+</section>
+
+<section>
+  <h2>How to never think about it again</h2>
+  <ul>
+    <li>Use <code>const</code> and <code>let</code>; the TDZ means mistakes throw
+    immediately.</li>
+    <li>Declare variables at the top of the scope that uses them.</li>
+    <li>Do not rely on calling a function before its declaration, even though it works.</li>
+    <li>Enable a linter rule for <code>no-use-before-define</code>.</li>
+  </ul>
+</section>
+
+</body>
+</html>

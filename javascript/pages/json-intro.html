@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-intro">
+
+<h1>JSON</h1>
+<p class="lede">JavaScript Object Notation: a text format for data. It looks like a JavaScript
+object literal, but it is a <b>string</b>, and its rules are much stricter.</p>
+
+<section>
+  <h2>The two functions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const object = { name: 'Ada', age: 36, admin: true, tags: ['a', 'b'] };
+
+    const text = JSON.stringify(object);       // object → string
+    const back = JSON.parse(text);             // string → object
+
+    log('an object    →', object);
+    log('stringified  →', text, '(a', typeof text + ')');
+    log('parsed back  →', back, '(an', typeof back + ')');
+    log('');
+    log('same values? →', JSON.stringify(back) === text);
+    log('same object? →', back === object, '← always a fresh copy');
+
+    log('');
+    log('that is the entire JSON API. Two functions.');
+  }</script>
+</section>
+
+<section>
+  <h2>Why it won</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('• it is a subset of JavaScript, so parsing was free at first');
+    log('• every language has a parser for it');
+    log('• it is readable by humans without a tool');
+    log('• it carries types: numbers stay numbers, booleans stay booleans');
+    log('• it is compact, but not so compact you cannot debug it');
+    log('');
+    log('the same record, three ways:');
+    log('');
+    log('XML   <user><id>1</id><name>Ada</name></user>          (44 chars)');
+    log('JSON  {"id":1,"name":"Ada"}                            (22 chars)');
+    log('CSV   1,Ada                                            (5 chars, no types)');
+    log('');
+    log('CSV is smaller but says nothing about what the fields mean.');
+    log('XML says a great deal, at four times the size.');
+  }</script>
+</section>
+
+<section>
+  <h2>JSON is not JavaScript</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const invalid = [
+      ["{name: 'Ada'}", 'keys must be quoted, and with double quotes'],
+      ['{"name": \'Ada\'}', 'strings must use double quotes'],
+      ['{"a": 1,}', 'no trailing comma'],
+      ['{"a": undefined}', 'undefined is not a JSON value'],
+      ['{"a": 0x10}', 'no hex, no octal, no leading +'],
+      ['{"a": .5}', 'a number needs a digit before the point'],
+      ['{"a": NaN}', 'NaN and Infinity are not JSON'],
+      ['{"a": 1} // note', 'no comments, anywhere'],
+      ["{'a': new Date()}", 'no expressions, no calls, no variables']
+    ];
+
+    invalid.forEach(([text, why]) => {
+      let result;
+      try { JSON.parse(text); result = 'parsed?!'; }
+      catch (err) { result = err.name; }
+      log(result.padEnd(12), text.padEnd(18), why);
+    });
+
+    log('');
+    log('valid JavaScript, invalid JSON. The reverse is not true —');
+    log('all JSON is valid JavaScript, with one historical exception');
+    log('(U+2028 and U+2029, fixed in ES2019).');
+  }</script>
+</section>
+
+<section>
+  <h2>Try it</h2>
+
+  <div class="stage" style="display:block">
+    <textarea id="src" rows="6" style="width:100%;font:13px ui-monospace,monospace">
+{
+  "name": "Ada",
+  "age": 36,
+  "languages": ["assembly", "notation"],
+  "address": { "city": "London" },
+  "retired": false,
+  "middleName": null
+}</textarea>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function check() {
+      log.clear();
+      const text = $('#src').value;
+
+      try {
+        const value = JSON.parse(text);
+        log('✔ valid JSON');
+        log('');
+        log('parsed →', value);
+        log('type   →', Array.isArray(value) ? 'array' : typeof value);
+        log('');
+        log('re-stringified, compact:');
+        log('  ' + JSON.stringify(value));
+        log('bytes:', new Blob([text]).size, '→', new Blob([JSON.stringify(value)]).size);
+      } catch (err) {
+        log('✘ invalid');
+        log('  ' + err.message);
+      }
+    }
+
+    $('#src').addEventListener('input', check);
+    check();
+  }</script>
+</section>
+
+<section>
+  <h2>Where you meet it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('• HTTP APIs — request and response bodies');
+    log('• localStorage, which only stores strings');
+    log('• configuration files — package.json, tsconfig.json');
+    log('• log lines, one JSON object per line');
+    log('• postMessage between windows and workers');
+    log('• JSON Web Tokens — two JSON objects, base64 encoded');
+
+    log('');
+    log('a JWT, decoded:');
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const payload = { sub: '1234', name: 'Ada', iat: 1516239022 };
+    const encode = o => btoa(JSON.stringify(o)).replace(/=+$/, '');
+    log('  ' + encode(header) + '.' + encode(payload) + '.<signature>');
+    log('  header  →', header);
+    log('  payload →', payload);
+    log('  note: readable by anyone. A JWT is signed, not encrypted.');
+  }</script>
+</section>
+
+<section>
+  <h2>A quick tour of the rest</h2>
+
+  <table class="ref">
+    <tr><th>Page</th><th>Covers</th></tr>
+    <tr><td>Syntax</td><td>the grammar, in full</td></tr>
+    <tr><td>Data Types</td><td>what JSON can and cannot represent</td></tr>
+    <tr><td><code>parse</code></td><td>reading, reviving, and failing safely</td></tr>
+    <tr><td><code>stringify</code></td><td>writing, indenting, filtering, <code>toJSON</code></td></tr>
+    <tr><td>Objects</td><td>nesting, and looping over parsed data</td></tr>
+    <tr><td>Arrays</td><td>lists of records, the usual API shape</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('one thing to carry into all of them:');
+    log('');
+    log('  JSON is a wire format, not a data model.');
+    log('');
+    log('It has no dates, no big integers, no sets, no cycles and no');
+    log('functions. Every one of those has to be encoded as something');
+    log('simpler, and decoded again on the other side.');
+  }</script>
+</section>
+
+</body>
+</html>

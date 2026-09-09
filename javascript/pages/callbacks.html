@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Callbacks — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="callbacks">
+
+<h1>Callbacks</h1>
+<p class="lede">A callback is just a function passed to another function, to be called back
+later. Nothing about it is inherently asynchronous.</p>
+
+<section>
+  <h2>Passing a function as an argument</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function calculate(a, b, operation) {
+      return operation(a, b);
+    }
+
+    const add = (a, b) => a + b;
+    const multiply = (a, b) => a * b;
+
+    log('with add:     ', calculate(3, 4, add));
+    log('with multiply:', calculate(3, 4, multiply));
+    log('inline:       ', calculate(3, 4, (a, b) => a - b));
+
+    log('');
+    log('pass the function, do not call it:');
+    log('  calculate(3, 4, add)    ← correct');
+    log('  calculate(3, 4, add(1,2)) ← passes a number, not a function');
+  }</script>
+</section>
+
+<section>
+  <h2>Synchronous callbacks</h2>
+  <p>Most array methods take one. They run immediately, in order, before the next line.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [1, 2, 3, 4, 5];
+
+    log('map:   ', numbers.map(n => n * 2));
+    log('filter:', numbers.filter(n => n % 2 === 0));
+    log('reduce:', numbers.reduce((total, n) => total + n, 0));
+    log('find:  ', numbers.find(n => n > 3));
+    log('sort:  ', [3, 1, 2].sort((a, b) => a - b));
+
+    log('');
+    log('order is guaranteed:');
+    log('before');
+    numbers.slice(0, 2).forEach(n => log('  callback', n));
+    log('after');
+  }</script>
+</section>
+
+<section>
+  <h2>Asynchronous callbacks</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('1 — synchronous');
+
+    setTimeout(() => log('3 — the callback, after the stack empties'), 0);
+
+    log('2 — synchronous, even though the timeout said 0ms');
+
+    // The callback runs later, so anything after the call cannot use its result:
+    function fetchLater(callback) {
+      setTimeout(() => callback('the data'), 50);
+    }
+
+    let result;
+    fetchLater(value => { result = value; log('4 — inside the callback:', value); });
+    log('result right after the call:', result, '← not there yet');
+  }</script>
+</section>
+
+<section>
+  <h2>The error-first convention</h2>
+  <p>Node's convention, and the shape most pre-promise APIs used:
+  <code>callback(error, value)</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function loadUser(id, callback) {
+      setTimeout(() => {
+        if (id <= 0) return callback(new Error('invalid id: ' + id));
+        callback(null, { id, name: 'User ' + id });
+      }, 30);
+    }
+
+    loadUser(7, (err, user) => {
+      if (err) return log('failed:', err.message);
+      log('loaded:', user);
+    });
+
+    loadUser(-1, (err, user) => {
+      if (err) return log('failed:', err.message);
+      log('loaded:', user);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Callback hell</h2>
+  <p>Each step needs the previous one's result, so the nesting grows to the right.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const later = (value, cb) => setTimeout(() => cb(null, value), 20);
+
+    later('user', (e1, user) => {
+      log('1', user);
+      later(user + '/orders', (e2, orders) => {
+        log('2', orders);
+        later(orders + '/items', (e3, items) => {
+          log('3', items);
+          later(items + '/price', (e4, price) => {
+            log('4', price);
+            log('…and every level needs its own error check');
+          });
+        });
+      });
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>The same thing with promises</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const later = value => new Promise(resolve => setTimeout(() => resolve(value), 20));
+
+    later('user')
+      .then(user => { log('1', user); return later(user + '/orders'); })
+      .then(orders => { log('2', orders); return later(orders + '/items'); })
+      .then(items => { log('3', items); return later(items + '/price'); })
+      .then(price => log('4', price))
+      .catch(err => log('one catch for the whole chain:', err.message));
+
+    log('flat, and a single error path');
+  }</script>
+</section>
+
+<section>
+  <h2>Converting a callback API to a promise</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function loadUser(id, callback) {
+      setTimeout(() => {
+        if (id <= 0) return callback(new Error('invalid id'));
+        callback(null, { id, name: 'User ' + id });
+      }, 20);
+    }
+
+    function promisify(fn) {
+      return (...args) => new Promise((resolve, reject) => {
+        fn(...args, (err, value) => (err ? reject(err) : resolve(value)));
+      });
+    }
+
+    const loadUserAsync = promisify(loadUser);
+
+    loadUserAsync(3).then(user => log('resolved:', user));
+    loadUserAsync(0).catch(err => log('rejected:', err.message));
+  }</script>
+</section>
+
+<section>
+  <h2>Where callbacks are still the right answer</h2>
+
+  <div class="stage">
+    <button id="ping">fire an event</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // A promise settles once. Anything that happens repeatedly still wants a callback.
+    $('#ping').addEventListener('click', () => log('clicked — this can happen many times'));
+
+    let ticks = 0;
+    const id = setInterval(() => {
+      log('tick', ++ticks);
+      if (ticks === 3) { clearInterval(id); log('stopped'); }
+    }, 400);
+
+    log('event listeners, intervals, observers and streams all stay callback-based');
+  }</script>
+</section>
+
+</body>
+</html>

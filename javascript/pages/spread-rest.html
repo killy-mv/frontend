@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spread &amp; Rest — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="spread-rest">
+
+<h1>Spread &amp; Rest</h1>
+<p class="lede">The same three dots, doing opposite jobs. <b>Spread</b> unpacks a collection
+into pieces; <b>rest</b> collects loose pieces into one array.</p>
+
+<section>
+  <h2>Spread into an array</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = [1, 2];
+    const b = [3, 4];
+
+    log('combine: ', [...a, ...b]);
+    log('insert:  ', [0, ...a, 2.5, ...b]);
+    log('copy:    ', [...a]);
+    log('a string:', [...'abc']);
+    log('a Set:   ', [...new Set([1, 1, 2])]);
+    log('a Map:   ', [...new Map([['k', 'v']])]);
+    log('a NodeList:', [...document.querySelectorAll('h1')].map(h => h.textContent));
+  }</script>
+</section>
+
+<section>
+  <h2>Spread into a call</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [5, 12, 3, 99, 41];
+
+    log('Math.max(numbers)     →', Math.max(numbers), '← an array is not a number');
+    log('Math.max(...numbers)  →', Math.max(...numbers));
+
+    function volume(w, h, d) { return w * h * d; }
+    log('volume(...[2, 3, 4])  →', volume(...[2, 3, 4]));
+
+    // Mixing is allowed:
+    log('volume(2, ...[3, 4])  →', volume(2, ...[3, 4]));
+
+    log('');
+    log('the old way was apply():', Math.max.apply(null, numbers));
+  }</script>
+</section>
+
+<section>
+  <h2>Spread into an object</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const defaults = { theme: 'light', fontSize: 14, debug: false };
+    const userPrefs = { theme: 'dark' };
+
+    log('merged:', { ...defaults, ...userPrefs });
+    log('order matters — the last one wins:', { ...userPrefs, ...defaults });
+
+    // Adding or overriding one field without mutating:
+    const user = { id: 1, name: 'Ada' };
+    log('with a new field:', { ...user, admin: true });
+    log('original:', user);
+
+    // Arrays spread into objects become indexed:
+    log('{...["a","b"]} →', { ...['a', 'b'] });
+  }</script>
+</section>
+
+<section>
+  <h2>Copies are shallow</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = { name: 'config', nested: { level: 1 } };
+    const copy = { ...original };
+
+    copy.name = 'changed';
+    copy.nested.level = 99;
+
+    log('original:', original, '← nested was shared');
+    log('copy:    ', copy);
+
+    // A real deep copy:
+    const deep = structuredClone(original);
+    deep.nested.level = 1;
+    log('after structuredClone, original:', original);
+  }</script>
+</section>
+
+<section>
+  <h2>Rest in parameters</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sum(...numbers) {
+      return numbers.reduce((total, n) => total + n, 0);
+    }
+
+    log('sum(1, 2, 3)      →', sum(1, 2, 3));
+    log('sum()             →', sum());
+    log('sum(...[4, 5, 6]) →', sum(...[4, 5, 6]));
+
+    function tag(first, second, ...others) {
+      return { first, second, others };
+    }
+    log(tag('a', 'b', 'c', 'd', 'e'));
+
+    log('');
+    log('rest must be last:');
+    log('  function f(...rest, last) is a SyntaxError');
+  }</script>
+</section>
+
+<section>
+  <h2>rest vs arguments</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function oldStyle() {
+      log('arguments:', arguments);
+      log('is an array?', Array.isArray(arguments));
+      log('has map?', typeof arguments.map);
+      log('converted:', Array.from(arguments).map(n => n * 2));
+    }
+    oldStyle(1, 2, 3);
+
+    log('');
+    function modern(...args) {
+      log('rest:', args, '| is an array?', Array.isArray(args));
+      log('mapped directly:', args.map(n => n * 2));
+    }
+    modern(1, 2, 3);
+
+    log('');
+    log('arrow functions have no `arguments` at all — rest is the only option');
+  }</script>
+</section>
+
+<section>
+  <h2>Rest in destructuring</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const [winner, runnerUp, ...alsoRan] = ['Ada', 'Alan', 'Grace', 'Edsger'];
+    log(winner, '|', runnerUp, '|', alsoRan);
+
+    const { password, ...safeUser } = { id: 1, name: 'Ada', password: 'secret' };
+    log('safe to log:', safeUser);
+
+    // Removing a key without mutating, a common React pattern:
+    function omit(object, key) {
+      const { [key]: removed, ...remaining } = object;
+      return remaining;
+    }
+    log('omit "b":', omit({ a: 1, b: 2, c: 3 }, 'b'));
+  }</script>
+</section>
+
+</body>
+</html>

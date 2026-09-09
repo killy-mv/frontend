@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Style Guide — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="style-guide">
+
+<h1>Style Guide</h1>
+<p class="lede">Conventions, not rules. The value is consistency: code that looks the same
+everywhere is code you can skim.</p>
+
+<section>
+  <h2>Naming</h2>
+
+  <table class="ref">
+    <tr><th>Thing</th><th>Convention</th><th>Example</th></tr>
+    <tr><td>variable, function</td><td>camelCase</td><td><code>userCount</code>, <code>getTotal</code></td></tr>
+    <tr><td>class, constructor</td><td>PascalCase</td><td><code>UserAccount</code></td></tr>
+    <tr><td>constant known upfront</td><td>UPPER_SNAKE</td><td><code>MAX_RETRIES</code></td></tr>
+    <tr><td>private by convention</td><td>leading underscore</td><td><code>_internal</code></td></tr>
+    <tr><td>truly private field</td><td>hash prefix</td><td><code>#secret</code></td></tr>
+    <tr><td>boolean</td><td>a question</td><td><code>isReady</code>, <code>hasAccess</code></td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const MAX_RETRIES = 3;
+    let retryCount = 0;
+    const isConnected = false;
+
+    class HttpClient {
+      #token = 'secret';
+      get token() { return this.#token.slice(0, 3) + '…'; }
+    }
+
+    log(MAX_RETRIES, retryCount, isConnected, new HttpClient().token);
+
+    log('');
+    log('names should say what, not how:');
+    log('  bad:  const d = new Date();  const arr2 = [];');
+    log('  good: const createdAt = new Date();  const activeUsers = [];');
+  }</script>
+</section>
+
+<section>
+  <h2>Spacing</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Spaces around operators, after commas and colons:
+    const x = 5 + 3;
+    const point = { x: 1, y: 2 };
+    const list = [1, 2, 3];
+    log(x, point, list);
+
+    // No space between a function name and its parentheses,
+    // but one before the brace of a block:
+    function add(a, b) {
+      return a + b;
+    }
+    log(add(1, 2));
+
+    // Two spaces of indentation is the JavaScript norm.
+    // Whatever you pick, never mix tabs and spaces in one file.
+  }</script>
+</section>
+
+<section>
+  <h2>Braces and line breaks</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // The opening brace goes on the same line. This is not taste —
+    // automatic semicolon insertion makes the alternative dangerous:
+    function broken() {
+      return
+      {
+        value: 42
+      };
+    }
+
+    function correct() {
+      return {
+        value: 42
+      };
+    }
+
+    log('brace on the next line →', broken());
+    log('brace on the same line →', correct());
+  }</script>
+</section>
+
+<section>
+  <h2>Statement style</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const items = ['a', 'b'];
+
+    // Always use braces, even for one line:
+    if (items.length) {
+      log('has items');
+    }
+
+    // End statements with a semicolon:
+    const a = 1;
+    const b = 2;
+
+    // Break long lines after an operator, and line up the continuation:
+    const message = 'This is a long string that has been ' +
+                    'split across two lines for readability.';
+    log(message.length, 'characters');
+
+    // Keep lines under about 80–100 characters.
+    log(a + b);
+  }</script>
+</section>
+
+<section>
+  <h2>Object and array literals</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Short: one line.
+    const point = { x: 1, y: 2 };
+
+    // Long: one property per line, with a trailing comma —
+    // it keeps diffs to a single line when you add another.
+    const config = {
+      host: 'localhost',
+      port: 8080,
+      secure: false,
+    };
+
+    log(point, config);
+    log('a trailing comma is legal in objects, arrays and parameter lists');
+  }</script>
+</section>
+
+<section>
+  <h2>Let a tool do it</h2>
+  <p>Hand formatting is wasted effort. Prettier reformats on save; ESLint catches the
+  mistakes that matter. Agree the config once and stop discussing it.</p>
+
+  <div class="example">
+    <pre class="code"><code><span class="tok-com">// .prettierrc</span>
+{
+  <span class="tok-str">"semi"</span>: <span class="tok-lit">true</span>,
+  <span class="tok-str">"singleQuote"</span>: <span class="tok-lit">true</span>,
+  <span class="tok-str">"printWidth"</span>: <span class="tok-num">100</span>,
+  <span class="tok-str">"tabWidth"</span>: <span class="tok-num">2</span>
+}</code></pre>
+  </div>
+
+  <div class="note">The most valuable rules are the ones a formatter cannot apply:
+  <code>no-unused-vars</code>, <code>eqeqeq</code>, <code>no-undef</code>,
+  <code>prefer-const</code>.</div>
+</section>
+
+<section>
+  <h2>File names</h2>
+  <ul>
+    <li>Lowercase, because some servers are case sensitive and some file systems are not:
+    <code>user-profile.js</code>, never <code>UserProfile.JS</code>.</li>
+    <li>Pick one separator and keep it — kebab-case is the safest.</li>
+    <li>Name the file after its main export.</li>
+  </ul>
+</section>
+
+</body>
+</html>

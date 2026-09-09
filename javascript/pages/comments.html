@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comments — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="comments">
+
+<h1>Comments</h1>
+<p class="lede">Text the engine skips. Comments explain <i>why</i> code does something —
+the code itself already says <i>what</i> it does.</p>
+
+<section>
+  <h2>Single line</h2>
+  <p>Everything after <code>//</code> to the end of the line is ignored.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Prices are stored in cents to avoid floating point drift.
+    const priceInCents = 1999;
+
+    log(priceInCents / 100);   // 19.99 — only for display
+  }</script>
+</section>
+
+<section>
+  <h2>Multi line</h2>
+  <p>Everything between <code>/*</code> and <code>*/</code> is ignored, however many lines
+  it spans.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    /*
+      Rounds a number to a given number of decimal places.
+      Math.round is used instead of toFixed because toFixed
+      returns a string, and callers here want a number.
+    */
+    function round(value, places) {
+      const factor = 10 ** places;
+      return Math.round(value * factor) / factor;
+    }
+
+    log(round(3.14159, 2));
+    log(round(2.5, 0));
+  }</script>
+</section>
+
+<section>
+  <h2>Commenting code out</h2>
+  <p>The everyday use: disabling a line while you test something else.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let total = 100;
+    total = total * 2;
+    // total = total + 1000;     ← disabled while testing
+    total = total - 25;
+
+    log('total:', total);
+  }</script>
+</section>
+
+<section>
+  <h2>Comments at the end of a line</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const RETRIES = 3;        // three attempts, then give up
+    const TIMEOUT = 5000;     // ms — the gateway drops idle sockets at 6s
+
+    log(RETRIES, TIMEOUT);
+  }</script>
+</section>
+
+<section>
+  <h2>Doc comments</h2>
+  <p>A <code>/** … */</code> block written above a function is picked up by editors, which
+  show it when you hover the function name. This is the JSDoc convention.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    /**
+     * Formats a number of bytes for humans.
+     * @param {number} bytes - the raw byte count
+     * @param {number} [digits=1] - decimal places to keep
+     * @returns {string} e.g. "1.5 MB"
+     */
+    function humanSize(bytes, digits = 1) {
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      let i = 0;
+      while (bytes >= 1024 && i < units.length - 1) {
+        bytes /= 1024;
+        i++;
+      }
+      return bytes.toFixed(i === 0 ? 0 : digits) + ' ' + units[i];
+    }
+
+    log(humanSize(512));
+    log(humanSize(1536));
+    log(humanSize(3_500_000_000, 2));
+  }</script>
+</section>
+
+<section>
+  <h2>Comments that earn their place</h2>
+  <ul>
+    <li><b>Bad:</b> <code>i++; // increment i</code> — repeats the code.</li>
+    <li><b>Good:</b> a note about a constraint you cannot see in the code (an API quirk, a
+    business rule, why the obvious approach failed).</li>
+    <li><b>Good:</b> a <code>TODO:</code> or <code>FIXME:</code> marker — most editors index them.</li>
+    <li>If a comment is needed to explain <i>what</i> a block does, a well-named function
+    usually removes the need for the comment.</li>
+  </ul>
+</section>
+
+</body>
+</html>

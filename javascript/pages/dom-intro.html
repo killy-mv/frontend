@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The HTML DOM — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-intro">
+
+<h1>The HTML DOM</h1>
+<p class="lede">When a page loads, the browser turns the HTML text into a tree of objects.
+That tree is the Document Object Model, and JavaScript can read and change every part of
+it.</p>
+
+<section>
+  <h2>The tree</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const html = '<article id="post"><h2>Title</h2><p>Hello <b>world</b></p></article>';
+    const holder = document.createElement('div');
+    holder.innerHTML = html;
+
+    log('this HTML:');
+    log('  ' + html);
+    log('');
+    log('becomes this tree:');
+
+    (function walk(node, depth) {
+      const pad = '  '.repeat(depth + 1);
+      if (node.nodeType === 1) {
+        log(pad + '<' + node.tagName.toLowerCase() + '>');
+      } else if (node.nodeType === 3 && node.textContent.trim()) {
+        log(pad + '"' + node.textContent + '"');
+      }
+      Array.from(node.childNodes).forEach(child => walk(child, depth + 1));
+    })(holder.firstElementChild, 0);
+  }</script>
+</section>
+
+<section>
+  <h2>document is the entry point</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('document              →', document.nodeName);
+    log('documentElement       →', document.documentElement.tagName);
+    log('head / body           →', document.head.tagName, '/', document.body.tagName);
+    log('title                 →', document.title);
+    log('URL                   →', document.URL.split('/').pop());
+    log('characterSet          →', document.characterSet);
+    log('readyState            →', document.readyState);
+    log('elements on this page →', document.getElementsByTagName('*').length);
+  }</script>
+</section>
+
+<section>
+  <h2>Everything is a node</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const holder = document.createElement('div');
+    holder.innerHTML = '<p title="t">text<!-- a comment --></p>';
+    const p = holder.firstElementChild;
+
+    const kinds = {
+      1: 'ELEMENT_NODE', 3: 'TEXT_NODE', 8: 'COMMENT_NODE',
+      9: 'DOCUMENT_NODE', 11: 'DOCUMENT_FRAGMENT_NODE'
+    };
+
+    [document, holder, p, p.firstChild, p.childNodes[1], document.createDocumentFragment()]
+      .forEach(node => log(String(node.nodeType).padStart(2),
+                           (kinds[node.nodeType] || '?').padEnd(24),
+                           node.nodeName));
+
+    log('');
+    log('elements are nodes; nodes are not always elements —');
+    log('which is why childNodes and children differ.');
+  }</script>
+</section>
+
+<section>
+  <h2>The four things you do with it</h2>
+
+  <div class="stage">
+    <p id="target">Original text.</p>
+    <button id="read">read</button>
+    <button id="change">change</button>
+    <button id="add">add</button>
+    <button id="remove">remove</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const target = $('#target');
+
+    $('#read').addEventListener('click', () => {
+      log('text:', target.textContent);
+      log('html:', target.innerHTML);
+      log('tag: ', target.tagName, '| id:', target.id);
+    });
+
+    $('#change').addEventListener('click', () => {
+      target.textContent = 'Changed at ' + new Date().toLocaleTimeString();
+      target.style.color = 'crimson';
+      log('changed');
+    });
+
+    $('#add').addEventListener('click', () => {
+      const span = document.createElement('span');
+      span.textContent = ' ★';
+      span.style.color = 'goldenrod';
+      target.appendChild(span);
+      log('appended a star — now', target.childNodes.length, 'child nodes');
+    });
+
+    $('#remove').addEventListener('click', () => {
+      const last = target.lastElementChild;
+      if (last) { last.remove(); log('removed one'); }
+      else log('nothing left to remove');
+    });
+
+    log('read, change, add, remove — that is the whole API, in outline');
+  }</script>
+</section>
+
+<section>
+  <h2>The DOM is not HTML</h2>
+  <p>The browser fixes invalid markup while parsing, so the tree you get may not match the
+  text you wrote.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const broken = '<table><tr><td>cell</td></tr></table>';
+    const holder = document.createElement('div');
+    holder.innerHTML = broken;
+
+    log('written:', broken);
+    log('parsed: ', holder.innerHTML, '← tbody was inserted for you');
+
+    const unclosed = document.createElement('div');
+    unclosed.innerHTML = '<p>one<p>two';
+    log('');
+    log('written:', '<p>one<p>two');
+    log('parsed: ', unclosed.innerHTML, '← the first p was closed for you');
+  }</script>
+</section>
+
+<section>
+  <h2>The DOM is not just HTML either</h2>
+  <div class="note">The same node interfaces cover SVG, XML documents, and document
+  fragments. <code>document</code> is one <i>instance</i> of a document — you can create
+  others with <code>DOMParser</code> or <code>document.implementation</code>.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const parsed = new DOMParser().parseFromString(
+      '<root><item id="a">first</item><item id="b">second</item></root>', 'text/xml');
+
+    log('parsed an XML string:');
+    log('  root      →', parsed.documentElement.tagName);
+    log('  items     →', parsed.querySelectorAll('item').length);
+    log('  first one →', parsed.querySelector('item').textContent);
+
+    log('');
+    log('and a fragment, which is a tree with no page attached:');
+    const frag = document.createDocumentFragment();
+    frag.appendChild(document.createElement('li'));
+    frag.appendChild(document.createElement('li'));
+    log('  fragment children:', frag.childElementCount);
+  }</script>
+</section>
+
+<section>
+  <h2>What comes next</h2>
+  <ul>
+    <li><b>Finding</b> elements — <code>querySelector</code> and friends.</li>
+    <li><b>Changing</b> them — text, HTML, attributes, classes, styles.</li>
+    <li><b>Moving around</b> — parents, children, siblings.</li>
+    <li><b>Building and removing</b> nodes.</li>
+    <li><b>Reacting</b> to events.</li>
+  </ul>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JavaScript by Example</title>
+<meta name="description" content="Every core JavaScript concept as its own page: a short explanation, runnable vanilla-JS examples, and the output they produce.">
+<link rel="stylesheet" href="assets/lesson.css">
+<script src="assets/topics.js"></script>
+</head>
+<body>
+
+<div class="hub">
+  <header class="masthead">
+    <h1>JavaScript <span style="color:var(--accent)">by Example</span></h1>
+    <p>My notes while working through the JavaScript tutorial. Every concept gets its
+       own page: a short explanation, small examples you can read, and the output each
+       example actually produced when the page loaded.</p>
+    <p style="font-size:15px">No build step and no dependencies — plain HTML, CSS and JavaScript.
+       Open any page straight from disk, or use <kbd>←</kbd> / <kbd>→</kbd> to move between lessons.</p>
+  </header>
+
+  <div class="filter">
+    <input id="q" type="search" placeholder="Filter topics — try &quot;array&quot;, &quot;dom&quot;, &quot;async&quot;…" autocomplete="off">
+    <span class="count" id="count"></span>
+  </div>
+
+  <main id="groups"></main>
+</div>
+
+<script>
+  var groupsEl = document.getElementById('groups');
+  var countEl = document.getElementById('count');
+  var q = document.getElementById('q');
+  var n = 0;
+
+  TOPICS.forEach(function (group) {
+    var sec = document.createElement('section');
+    sec.className = 'group';
+    var h = document.createElement('h2');
+    h.textContent = group.g;
+    sec.appendChild(h);
+
+    var cards = document.createElement('div');
+    cards.className = 'cards';
+    group.items.forEach(function (item) {
+      n++;
+      var a = document.createElement('a');
+      a.className = 'card';
+      a.href = 'pages/' + item.s + '.html';
+      a.dataset.hay = (item.t + ' ' + item.d + ' ' + item.s + ' ' + group.g).toLowerCase();
+      a.innerHTML = '<span class="n">' + n + '</span><b></b><span class="d"></span>';
+      a.querySelector('b').textContent = item.t;
+      a.querySelector('.d').textContent = item.d;
+      cards.appendChild(a);
+    });
+    sec.appendChild(cards);
+    groupsEl.appendChild(sec);
+  });
+
+  var total = n;
+  function render() {
+    var term = q.value.trim().toLowerCase();
+    var shown = 0;
+    document.querySelectorAll('.card').forEach(function (card) {
+      var hit = !term || card.dataset.hay.indexOf(term) !== -1;
+      card.style.display = hit ? '' : 'none';
+      if (hit) shown++;
+    });
+    document.querySelectorAll('.group').forEach(function (g) {
+      var any = Array.prototype.some.call(g.querySelectorAll('.card'), function (c) {
+        return c.style.display !== 'none';
+      });
+      g.style.display = any ? '' : 'none';
+    });
+    countEl.textContent = term ? shown + ' of ' + total + ' lessons' : total + ' lessons';
+  }
+
+  q.addEventListener('input', render);
+  render();
+</script>
+
+</body>
+</html>

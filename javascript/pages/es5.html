@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES5 (2009) — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="es5">
+
+<h1>ES5 (2009)</h1>
+<p class="lede">The release that made JavaScript usable at scale. Ten years after ES3, and
+after ES4 was abandoned — it added strict mode, real array methods, property descriptors and
+native JSON.</p>
+
+<section>
+  <h2>Array methods</h2>
+  <p>Before ES5, every project shipped its own <code>each</code> and <code>map</code>. This
+  is the release that ended that.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [1, 2, 3, 4, 5];
+
+    log('forEach →'); numbers.slice(0, 2).forEach(n => log('  ', n));
+    log('map     →', numbers.map(n => n * 2));
+    log('filter  →', numbers.filter(n => n % 2));
+    log('reduce  →', numbers.reduce((a, b) => a + b, 0));
+    log('reduceRight →', ['a', 'b', 'c'].reduceRight((a, b) => a + b));
+    log('some    →', numbers.some(n => n > 4));
+    log('every   →', numbers.every(n => n > 0));
+    log('indexOf →', numbers.indexOf(3));
+    log('lastIndexOf →', [1, 2, 1].lastIndexOf(1));
+    log('isArray →', Array.isArray(numbers));
+
+    log('');
+    log('the ES3 equivalent of map:');
+    log('  var out = [];');
+    log('  for (var i = 0; i < arr.length; i++) out.push(fn(arr[i], i, arr));');
+  }</script>
+</section>
+
+<section>
+  <h2>Strict mode</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sloppy() {
+      undeclared = 'creates a global';
+      return typeof window.undeclared;
+    }
+
+    function strict() {
+      'use strict';
+      try {
+        undeclaredToo = 'x';
+        return 'no error?!';
+      } catch (err) {
+        return err.name + ': ' + err.message;
+      }
+    }
+
+    log('sloppy →', sloppy());
+    log('strict →', strict());
+    delete window.undeclared;
+
+    log('');
+    log('what "use strict" changes:');
+    log('  • assigning to an undeclared variable throws');
+    log('  • this is undefined in a plain function call, not window');
+    log('  • writing to a frozen or read-only property throws');
+    log('  • duplicate parameter names are a syntax error');
+    log('  • octal literals like 010 are a syntax error');
+    log('  • delete on a variable is a syntax error');
+    log('  • with is banned');
+    log('');
+    log('modules and class bodies are strict automatically — you almost');
+    log('never write the directive today.');
+  }</script>
+</section>
+
+<section>
+  <h2>Native JSON</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('before ES5, everyone used Douglas Crockford\'s json2.js —');
+    log('or, alarmingly often, eval():');
+    log('');
+    log('  var data = eval("(" + responseText + ")");   // never do this');
+    log('');
+    log('ES5 made it native, safe and fast:');
+
+    const data = { id: 1, tags: ['a', 'b'] };
+    log('  stringify →', JSON.stringify(data));
+    log('  parse     →', JSON.parse('{"id":1}'));
+    log('  indent    →', JSON.stringify(data, null, 2).split('\n').length, 'lines');
+  }</script>
+</section>
+
+<section>
+  <h2>Property descriptors</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const user = {};
+
+    Object.defineProperty(user, 'id', {
+      value: 7,
+      writable: false,
+      enumerable: true,
+      configurable: false
+    });
+
+    Object.defineProperty(user, 'secret', {
+      value: 'hidden',
+      enumerable: false
+    });
+
+    Object.defineProperty(user, 'label', {
+      get() { return 'user #' + this.id; },
+      enumerable: true
+    });
+
+    user.id = 999;                    // silently ignored in sloppy mode
+
+    log('user      →', user);
+    log('id        →', user.id, '← writable: false');
+    log('label     →', user.label, '← a getter');
+    log('keys      →', Object.keys(user), '← secret is not enumerable');
+    log('but it is there:', user.secret);
+    log('');
+    log('descriptor →', Object.getOwnPropertyDescriptor(user, 'id'));
+
+    log('');
+    log('getters and setters in a literal arrived in ES5 too:');
+    const temp = {
+      celsius: 20,
+      get fahrenheit() { return this.celsius * 9 / 5 + 32; },
+      set fahrenheit(f) { this.celsius = (f - 32) * 5 / 9; }
+    };
+    temp.fahrenheit = 100;
+    log('  ', temp.celsius.toFixed(1) + '°C');
+  }</script>
+</section>
+
+<section>
+  <h2>Object statics</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const source = { a: 1, b: 2 };
+
+    log('Object.keys                →', Object.keys(source));
+    log('Object.create(proto)       →',
+        Object.getPrototypeOf(Object.create(source)) === source);
+    log('Object.create(null)        →',
+        Object.getPrototypeOf(Object.create(null)), '← no prototype at all');
+    log('Object.getPrototypeOf      →', Object.getPrototypeOf([]) === Array.prototype);
+    log('Object.getOwnPropertyNames →', Object.getOwnPropertyNames(source));
+
+    const frozen = Object.freeze({ x: 1 });
+    const sealed = Object.seal({ y: 1 });
+    log('');
+    log('freeze / seal / preventExtensions:');
+    log('  isFrozen →', Object.isFrozen(frozen));
+    log('  isSealed →', Object.isSealed(sealed));
+
+    log('');
+    log('Object.create(null) is still the cleanest "dictionary" —');
+    const dict = Object.create(null);
+    dict.toString = 'just a value here';
+    log('  dict.toString →', dict.toString);
+    log('  a normal object would have inherited a function instead.');
+  }</script>
+</section>
+
+<section>
+  <h2>Function.prototype.bind</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const counter = { n: 0, bump() { return ++this.n; } };
+    const bound = counter.bump.bind(counter);
+
+    log('bound() →', bound(), bound(), bound());
+
+    log('');
+    log('before bind, everyone wrote this by hand:');
+    log('  var self = this;');
+    log('  setTimeout(function () { self.bump(); }, 100);');
+    log('');
+    log('bind also does partial application:');
+    const add = (a, b) => a + b;
+    log('  add.bind(null, 10)(5) →', add.bind(null, 10)(5));
+  }</script>
+</section>
+
+<section>
+  <h2>The small ones</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('String.prototype.trim →', JSON.stringify('  padded  '.trim()));
+    log('Date.now()           →', typeof Date.now());
+    log('Date#toISOString     →', new Date(0).toISOString());
+    log('Array#indexOf on strings →', ['a', 'b'].indexOf('b'));
+
+    log('');
+    log('reserved words became legal as property names:');
+    const obj = { class: 'a', new: 'b', for: 'c', default: 'd' };
+    log('  ', obj, '| obj.class →', obj.class);
+    log('  in ES3 you had to write obj["class"].');
+
+    log('');
+    log('and trailing commas in literals stopped breaking IE:');
+    log('  ', JSON.stringify([1, 2, 3,]), JSON.stringify({ a: 1, }));
+  }</script>
+</section>
+
+<section>
+  <h2>Why it still matters</h2>
+  <div class="note">ES5 is the last version that runs everywhere without a transpiler, so it
+  is still the target for the widest-reach builds and for code that must run in very old
+  environments. Everything from ES6 onwards is built on the foundations laid here —
+  <code>Object.defineProperty</code> in particular is what makes classes, decorators and
+  reactive frameworks possible.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a timeline of the era:');
+    log('  1997  ES1');
+    log('  1998  ES2');
+    log('  1999  ES3    — regular expressions, try/catch');
+    log('  2000s ES4    — abandoned; too ambitious, no consensus');
+    log('  2009  ES5    — this page');
+    log('  2011  ES5.1  — editorial');
+    log('  2015  ES6    — the big one, and yearly releases ever since');
+  }</script>
+</section>
+
+</body>
+</html>

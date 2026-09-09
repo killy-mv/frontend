@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Date Get Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="date-get-methods">
+
+<h1>Date Get Methods</h1>
+<p class="lede">Reading the parts of a date. Every one of these reports in <b>local</b> time
+unless you use the <code>UTC</code> variant.</p>
+
+<section>
+  <h2>The full set</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T14:30:45.250');
+
+    log('getFullYear()    ', d.getFullYear());
+    log('getMonth()       ', d.getMonth(), '← 0-based, 4 is May');
+    log('getDate()        ', d.getDate(), '← day of the month');
+    log('getDay()         ', d.getDay(), '← day of the week, 0 is Sunday');
+    log('getHours()       ', d.getHours());
+    log('getMinutes()     ', d.getMinutes());
+    log('getSeconds()     ', d.getSeconds());
+    log('getMilliseconds()', d.getMilliseconds());
+    log('getTime()        ', d.getTime());
+    log('getTimezoneOffset()', d.getTimezoneOffset(), 'minutes');
+  }</script>
+
+  <div class="note warn">
+    <code>getDate()</code> is the day of the month. <code>getDay()</code> is the weekday.
+    <code>getYear()</code> is a deprecated relic that returns the year minus 1900 — never
+    use it.
+  </div>
+</section>
+
+<section>
+  <h2>Turning numbers into names</h2>
+  <p>There is no <code>getMonthName()</code>. Use an array, or better,
+  <code>toLocaleDateString</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    const d = new Date('2024-05-17T12:00:00');
+
+    log('by lookup: ', days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()]);
+    log('by locale: ', d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }));
+    log('short:     ', d.toLocaleDateString('en-GB', { weekday: 'short', month: 'short' }));
+    log('in French: ', d.toLocaleDateString('fr-FR', { weekday: 'long', month: 'long' }));
+  }</script>
+</section>
+
+<section>
+  <h2>UTC variants</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T23:30:00Z');
+
+    log('local hours:', d.getHours(), '| UTC hours:', d.getUTCHours());
+    log('local date: ', d.getDate(),  '| UTC date: ', d.getUTCDate());
+    log('local day:  ', d.getDay(),   '| UTC day:  ', d.getUTCDay());
+    log('offset:', d.getTimezoneOffset(), 'minutes (positive means behind UTC)');
+    log('');
+    log('If those pairs differ, your time zone crosses midnight relative to UTC.');
+  }</script>
+</section>
+
+<section>
+  <h2>Derived values</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T12:00:00');
+
+    // Day of the year
+    const start = new Date(d.getFullYear(), 0, 0);
+    log('day of the year:', Math.floor((d - start) / 86400000));
+
+    // Days in this month: day 0 of the next month
+    log('days in this month:', new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate());
+
+    // Is it a leap year?
+    const y = d.getFullYear();
+    log('leap year?', (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0);
+
+    // Is it a weekend?
+    log('weekend?', d.getDay() === 0 || d.getDay() === 6);
+
+    // Quarter
+    log('quarter:', Math.floor(d.getMonth() / 3) + 1);
+  }</script>
+</section>
+
+<section>
+  <h2>Ages and durations</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function ageOn(birth, when = new Date()) {
+      let age = when.getFullYear() - birth.getFullYear();
+      const monthDiff = when.getMonth() - birth.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && when.getDate() < birth.getDate())) age--;
+      return age;
+    }
+
+    log('born 1990-12-31, today:', ageOn(new Date(1990, 11, 31)));
+
+    function duration(ms) {
+      const s = Math.floor(ms / 1000);
+      return [
+        Math.floor(s / 86400) + 'd',
+        Math.floor(s % 86400 / 3600) + 'h',
+        Math.floor(s % 3600 / 60) + 'm',
+        s % 60 + 's'
+      ].join(' ');
+    }
+
+    log('100000000 ms is', duration(100000000));
+  }</script>
+</section>
+
+<section>
+  <h2>Inspect any date</h2>
+  <div class="stage">
+    <input id="picker" type="date" value="2024-05-17">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function inspect() {
+      const value = $('#picker').value;
+      if (!value) return;
+      const [y, m, day] = value.split('-').map(Number);
+      const d = new Date(y, m - 1, day);
+
+      log.clear();
+      log('date       ', d.toDateString());
+      log('getFullYear', d.getFullYear());
+      log('getMonth   ', d.getMonth(), '(' + d.toLocaleDateString('en', { month: 'long' }) + ')');
+      log('getDate    ', d.getDate());
+      log('getDay     ', d.getDay(), '(' + d.toLocaleDateString('en', { weekday: 'long' }) + ')');
+      log('week number', Math.ceil(((d - new Date(d.getFullYear(), 0, 1)) / 86400000 + 1) / 7));
+      log('epoch ms   ', d.getTime());
+    }
+
+    $('#picker').addEventListener('input', inspect);
+    inspect();
+  }</script>
+</section>
+
+</body>
+</html>

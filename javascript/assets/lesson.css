@@ -1,0 +1,381 @@
+/* ==========================================================================
+   JavaScript by Example — shared stylesheet
+   Used by the hub (index.html) and by every lesson page in /pages.
+   ========================================================================== */
+
+:root {
+  --bg: #f7f9fb;
+  --panel: #ffffff;
+  --ink: #16212c;
+  --ink-soft: #5a6b7c;
+  --ink-faint: #8a99a8;
+  --line: #dfe6ee;
+  --line-soft: #edf2f7;
+  --accent: #2563eb;
+  --accent-soft: #eaf1fe;
+  --ok: #12805c;
+  --warn: #9a5b00;
+  --code-bg: #16202b;
+  --code-ink: #dce6f2;
+  --radius: 10px;
+  --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--accent); }
+a:hover { text-decoration: none; }
+
+code, pre, kbd, samp { font-family: var(--mono); }
+
+/* ---------- top bar ------------------------------------------------------ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .brand {
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.topbar .brand span { color: var(--accent); }
+.topbar .crumb {
+  color: var(--ink-faint);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar .spacer { flex: 1; }
+.topbar .pager { display: flex; gap: 6px; }
+.topbar .pager a {
+  font-size: 13px;
+  text-decoration: none;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.topbar .pager a:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- page frame --------------------------------------------------- */
+
+.page {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px 24px 100px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 68px;
+  align-self: start;
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  font-size: 13.5px;
+  padding-right: 6px;
+}
+.sidebar details { margin-bottom: 4px; }
+.sidebar summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 5px 6px;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.sidebar summary::-webkit-details-marker { display: none; }
+.sidebar summary::before { content: "▸ "; color: var(--ink-faint); }
+.sidebar details[open] > summary::before { content: "▾ "; }
+.sidebar summary:hover { background: var(--line-soft); }
+.sidebar ol { list-style: none; margin: 2px 0 8px; padding: 0 0 0 12px; }
+.sidebar li { margin: 0; }
+.sidebar a {
+  display: block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+.sidebar a:hover { background: var(--line-soft); color: var(--ink); }
+.sidebar a.current {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+  font-weight: 600;
+}
+
+.content { min-width: 0; }
+
+/* ---------- lesson typography -------------------------------------------- */
+
+.content h1 {
+  margin: 0 0 10px;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+}
+.content .lede {
+  margin: 0 0 8px;
+  max-width: 70ch;
+  font-size: 17px;
+  color: var(--ink-soft);
+}
+.content h2 {
+  margin: 40px 0 8px;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.content h3 { margin: 24px 0 6px; font-size: 16px; }
+.content p { max-width: 72ch; margin: 0 0 12px; }
+.content ul, .content ol { max-width: 72ch; padding-left: 22px; }
+.content li { margin: 3px 0; }
+.content p code, .content li code, .content td code {
+  background: var(--line-soft);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+}
+
+.note {
+  max-width: 72ch;
+  margin: 14px 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  border-radius: 0 8px 8px 0;
+  font-size: 14.5px;
+}
+.note.warn { border-left-color: #d98324; background: #fdf5e9; }
+.note strong { font-weight: 650; }
+
+table.ref {
+  width: 100%;
+  max-width: 72ch;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 14.5px;
+}
+table.ref th, table.ref td {
+  text-align: left;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+table.ref th { color: var(--ink-soft); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ---------- example blocks ----------------------------------------------- */
+
+.example {
+  margin: 14px 0 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--panel);
+}
+.example pre.code {
+  margin: 0;
+  padding: 14px 16px;
+  background: var(--code-bg);
+  color: var(--code-ink);
+  font-size: 13.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+  tab-size: 2;
+}
+.example pre.out {
+  margin: 0;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  background: #fbfdff;
+  color: #12303f;
+  font-size: 13.5px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 320px;
+  overflow: auto;
+}
+.example pre.out::before {
+  content: "output";
+  display: block;
+  margin-bottom: 6px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+.example pre.out.empty { display: none; }
+.example pre.out .err { color: #b3261e; font-weight: 600; }
+
+/* live, interactive area written by hand inside a lesson */
+.stage {
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: #f4f7fb;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.example.attached { border-radius: 0 0 var(--radius) var(--radius); margin-top: 0; }
+
+button, .btn {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button:active { transform: translateY(1px); }
+input[type="text"], input[type="number"], input[type="email"],
+input[type="password"], input[type="search"], input[type="date"],
+select, textarea {
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+}
+label { font-size: 14px; color: var(--ink-soft); }
+
+/* ---------- syntax highlighting ------------------------------------------ */
+
+.tok-com { color: #7d92a6; font-style: italic; }
+.tok-str { color: #9ad48b; }
+.tok-num { color: #f0b27a; }
+.tok-key { color: #7ab7ff; }
+.tok-lit { color: #d99ae0; }
+
+/* ---------- footer pager -------------------------------------------------- */
+
+.pager-foot {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.pager-foot a {
+  flex: 1;
+  text-decoration: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  padding: 12px 16px;
+  color: var(--ink);
+  min-width: 0;
+}
+.pager-foot a:hover { border-color: var(--accent); }
+.pager-foot a small {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.pager-foot a.next { text-align: right; }
+.pager-foot a.ghost { visibility: hidden; }
+
+/* ---------- hub (index.html) ---------------------------------------------- */
+
+.hub { max-width: 1100px; margin: 0 auto; padding: 0 24px 100px; }
+.hub .masthead { padding: 56px 0 24px; }
+.hub .masthead h1 { margin: 0 0 12px; font-size: 40px; letter-spacing: -0.03em; }
+.hub .masthead p { margin: 0 0 10px; max-width: 68ch; color: var(--ink-soft); font-size: 17px; }
+.hub .filter {
+  position: sticky;
+  top: 10px;
+  z-index: 10;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 18px 0 32px;
+}
+.hub .filter input { flex: 1; max-width: 420px; padding: 9px 14px; }
+.hub .filter .count { font-size: 13px; color: var(--ink-faint); }
+.hub .group { margin-bottom: 34px; }
+.hub .group > h2 {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.hub .cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+.hub .card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 13px 15px;
+}
+.hub .card:hover { border-color: var(--accent); box-shadow: 0 2px 10px rgba(37, 99, 235, 0.08); }
+.hub .card b { display: block; font-weight: 620; margin-bottom: 3px; }
+.hub .card span { font-size: 13.5px; color: var(--ink-soft); }
+.hub .card .n { float: right; color: var(--ink-faint); font-size: 12px; font-family: var(--mono); }
+
+/* ---------- small screens -------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .page { grid-template-columns: 1fr; gap: 20px; padding-top: 18px; }
+  .sidebar {
+    position: static;
+    max-height: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel);
+    padding: 10px;
+  }
+  .content h1 { font-size: 26px; }
+}

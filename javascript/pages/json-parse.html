@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON.parse — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-parse">
+
+<h1>JSON.parse</h1>
+<p class="lede">Text in, value out — or an exception. There is no third outcome, which is
+why every call belongs in a <code>try</code>.</p>
+
+<section>
+  <h2>The basics</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = '{"id":1,"name":"Ada","tags":["a","b"],"active":true,"score":null}';
+    const value = JSON.parse(text);
+
+    log('parsed →', value);
+    log('');
+    log('the types came back intact:');
+    Object.entries(value).forEach(([k, v]) =>
+      log('  ' + k.padEnd(8), (Array.isArray(v) ? 'array' : v === null ? 'null' : typeof v)));
+
+    log('');
+    log('and it is a brand new object every time:');
+    log('  parse(text) === parse(text) →', JSON.parse(text) === JSON.parse(text));
+  }</script>
+</section>
+
+<section>
+  <h2>It throws</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const inputs = [
+      ['', 'an empty string'],
+      ['undefined', 'the word undefined'],
+      ['{a:1}', 'unquoted key'],
+      ["{'a':1}", 'single quotes'],
+      ['{"a":1,}', 'trailing comma'],
+      ['<!DOCTYPE html>', 'an HTML error page — the classic'],
+      ['{"a":1}{"b":2}', 'two documents in one string']
+    ];
+
+    inputs.forEach(([text, why]) => {
+      let outcome;
+      try { JSON.parse(text); outcome = 'parsed?!'; }
+      catch (err) { outcome = err.name; }
+      log(outcome.padEnd(12), JSON.stringify(text).padEnd(22), why);
+    });
+
+    log('');
+    log('so the safe form is always:');
+    log('');
+    log('  function safeParse(text, fallback = null) {');
+    log('    try { return JSON.parse(text); }');
+    log('    catch { return fallback; }');
+    log('  }');
+
+    function safeParse(text, fallback = null) {
+      try { return JSON.parse(text); } catch (err) { return fallback; }
+    }
+    log('');
+    log('  safeParse("{bad}")        →', safeParse('{bad}'));
+    log('  safeParse("{bad}", {})    →', safeParse('{bad}', {}));
+    log('  safeParse(\'{"ok":1}\')     →', safeParse('{"ok":1}'));
+  }</script>
+</section>
+
+<section>
+  <h2>The reviver</h2>
+  <p>A second argument, called for every key/value pair, deepest first. Return a value to
+  replace it, or <code>undefined</code> to delete the key.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = '{"a":1,"b":{"c":2,"d":[3,4]}}';
+
+    log('the order the reviver sees things:');
+    JSON.parse(text, function (key, value) {
+      log('  key', JSON.stringify(key).padEnd(6), '→', JSON.stringify(value));
+      return value;
+    });
+
+    log('');
+    log('the last call is always the empty key "", with the whole document.');
+    log('`this` inside a non-arrow reviver is the containing object.');
+  }</script>
+</section>
+
+<section>
+  <h2>Reviving dates</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = '{"title":"Launch","start":"2026-09-09T09:00:00.000Z","note":"not a date"}';
+
+    const plain = JSON.parse(text);
+    log('without a reviver → start is a', typeof plain.start);
+
+    const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+    const revived = JSON.parse(text, (key, value) =>
+      typeof value === 'string' && ISO.test(value) ? new Date(value) : value);
+
+    log('with a reviver    → start is a', revived.start.constructor.name);
+    log('  ', revived.start.toDateString());
+    log('  note is still a', typeof revived.note);
+
+    log('');
+    log('safer: only revive keys you expect to be dates.');
+    const byKey = JSON.parse(text, (key, value) =>
+      ['start', 'end', 'createdAt'].includes(key) ? new Date(value) : value);
+    log('  by key →', byKey.start instanceof Date, '| note untouched:', byKey.note);
+  }</script>
+</section>
+
+<section>
+  <h2>Filtering and transforming</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = JSON.stringify({
+      id: 1,
+      name: 'Ada',
+      password: 'hunter2',
+      internalId: 'x-993',
+      profile: { bio: 'Engineer', password: 'nested-secret' }
+    });
+
+    // Return undefined to drop a key, at any depth.
+    const cleaned = JSON.parse(text, (key, value) =>
+      key === 'password' || key.startsWith('internal') ? undefined : value);
+
+    log('original →', JSON.parse(text));
+    log('cleaned  →', cleaned);
+
+    log('');
+    log('or normalise as you read:');
+    const normalised = JSON.parse('{"NAME":"ada","AGE":"36"}', (key, value) =>
+      typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : value);
+    log('  ', normalised, '| age is a', typeof normalised.AGE);
+  }</script>
+</section>
+
+<section>
+  <h2>Validate what you parse</h2>
+  <div class="note warn">Parsing succeeds as long as the syntax is valid. It says nothing
+  about whether the data has the fields you need, or the right types. A response from
+  someone else's server is untrusted input.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function parseUser(text) {
+      let value;
+      try { value = JSON.parse(text); }
+      catch (err) { return { ok: false, error: 'not JSON: ' + err.message.slice(0, 40) }; }
+
+      if (typeof value !== 'object' || value === null || Array.isArray(value))
+        return { ok: false, error: 'expected an object' };
+      if (typeof value.id !== 'number' || !Number.isInteger(value.id))
+        return { ok: false, error: 'id must be an integer' };
+      if (typeof value.name !== 'string' || !value.name.trim())
+        return { ok: false, error: 'name must be a non-empty string' };
+      if (value.email !== undefined && typeof value.email !== 'string')
+        return { ok: false, error: 'email, if present, must be a string' };
+
+      return { ok: true, user: { id: value.id, name: value.name.trim(), email: value.email ?? null } };
+    }
+
+    ['{"id":1,"name":"Ada"}',
+     '{"id":"1","name":"Ada"}',
+     '{"id":1}',
+     '[1,2,3]',
+     'not json'].forEach(text => log(text.padEnd(24), '→', parseUser(text)));
+
+    log('');
+    log('note that the result contains ONLY the fields we asked for —');
+    log('extra keys from the server never reach the rest of the program.');
+  }</script>
+</section>
+
+<section>
+  <h2>Prototype pollution</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const hostile = '{"__proto__":{"isAdmin":true},"name":"Ada"}';
+    const parsed = JSON.parse(hostile);
+
+    log('parsed →', parsed);
+    log('');
+    log('JSON.parse itself is safe — it creates a plain own property:');
+    log('  Object.keys(parsed)      →', Object.keys(parsed));
+    log('  parsed.isAdmin           →', parsed.isAdmin);
+    log('  ({}).isAdmin             →', ({}).isAdmin, '← nothing leaked');
+
+    log('');
+    log('the danger is what you do NEXT. A naive deep merge copies that key');
+    log('onto a real prototype:');
+    log('');
+    log('  function merge(target, source) {');
+    log('    for (const key in source) {                    // ← no guard');
+    log('      if (typeof source[key] === "object") merge(target[key] ??= {}, source[key]);');
+    log('      else target[key] = source[key];');
+    log('    }');
+    log('  }');
+    log('');
+    log('the fix: skip __proto__, constructor and prototype, or parse into a');
+    log('null-prototype object:');
+
+    const safe = JSON.parse(hostile, function (key, value) {
+      if (key === '__proto__' || key === 'constructor') return undefined;
+      return value;
+    });
+    log('  with a guarding reviver →', safe);
+  }</script>
+</section>
+
+<section>
+  <h2>Performance</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const big = JSON.stringify(
+      Array.from({ length: 20000 }, (_, i) => ({ id: i, name: 'row ' + i, active: i % 2 === 0 })));
+
+    log('document size:', (big.length / 1024).toFixed(0) + 'KB');
+
+    let t = performance.now();
+    const plain = JSON.parse(big);
+    const plainTime = performance.now() - t;
+
+    t = performance.now();
+    JSON.parse(big, (key, value) => value);
+    const reviverTime = performance.now() - t;
+
+    log('parse            →', plainTime.toFixed(1) + 'ms for', plain.length, 'rows');
+    log('parse + reviver  →', reviverTime.toFixed(1) + 'ms',
+        '(' + (reviverTime / plainTime).toFixed(1) + '× slower)');
+
+    log('');
+    log('JSON.parse is native and fast, but it is SYNCHRONOUS — a 20MB');
+    log('document blocks the page for the whole parse. For anything large,');
+    log('parse it in a worker, or stream it as NDJSON.');
+  }</script>
+</section>
+
+</body>
+</html>

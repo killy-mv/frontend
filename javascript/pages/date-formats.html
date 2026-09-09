@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Date Formats — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="date-formats">
+
+<h1>Date Formats</h1>
+<p class="lede">Two problems: parsing a string into a Date, and turning a Date back into a
+string a human wants to read. ISO for the first, <code>Intl</code> for the second.</p>
+
+<section>
+  <h2>Input formats</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const inputs = [
+      '2024-05-17',                 // ISO date — parsed as UTC
+      '2024-05-17T14:30:00',        // ISO date-time — parsed as local
+      '2024-05-17T14:30:00Z',       // explicit UTC
+      '2024-05-17T14:30:00+02:00',  // explicit offset
+      '2024-05',                    // year and month
+      '2024',                       // year only
+      'May 17, 2024',               // long, works in practice
+      '05/17/2024'                  // US short, non-standard
+    ];
+
+    inputs.forEach(s => {
+      const d = new Date(s);
+      log(s.padEnd(30), isNaN(d) ? 'Invalid Date' : d.toISOString());
+    });
+  }</script>
+
+  <div class="note">Only the ISO forms are guaranteed by the specification. Anything else is
+  up to the engine — parse it yourself if you cannot control the input.</div>
+</section>
+
+<section>
+  <h2>Output formats built into Date</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T14:30:45Z');
+
+    log('toString()        ', d.toString());
+    log('toISOString()     ', d.toISOString());
+    log('toJSON()          ', d.toJSON());
+    log('toDateString()    ', d.toDateString());
+    log('toTimeString()    ', d.toTimeString());
+    log('toUTCString()     ', d.toUTCString());
+    log('toLocaleDateString', d.toLocaleDateString());
+    log('toLocaleTimeString', d.toLocaleTimeString());
+    log('toLocaleString    ', d.toLocaleString());
+  }</script>
+</section>
+
+<section>
+  <h2>Locale formatting</h2>
+  <p><code>toLocaleDateString</code> takes a locale and an options object. This is the right
+  tool for anything a person will read.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T14:30:00');
+
+    log('en-US  ', d.toLocaleDateString('en-US'));
+    log('en-GB  ', d.toLocaleDateString('en-GB'));
+    log('de-DE  ', d.toLocaleDateString('de-DE'));
+    log('ja-JP  ', d.toLocaleDateString('ja-JP'));
+
+    log('');
+    log('long   ', d.toLocaleDateString('en-GB', { dateStyle: 'full' }));
+    log('medium ', d.toLocaleDateString('en-GB', { dateStyle: 'medium' }));
+    log('custom ', d.toLocaleDateString('en-GB', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    }));
+    log('time   ', d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+  }</script>
+</section>
+
+<section>
+  <h2>Intl.DateTimeFormat</h2>
+  <p>The same engine, but the formatter is reusable — noticeably faster in a loop.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    ['2024-01-05', '2024-06-15', '2024-12-25'].forEach(s =>
+      log(formatter.format(new Date(s))));
+
+    log('');
+    log('resolved options:', formatter.resolvedOptions().timeZone);
+    log('parts:', formatter.formatToParts(new Date()).map(p => p.type + '=' + p.value).join(' '));
+  }</script>
+</section>
+
+<section>
+  <h2>Relative time</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+    log(rtf.format(-1, 'day'));
+    log(rtf.format(2, 'hour'));
+    log(rtf.format(-3, 'week'));
+
+    function ago(date) {
+      const seconds = (date - Date.now()) / 1000;
+      const units = [['year', 31536000], ['month', 2592000], ['day', 86400],
+                     ['hour', 3600], ['minute', 60], ['second', 1]];
+      for (const [unit, size] of units) {
+        if (Math.abs(seconds) >= size || unit === 'second') {
+          return rtf.format(Math.round(seconds / size), unit);
+        }
+      }
+    }
+
+    log(ago(new Date(Date.now() - 45 * 1000)));
+    log(ago(new Date(Date.now() - 3 * 3600 * 1000)));
+    log(ago(new Date(Date.now() + 5 * 86400 * 1000)));
+  }</script>
+</section>
+
+<section>
+  <h2>Formatting for storage vs display</h2>
+  <div class="stage">
+    <input id="picker" type="datetime-local" value="2024-05-17T14:30">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function show() {
+      const d = new Date($('#picker').value);
+      log.clear();
+      if (isNaN(d)) { log('invalid'); return; }
+
+      log('for a database / API (always UTC ISO):');
+      log('  ' + d.toISOString());
+      log('for an <input type="date"> value:');
+      log('  ' + d.toISOString().slice(0, 10));
+      log('for a person:');
+      log('  ' + d.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }));
+      log('epoch milliseconds:');
+      log('  ' + d.getTime());
+    }
+
+    $('#picker').addEventListener('input', show);
+    show();
+  }</script>
+</section>
+
+</body>
+</html>

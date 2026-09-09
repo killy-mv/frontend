@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Map Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="map-methods">
+
+<h1>Map Methods</h1>
+<p class="lede">Five methods and one property cover everything a Map does.</p>
+
+<section>
+  <h2>set, get, has, delete, clear, size</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const m = new Map();
+
+    log('set() returns the map:', m.set('a', 1));
+    m.set('b', 2).set('c', 3);
+
+    log('get("a")     →', m.get('a'));
+    log('get("zzz")   →', m.get('zzz'), '(missing keys give undefined)');
+    log('has("b")     →', m.has('b'));
+    log('delete("b")  →', m.delete('b'));
+    log('delete("b")  →', m.delete('b'), '(false the second time)');
+    log('size         →', m.size);
+
+    m.set('a', 99);
+    log('setting an existing key overwrites:', m.get('a'));
+
+    m.clear();
+    log('after clear: size', m.size);
+  }</script>
+</section>
+
+<section>
+  <h2>undefined vs missing</h2>
+  <p><code>get()</code> returns <code>undefined</code> either way. Use <code>has()</code>
+  when the difference matters.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const m = new Map();
+    m.set('present', undefined);
+
+    log('get("present") →', m.get('present'));
+    log('get("absent")  →', m.get('absent'));
+    log('has("present") →', m.has('present'));
+    log('has("absent")  →', m.has('absent'));
+
+    // The default-value idiom:
+    const withDefault = (map, key, fallback) => (map.has(key) ? map.get(key) : fallback);
+    log('withDefault(absent, 0) →', withDefault(m, 'absent', 0));
+  }</script>
+</section>
+
+<section>
+  <h2>keys, values, entries</h2>
+  <p>All three return iterators, not arrays. They are live views: change the Map while
+  iterating and the iterator sees it.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const m = new Map([['a', 1], ['b', 2]]);
+
+    const keys = m.keys();
+    log('an iterator:', typeof keys.next);
+    log('next():', keys.next());
+    log('next():', keys.next());
+    log('next():', keys.next());
+
+    log('');
+    log('spread to get an array:', [...m.keys()]);
+    log('entries:', [...m.entries()]);
+    log('entries() is the default iterator:', [...m].length === [...m.entries()].length);
+  }</script>
+</section>
+
+<section>
+  <h2>Object.groupBy and Map.groupBy</h2>
+  <p>ES2024. Group a list by a computed key in one call — the <code>reduce</code> boilerplate
+  finally got a name.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const people = [
+      { name: 'Ada', dept: 'eng' },
+      { name: 'Alan', dept: 'eng' },
+      { name: 'Grace', dept: 'ops' }
+    ];
+
+    if (typeof Map.groupBy === 'function') {
+      log('Map.groupBy:', Map.groupBy(people, p => p.dept));
+      log('Object.groupBy:', Object.groupBy(people, p => p.dept));
+    } else {
+      log('not supported in this browser — here is the manual version');
+    }
+
+    // The manual equivalent:
+    const grouped = people.reduce((map, p) => {
+      if (!map.has(p.dept)) map.set(p.dept, []);
+      map.get(p.dept).push(p);
+      return map;
+    }, new Map());
+    log('by hand:', [...grouped].map(([k, v]) => k + '=' + v.length).join(', '));
+  }</script>
+</section>
+
+<section>
+  <h2>WeakMap</h2>
+  <p>Keys must be objects, and they are held weakly: when nothing else references the key,
+  the entry disappears. Good for attaching private data to objects.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const privateData = new WeakMap();
+
+    class Counter {
+      constructor() {
+        privateData.set(this, { count: 0 });
+      }
+      increment() {
+        const data = privateData.get(this);
+        data.count++;
+        return data.count;
+      }
+    }
+
+    const c = new Counter();
+    log('increment →', c.increment(), c.increment());
+    log('the count is not on the instance:', Object.keys(c));
+
+    try {
+      new WeakMap().set('a string', 1);
+    } catch (err) {
+      log('primitive key →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>A small cache</h2>
+  <div class="stage">
+    <input id="n" type="number" value="35" style="width:100px">
+    <button id="slow">Without cache</button>
+    <button id="fast">With cache</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function fib(n) {
+      return n < 2 ? n : fib(n - 1) + fib(n - 2);
+    }
+
+    const cache = new Map();
+    function fibCached(n) {
+      if (cache.has(n)) return cache.get(n);
+      const value = n < 2 ? n : fibCached(n - 1) + fibCached(n - 2);
+      cache.set(n, value);
+      return value;
+    }
+
+    function time(label, fn, n) {
+      const start = performance.now();
+      const result = fn(n);
+      log(label, 'fib(' + n + ') =', result, 'in', (performance.now() - start).toFixed(2), 'ms');
+    }
+
+    $('#slow').onclick = () => time('plain: ', fib, Math.min(Number($('#n').value), 35));
+    $('#fast').onclick = () => {
+      time('cached:', fibCached, Math.min(Number($('#n').value), 35));
+      log('  cache now holds', cache.size, 'entries');
+    };
+  }</script>
+</section>
+
+</body>
+</html>

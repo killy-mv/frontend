@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scope — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="scope">
+
+<h1>Scope</h1>
+<p class="lede">Where a name is visible. JavaScript has three kinds: block scope, function
+scope and global scope — and looks outward through them, never inward.</p>
+
+<section>
+  <h2>Block scope</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    {
+      let blockOnly = 'inside';
+      const alsoBlockOnly = 'inside';
+      var notBlockScoped = 'escapes';
+      log('inside the block:', blockOnly);
+    }
+
+    log('typeof blockOnly →', typeof blockOnly, '← gone');
+    log('notBlockScoped   →', notBlockScoped, '← var ignored the block');
+  }</script>
+</section>
+
+<section>
+  <h2>Function scope</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function outer() {
+      const local = 'only inside outer';
+      log('inside:', local);
+    }
+
+    outer();
+
+    try {
+      log(local);
+    } catch (err) {
+      log('outside →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>The scope chain</h2>
+  <p>An inner scope can read outward. An outer scope can never read inward.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const level1 = 'global-ish';
+
+    function first() {
+      const level2 = 'in first';
+
+      function second() {
+        const level3 = 'in second';
+        log('second sees:', level1, '|', level2, '|', level3);
+      }
+
+      second();
+      log('first sees level3?', typeof level3);
+    }
+
+    first();
+  }</script>
+</section>
+
+<section>
+  <h2>Shadowing</h2>
+  <p>An inner declaration with the same name hides the outer one for the length of the
+  block.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const name = 'outer';
+
+    function show() {
+      const name = 'inner';
+      log('inside the function:', name);
+      {
+        const name = 'innermost';
+        log('inside the block:   ', name);
+      }
+      log('back in the function:', name);
+    }
+
+    show();
+    log('outside:            ', name);
+  }</script>
+</section>
+
+<section>
+  <h2>Global scope</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Assigning without a keyword creates a global, even from inside a function:
+    function leak() {
+      accidentalGlobal = 'oops';
+    }
+    leak();
+    log('window.accidentalGlobal →', window.accidentalGlobal);
+
+    log('');
+    log('globals to be aware of:');
+    ['document', 'console', 'setTimeout', 'JSON', 'Math'].forEach(name =>
+      log('  ' + name.padEnd(12) + typeof window[name]));
+
+    log('');
+    log('globalThis works everywhere, including Node:', typeof globalThis);
+  }</script>
+</section>
+
+<section>
+  <h2>Loop scope, and why it matters</h2>
+
+  <div class="stage">
+    <button data-n="0">0</button>
+    <button data-n="1">1</button>
+    <button data-n="2">2</button>
+  </div>
+  <script class="run">{
+    const { log, $$ } = demo();
+
+    const buttons = $$('button[data-n]');
+
+    // With var, every handler closes over the SAME i:
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function () {
+        log('var  handler thinks i is', i, '(always ' + buttons.length + ')');
+      });
+    }
+
+    // With let, each iteration gets its own j:
+    for (let j = 0; j < buttons.length; j++) {
+      buttons[j].addEventListener('click', function () {
+        log('let  handler knows j is', j);
+      });
+    }
+
+    log('click any button to compare');
+  }</script>
+</section>
+
+<section>
+  <h2>Keeping the global scope clean</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // The old pattern: an immediately invoked function expression.
+    const counter = (function () {
+      let count = 0;                    // private
+      return {
+        increment() { return ++count; },
+        get value() { return count; }
+      };
+    })();
+
+    counter.increment();
+    counter.increment();
+    log('counter.value →', counter.value);
+    log('count is not reachable:', typeof count);
+
+    log('');
+    log('modules do this by default — every module file has its own scope');
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typeof — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="typeof">
+
+<h1>Typeof</h1>
+<p class="lede">Eight possible return values, one of which is famously wrong. Knowing what
+<code>typeof</code> cannot tell you is more useful than knowing what it can.</p>
+
+<section>
+  <h2>The eight results</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const samples = [
+      ['a string', 'text'],
+      ['42', 42],
+      ['true', true],
+      ['undefined', undefined],
+      ['10n', 10n],
+      ["Symbol('s')", Symbol('s')],
+      ['function', function () {}],
+      ['{}', {}]
+    ];
+
+    samples.forEach(([label, v]) => log(label.padEnd(13), '→', typeof v));
+  }</script>
+</section>
+
+<section>
+  <h2>Everything else is "object"</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const things = [
+      ['null', null],
+      ['[]', []],
+      ['new Date()', new Date()],
+      ['/regex/', /regex/],
+      ['new Map()', new Map()],
+      ['new Error()', new Error()],
+      ['document', document]
+    ];
+
+    things.forEach(([label, v]) => log(label.padEnd(12), '→', typeof v));
+
+    log('');
+    log('typeof null === "object" is a bug that has been unfixable since 1995');
+  }</script>
+</section>
+
+<section>
+  <h2>Telling objects apart properly</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const values = [[], {}, null, new Date(), /re/, new Map(), 'str', 42];
+
+    function describe(v) {
+      if (v === null) return 'null';
+      if (Array.isArray(v)) return 'array';
+      if (typeof v !== 'object') return typeof v;
+      return Object.prototype.toString.call(v).slice(8, -1).toLowerCase();
+    }
+
+    values.forEach(v => log(String(describe(v)).padEnd(10), '←', typeof v));
+
+    log('');
+    log('Object.prototype.toString is the reliable one:');
+    log('  ', Object.prototype.toString.call([]));
+    log('  ', Object.prototype.toString.call(null));
+    log('  ', Object.prototype.toString.call(new Date()));
+  }</script>
+</section>
+
+<section>
+  <h2>instanceof</h2>
+  <p>Tests whether a constructor's prototype is in the object's chain. It works for your own
+  classes, but fails across iframes and for primitives.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Animal {}
+    class Dog extends Animal {}
+    const rex = new Dog();
+
+    log('rex instanceof Dog    →', rex instanceof Dog);
+    log('rex instanceof Animal →', rex instanceof Animal);
+    log('rex instanceof Object →', rex instanceof Object);
+
+    log('');
+    log('[] instanceof Array   →', [] instanceof Array);
+    log('"s" instanceof String →', 'str' instanceof String, '← primitives are not instances');
+    log('new String("s") instanceof String →', new String('s') instanceof String);
+    log('Array.isArray([])     →', Array.isArray([]), '← always prefer this for arrays');
+  }</script>
+</section>
+
+<section>
+  <h2>typeof on undeclared names</h2>
+  <p>The one place <code>typeof</code> does not throw — which is why it was the classic
+  feature-detection tool.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('typeof neverDeclared →', typeof neverDeclared);
+
+    try {
+      log(neverDeclared);
+    } catch (err) {
+      log('reading it directly →', err.name + ':', err.message);
+    }
+
+    log('');
+    log('feature detection:');
+    log('  typeof fetch        →', typeof fetch);
+    log('  typeof jQuery       →', typeof jQuery);
+    log('  "fetch" in window   →', 'fetch' in window);
+
+    // But typeof does NOT protect a let/const in its temporal dead zone:
+    try {
+      log(typeof tdz);
+    } catch (err) {
+      log('typeof on a TDZ variable →', err.name);
+    }
+    let tdz = 1;
+  }</script>
+</section>
+
+<section>
+  <h2>Constructor names</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const values = [[], {}, new Date(), 'text', 42, new Map(), () => {}];
+
+    values.forEach(v => log(
+      String(typeof v).padEnd(10),
+      String(v?.constructor?.name).padEnd(10),
+      Object.prototype.toString.call(v)
+    ));
+
+    log('');
+    log('constructor.name is readable but breaks under minification');
+  }</script>
+</section>
+
+<section>
+  <h2>Inspect a value</h2>
+  <div class="stage">
+    <input id="expr" value="[1, 2, 3]" style="flex:1">
+    <span style="font-size:13px;color:var(--ink-faint)">a JS expression</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function inspect() {
+      let value;
+      try {
+        value = eval('(' + $('#expr').value + ')');
+      } catch (err) {
+        log.clear(); log('cannot evaluate:', err.message); return;
+      }
+
+      log.clear();
+      log('value            ', value);
+      log('typeof           ', typeof value);
+      log('Array.isArray    ', Array.isArray(value));
+      log('toString tag     ', Object.prototype.toString.call(value));
+      log('constructor      ', value?.constructor?.name ?? '(none)');
+      log('instanceof Object', value instanceof Object);
+      log('truthy           ', Boolean(value));
+    }
+
+    $('#expr').addEventListener('input', inspect);
+    inspect();
+  }</script>
+</section>
+
+</body>
+</html>

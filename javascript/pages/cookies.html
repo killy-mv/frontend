@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cookies — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="cookies">
+
+<h1>Cookies</h1>
+<p class="lede">Small strings the browser stores per site and attaches to every request.
+<code>document.cookie</code> is one of the strangest APIs in the platform: reading gives you
+everything, writing sets one.</p>
+
+<div class="note warn">Cookies are tied to an origin. Opened from
+<code>file://</code> this page has no origin, so nothing will be stored. Serve the folder
+over http (<code>npx serve</code>, or <code>python -m http.server</code>) to see the
+examples work.</div>
+
+<section>
+  <h2>The one property</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('reading gives every readable cookie as ONE string:');
+    log('  ', JSON.stringify(document.cookie) || '(empty)');
+
+    log('');
+    log('writing one string sets ONE cookie — it does not replace the rest:');
+    log('  document.cookie = "theme=dark"');
+    log('');
+    log('the format is: name=value; option; option; …');
+    log('and the options are write-only. You can never read them back.');
+
+    log('');
+    log('protocol:', location.protocol,
+        location.protocol === 'file:' ? '← cookies will not persist here' : '');
+  }</script>
+</section>
+
+<section>
+  <h2>Setting and reading</h2>
+
+  <div class="stage">
+    <input id="name" value="theme" style="width:120px">
+    <input id="value" value="dark" style="width:120px">
+    <button id="set">set</button>
+    <button id="del">delete</button>
+    <button id="list">list</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function setCookie(name, value, days) {
+      const expires = new Date(Date.now() + days * 864e5).toUTCString();
+      document.cookie =
+        encodeURIComponent(name) + '=' + encodeURIComponent(value) +
+        '; expires=' + expires + '; path=/; SameSite=Lax';
+    }
+
+    function getCookie(name) {
+      const match = document.cookie
+        .split('; ')
+        .find(row => row.startsWith(encodeURIComponent(name) + '='));
+      return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : null;
+    }
+
+    function deleteCookie(name) {
+      // The only way to delete: set it with a date in the past.
+      document.cookie = encodeURIComponent(name) + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+    }
+
+    function listCookies() {
+      return Object.fromEntries(
+        document.cookie.split('; ').filter(Boolean).map(row => {
+          const [k, ...rest] = row.split('=');
+          return [decodeURIComponent(k), decodeURIComponent(rest.join('='))];
+        }));
+    }
+
+    $('#set').addEventListener('click', () => {
+      setCookie($('#name').value, $('#value').value, 7);
+      log('set →', getCookie($('#name').value) ?? '(not stored — see the warning above)');
+    });
+
+    $('#del').addEventListener('click', () => {
+      deleteCookie($('#name').value);
+      log('deleted →', getCookie($('#name').value));
+    });
+
+    $('#list').addEventListener('click', () => log('all cookies:', listCookies()));
+
+    log('these four helpers are all you ever need');
+    log('current:', listCookies());
+  }</script>
+</section>
+
+<section>
+  <h2>The options</h2>
+
+  <table class="ref">
+    <tr><th>Option</th><th>Meaning</th></tr>
+    <tr><td><code>expires=<i>date</i></code></td><td>absolute expiry, in UTC string form</td></tr>
+    <tr><td><code>max-age=<i>seconds</i></code></td><td>relative expiry — easier, and preferred</td></tr>
+    <tr><td>neither</td><td>a session cookie: gone when the browser closes</td></tr>
+    <tr><td><code>path=/</code></td><td>which paths get it; defaults to the current directory</td></tr>
+    <tr><td><code>domain=</code></td><td>share with subdomains; omit to keep it exact</td></tr>
+    <tr><td><code>secure</code></td><td>https only</td></tr>
+    <tr><td><code>SameSite=Lax|Strict|None</code></td><td>whether it is sent on cross-site requests</td></tr>
+    <tr><td><code>HttpOnly</code></td><td>set by the server; hidden from JavaScript entirely</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('two ways to say "expire in an hour":');
+    log('  max-age=3600');
+    log('  expires=' + new Date(Date.now() + 3600e3).toUTCString());
+
+    log('');
+    log('the default path is the current DIRECTORY, which surprises people:');
+    log('  set on /pages/cookies.html → visible only under /pages/');
+    log('  almost always add "path=/"');
+
+    log('');
+    log('SameSite:');
+    log('  Strict — never sent from another site, not even a normal link');
+    log('  Lax    — sent on top-level navigations (the modern default)');
+    log('  None   — sent everywhere, but then Secure is mandatory');
+  }</script>
+</section>
+
+<section>
+  <h2>The pitfalls</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('1. values cannot contain ; , = or whitespace — encode them:');
+    const raw = 'a=1; b=2';
+    log('   raw     →', raw);
+    log('   encoded →', encodeURIComponent(raw));
+
+    log('');
+    log('2. splitting on "=" breaks values that contain one:');
+    const row = 'token=abc=def';
+    log('   naive split →', row.split('=')[1], '← lost half the value');
+    log('   correct     →', row.split('=').slice(1).join('='));
+
+    log('');
+    log('3. the size limit is about 4KB per cookie, and ~50 per domain');
+    log('   and EVERY cookie is sent with EVERY request to that domain,');
+    log('   including images and stylesheets.');
+
+    log('');
+    log('4. deleting needs the same path and domain it was set with,');
+    log('   or nothing happens and you get a duplicate instead.');
+  }</script>
+</section>
+
+<section>
+  <h2>Cookies vs storage</h2>
+
+  <table class="ref">
+    <tr><th></th><th>Cookie</th><th>localStorage</th><th>sessionStorage</th></tr>
+    <tr><td>size</td><td>~4KB</td><td>~5MB</td><td>~5MB</td></tr>
+    <tr><td>sent to the server</td><td>always</td><td>never</td><td>never</td></tr>
+    <tr><td>expires</td><td>you choose</td><td>never</td><td>on tab close</td></tr>
+    <tr><td>readable by JS</td><td>unless HttpOnly</td><td>yes</td><td>yes</td></tr>
+    <tr><td>shared between tabs</td><td>yes</td><td>yes</td><td>no</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('use a cookie when the SERVER needs the value:');
+    log('  • a session id (and then make it HttpOnly + Secure + SameSite)');
+    log('  • a locale the server renders with');
+    log('');
+    log('use localStorage when only the browser needs it:');
+    log('  • UI preferences, a draft, a cached response');
+    log('');
+    log('never put a token the server needs into localStorage —');
+    log('any XSS on your page can read it. An HttpOnly cookie it cannot.');
+  }</script>
+</section>
+
+<section>
+  <h2>A consent-aware wrapper</h2>
+
+  <div class="stage">
+    <label><input type="checkbox" id="consent"> analytics consent</label>
+    <button id="track">record a visit</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const store = {
+      set(name, value, { days = 30, essential = false } = {}) {
+        if (!essential && !$('#consent').checked) {
+          log('  refused to set', name, '— no consent for non-essential cookies');
+          return false;
+        }
+        document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${days * 86400}; path=/; SameSite=Lax`;
+        log('  set', name, '=', value);
+        return true;
+      }
+    };
+
+    $('#track').addEventListener('click', () => {
+      log('recording a visit:');
+      store.set('session', 'abc123', { essential: true });
+      store.set('visits', String(Date.now()), { days: 365 });
+    });
+
+    log('essential cookies need no consent; anything else does.');
+    log('Enforce that in one place, not at every call site.');
+  }</script>
+</section>
+
+</body>
+</html>

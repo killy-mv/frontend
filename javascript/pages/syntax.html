@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Syntax — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="syntax">
+
+<h1>Syntax</h1>
+<p class="lede">The rules for how JavaScript is written: what counts as a value, what you may
+call things, and what the language treats as special.</p>
+
+<section>
+  <h2>Two kinds of value</h2>
+  <p><b>Literals</b> are values written directly in the code. <b>Variables</b> are names that
+  store values.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log(10.5);                      // number literal
+    log('a string literal');        // string literal
+    log(true);                      // boolean literal
+    log([1, 2, 3]);                 // array literal
+    log({ name: 'Ada' });           // object literal
+    log(/^ab+c$/);                  // regular expression literal
+    log(null);                      // the null literal
+  }</script>
+</section>
+
+<section>
+  <h2>Identifiers</h2>
+  <p>Names for variables, functions and properties. They must start with a letter,
+  <code>$</code> or <code>_</code>, and may then contain digits too.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let firstName = 'Ada';   // camelCase — the JavaScript convention
+    let _private = 1;        // leading underscore: "internal, do not touch"
+    let $el = 'often a DOM element';
+    let π = 3.14159;         // unicode letters are allowed, if unusual
+
+    log(firstName, _private, $el, π);
+
+    // let 1st = 'no';       ← SyntaxError: cannot start with a digit
+    // let my-name = 'no';   ← the parser reads this as "my minus name"
+  }</script>
+</section>
+
+<section>
+  <h2>JavaScript is case sensitive</h2>
+  <p><code>lastName</code> and <code>lastname</code> are two different variables. This is a
+  very common source of "but it's right there!" bugs.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let lastName = 'Lovelace';
+    let lastname = 'Byron';
+
+    log('lastName:', lastName);
+    log('lastname:', lastname);
+    log('same variable?', lastName === lastname);
+  }</script>
+</section>
+
+<section>
+  <h2>Expressions</h2>
+  <p>An expression is anything that produces a value. Statements are built out of them.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log(5 * 10);                    // 50
+    log('John' + ' ' + 'Doe');      // string concatenation
+    log(5 > 3);                     // a comparison is an expression too
+    log(true ? 'yes' : 'no');       // ternary
+    log((function () { return 'an IIFE'; })());
+  }</script>
+</section>
+
+<section>
+  <h2>Comments and case conventions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Anything after two slashes is ignored.
+    /* And anything between slash-star pairs,
+       even across several lines. */
+
+    const MAX_USERS = 100;      // UPPER_SNAKE: constants known at write time
+    let userCount = 3;          // camelCase: variables and functions
+    class UserAccount {}        // PascalCase: classes and constructors
+
+    log(MAX_USERS, userCount, UserAccount.name);
+  }</script>
+</section>
+
+<section>
+  <h2>Reserved words</h2>
+  <p>Some names belong to the language and cannot be used as identifiers.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // These would all be syntax errors as variable names:
+    const reserved = ['class', 'const', 'if', 'return', 'new', 'this', 'typeof', 'let'];
+    log('cannot be variable names:', reserved.join(', '));
+
+    // But they are perfectly fine as object property names:
+    const settings = { class: 'primary', if: 'always', new: true };
+    log('as properties, they are fine:', settings);
+    log('settings.class →', settings.class);
+  }</script>
+</section>
+
+</body>
+</html>

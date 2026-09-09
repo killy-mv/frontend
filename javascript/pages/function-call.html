@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>call() — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-call">
+
+<h1>call()</h1>
+<p class="lede">Calls a function with a <code>this</code> you choose, followed by the
+arguments one at a time.</p>
+
+<section>
+  <h2>The basic use</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function fullName() {
+      return this.firstName + ' ' + this.lastName;
+    }
+
+    const ada = { firstName: 'Ada', lastName: 'Lovelace' };
+    const alan = { firstName: 'Alan', lastName: 'Turing' };
+
+    log(fullName.call(ada));
+    log(fullName.call(alan));
+
+    log('');
+    log('fullName() with no this →', fullName(), '← this was window');
+  }</script>
+</section>
+
+<section>
+  <h2>Arguments after the first</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function introduce(greeting, punctuation) {
+      return `${greeting}, I am ${this.name}${punctuation}`;
+    }
+
+    const person = { name: 'Ada' };
+
+    log(introduce.call(person, 'Hello', '!'));
+    log(introduce.call(person, 'Hi', '.'));
+
+    log('');
+    log('call takes them individually; apply takes them as an array:');
+    log(introduce.apply(person, ['Hey', '?']));
+  }</script>
+</section>
+
+<section>
+  <h2>Borrowing a method</h2>
+  <p>The classic use: running an array method on something that is only array-<i>like</i>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const arrayLike = { 0: 'a', 1: 'b', 2: 'c', length: 3 };
+
+    log('has map?', typeof arrayLike.map);
+    log('borrowed join:  ', Array.prototype.join.call(arrayLike, '-'));
+    log('borrowed slice: ', Array.prototype.slice.call(arrayLike, 1));
+    log('borrowed map:   ', Array.prototype.map.call(arrayLike, s => s.toUpperCase()));
+
+    log('');
+    log('the modern way is usually simpler:');
+    log('  Array.from(arrayLike) →', Array.from(arrayLike));
+
+    // Borrowing from Object.prototype is still the reliable type check:
+    log('');
+    log('type tag of []      →', Object.prototype.toString.call([]));
+    log('type tag of null    →', Object.prototype.toString.call(null));
+    log('type tag of a Date  →', Object.prototype.toString.call(new Date()));
+  }</script>
+</section>
+
+<section>
+  <h2>Reusing a method across unrelated objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const formatter = {
+      format() {
+        return `${this.label}: ${this.value}`;
+      }
+    };
+
+    const items = [
+      { label: 'width', value: 100 },
+      { label: 'height', value: 40 },
+      { label: 'depth', value: 12 }
+    ];
+
+    items.forEach(item => log(formatter.format.call(item)));
+
+    log('');
+    log('forEach also takes a thisArg as its second parameter:');
+    items.forEach(function () {
+      log('  ' + this.label);
+    }, items[0]);
+  }</script>
+</section>
+
+<section>
+  <h2>Calling a parent constructor</h2>
+  <p>Before <code>class</code> and <code>super</code>, this is how inheritance chained
+  constructors.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Animal(name, sound) {
+      this.name = name;
+      this.sound = sound;
+    }
+
+    function Dog(name) {
+      Animal.call(this, name, 'Woof');       // "super(name, 'Woof')"
+      this.legs = 4;
+    }
+
+    const rex = new Dog('Rex');
+    log(rex);
+    log('the modern equivalent: class Dog extends Animal { constructor(n) { super(n, "Woof"); } }');
+  }</script>
+</section>
+
+<section>
+  <h2>call vs apply vs bind</h2>
+
+  <table class="ref">
+    <tr><th>Method</th><th>Arguments</th><th>Calls it?</th></tr>
+    <tr><td><code>fn.call(t, a, b)</code></td><td>listed</td><td>yes, now</td></tr>
+    <tr><td><code>fn.apply(t, [a, b])</code></td><td>as an array</td><td>yes, now</td></tr>
+    <tr><td><code>fn.bind(t, a)</code></td><td>listed, partial</td><td>no — returns a new function</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function add(a, b) { return this.base + a + b; }
+    const context = { base: 100 };
+
+    log('call: ', add.call(context, 1, 2));
+    log('apply:', add.apply(context, [1, 2]));
+    log('bind: ', add.bind(context)(1, 2));
+    log('bind returns:', typeof add.bind(context));
+
+    log('');
+    log('with spread, apply is rarely needed any more:');
+    log('  add.call(context, ...[1, 2]) →', add.call(context, ...[1, 2]));
+  }</script>
+</section>
+
+<section>
+  <h2>What null does</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function whatIsThis() {
+      return this === window ? 'window' : this === undefined ? 'undefined' : typeof this;
+    }
+
+    log('call(null) in sloppy mode →', whatIsThis.call(null), '← substituted');
+    log('call(42)   in sloppy mode →', whatIsThis.call(42), '← boxed into an object');
+
+    function strictVersion() {
+      'use strict';
+      return this === null ? 'null' : typeof this;
+    }
+    log('call(null) in strict mode →', strictVersion.call(null), '← left alone');
+  }</script>
+</section>
+
+</body>
+</html>

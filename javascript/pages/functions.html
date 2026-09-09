@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Functions — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="functions">
+
+<h1>Functions</h1>
+<p class="lede">A block of code with a name, written once and run whenever it is called.
+Functions take arguments and hand back a return value.</p>
+
+<section>
+  <h2>Declaring and calling</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function toCelsius(fahrenheit) {
+      return (fahrenheit - 32) * 5 / 9;
+    }
+
+    log('32°F  =', toCelsius(32), '°C');
+    log('212°F =', toCelsius(212), '°C');
+
+    // The name without parentheses is the function itself, not its result:
+    log('toCelsius   →', toCelsius);
+    log('toCelsius() →', toCelsius(98.6).toFixed(1));
+  }</script>
+</section>
+
+<section>
+  <h2>Return</h2>
+  <p>Execution stops at <code>return</code>. A function with no <code>return</code> gives
+  back <code>undefined</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function classify(n) {
+      if (n < 0) return 'negative';       // an early return, or "guard clause"
+      if (n === 0) return 'zero';
+      return 'positive';
+    }
+
+    log(classify(-5), classify(0), classify(5));
+
+    function noReturn() {
+      const wasted = 'this value never leaves';
+    }
+    log('noReturn() →', noReturn());
+  }</script>
+</section>
+
+<section>
+  <h2>Parameters and arguments</h2>
+  <p>Parameters are the names in the declaration; arguments are the values passed in.
+  JavaScript does not check how many you pass.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function greet(greeting, name = 'friend', ...rest) {
+      return greeting + ', ' + name + '!' + (rest.length ? ' (ignored: ' + rest + ')' : '');
+    }
+
+    log(greet('Hi'));
+    log(greet('Hi', 'Ada'));
+    log(greet('Hi', 'Ada', 1, 2, 3));
+
+    function tooFew(a, b) { return [a, b]; }
+    log('missing arguments are undefined:', tooFew(1));
+  }</script>
+</section>
+
+<section>
+  <h2>Functions are values</h2>
+  <p>They can be stored in variables, put in arrays, passed to other functions and returned
+  from them. This is what "first class functions" means.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const double = function (n) { return n * 2; };   // function expression
+    const triple = n => n * 3;                       // arrow function
+
+    const operations = [double, triple, n => n ** 2];
+    operations.forEach(fn => log(fn.name || 'anonymous', '(6) =', fn(6)));
+
+    // A function that returns a function:
+    function multiplier(by) {
+      return n => n * by;
+    }
+    const times10 = multiplier(10);
+    log('times10(7) =', times10(7));
+  }</script>
+</section>
+
+<section>
+  <h2>Why bother</h2>
+  <p>Reuse, naming and isolation. Variables declared inside a function are invisible
+  outside it.</p>
+
+  <div class="stage">
+    <input id="text" type="text" value="hello world" style="flex:1">
+    <button id="run">Title-case it</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function titleCase(input) {
+      const words = input.trim().toLowerCase().split(/\s+/);
+      return words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+
+    $('#run').onclick = function () {
+      log(titleCase($('#text').value));
+    };
+
+    log('words is local:', typeof words);
+  }</script>
+</section>
+
+<section>
+  <h2>Calling a function too early</h2>
+  <p>Function <b>declarations</b> are hoisted, so they can be called from a line above.
+  Function <b>expressions</b> assigned to <code>const</code> cannot.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('declared:', declared());
+
+    function declared() { return 'works from above'; }
+
+    try {
+      expressed();
+    } catch (err) {
+      log('expressed:', err.name + ':', err.message);
+    }
+
+    const expressed = () => 'only works after this line';
+  }</script>
+</section>
+
+</body>
+</html>

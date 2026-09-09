@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>For Of — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="loop-for-of">
+
+<h1>For Of</h1>
+<p class="lede">Loops over the <b>values</b> of anything iterable: arrays, strings, Maps,
+Sets, NodeLists, generators. It is the default loop in modern JavaScript.</p>
+
+<section>
+  <h2>Arrays and strings</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (const fruit of ['Apple', 'Banana', 'Cherry']) {
+      log(fruit);
+    }
+
+    log('');
+    for (const char of 'héllo') {
+      log(char);
+    }
+
+    log('');
+    log('for…of handles surrogate pairs that indexing splits apart:');
+    log('  [...] →', [...'a👋b']);
+    log('  length →', 'a👋b'.length, 'but characters →', [...'a👋b'].length);
+  }</script>
+</section>
+
+<section>
+  <h2>With the index</h2>
+  <p><code>entries()</code> yields <code>[index, value]</code> pairs, which destructure
+  neatly.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Apple', 'Banana', 'Cherry'];
+
+    for (const [i, value] of fruit.entries()) {
+      log(i, '→', value);
+    }
+
+    log('');
+    log('keys only:', [...fruit.keys()]);
+    log('values:   ', [...fruit.values()]);
+  }</script>
+</section>
+
+<section>
+  <h2>Maps and Sets</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const stock = new Map([['apples', 12], ['pears', 4], ['plums', 0]]);
+
+    for (const [item, count] of stock) {
+      log(item.padEnd(8), count);
+    }
+
+    log('');
+    const tags = new Set(['js', 'css', 'js', 'html']);
+    for (const tag of tags) log(tag);
+    log('duplicates were dropped:', tags.size, 'unique tags');
+  }</script>
+</section>
+
+<section>
+  <h2>DOM collections</h2>
+
+  <script class="run">{
+    const { log, $$ } = demo();
+
+    // This script runs while the page is still parsing, so it only sees the
+    // headings written above it — a useful reminder of script ordering.
+    const headings = document.querySelectorAll('h2');
+
+    for (const h of headings) {
+      log('•', h.textContent);
+    }
+
+    log('');
+    log('a NodeList is iterable, so no Array.from is needed');
+    log('but it has no .map — spread it if you want array methods:');
+    log([...headings].map(h => h.textContent.length));
+  }</script>
+</section>
+
+<section>
+  <h2>You can break out of it</h2>
+  <p>This is the main reason to prefer <code>for…of</code> over
+  <code>forEach</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [3, 7, 12, 5, 20];
+
+    for (const n of numbers) {
+      if (n > 10) {
+        log('first number over 10:', n);
+        break;
+      }
+      log('checked', n);
+    }
+
+    log('');
+    log('skipping with continue:');
+    for (const n of numbers) {
+      if (n % 2 === 0) continue;
+      log('  odd:', n);
+    }
+
+    log('');
+    log('forEach ignores break entirely — you would have to throw to stop it.');
+  }</script>
+</section>
+
+<section>
+  <h2>await inside the loop</h2>
+  <p><code>for await…of</code> waits for each item in turn — impossible with
+  <code>forEach</code>.</p>
+
+  <div class="stage">
+    <button id="go">Run a sequential loop</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    async function process(items) {
+      for (const item of items) {
+        await wait(300);
+        log('done:', item);
+      }
+      log('all finished');
+    }
+
+    $('#go').onclick = function () {
+      this.disabled = true;
+      log.clear();
+      log('starting…');
+      process(['first', 'second', 'third']).then(() => { this.disabled = false; });
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>Which loop to use</h2>
+  <table class="ref">
+    <tr><th>Loop</th><th>Gives you</th><th>Use for</th></tr>
+    <tr><td><code>for…of</code></td><td>values</td><td>arrays, strings, Maps, Sets</td></tr>
+    <tr><td><code>for…in</code></td><td>keys</td><td>plain objects</td></tr>
+    <tr><td><code>for (;;)</code></td><td>a counter</td><td>indexes, steps other than 1</td></tr>
+    <tr><td><code>forEach</code></td><td>value + index</td><td>a side effect, no early exit</td></tr>
+    <tr><td><code>map</code>/<code>filter</code>/<code>reduce</code></td><td>a new value</td><td>transforming data</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

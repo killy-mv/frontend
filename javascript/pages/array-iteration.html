@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Array Iteration — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="array-iteration">
+
+<h1>Array Iteration</h1>
+<p class="lede">Methods that run a function once per element. Choose by what you want back:
+nothing, a same-length array, a shorter array, or a single value.</p>
+
+<section>
+  <h2>forEach — do something, return nothing</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Apple', 'Banana', 'Cherry'];
+
+    fruit.forEach(function (value, index, array) {
+      log(index + ':', value, '(of ' + array.length + ')');
+    });
+
+    log('forEach returns:', fruit.forEach(() => {}));
+    log('you cannot break out of it — use for…of when you need to');
+  }</script>
+</section>
+
+<section>
+  <h2>map — one new value per element</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [45, 4, 9, 16, 25];
+
+    log('doubled:', numbers.map(n => n * 2));
+    log('with index:', numbers.map((n, i) => i + ':' + n));
+
+    const people = [{ first: 'Ada', last: 'L' }, { first: 'Alan', last: 'T' }];
+    log('extracting a field:', people.map(p => p.first));
+
+    // A classic trap: map's callback gets (value, index), and parseInt
+    // takes (string, radix) — so the index becomes the radix.
+    log("['10','10','10'].map(parseInt) →", ['10', '10', '10'].map(parseInt));
+    log('fixed with an arrow:', ['10', '10', '10'].map(s => parseInt(s, 10)));
+  }</script>
+</section>
+
+<section>
+  <h2>filter — keep the ones that pass</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [45, 4, 9, 16, 25];
+
+    log('over 18:', numbers.filter(n => n > 18));
+    log('even:   ', numbers.filter(n => n % 2 === 0));
+
+    // Removing empty values:
+    const messy = ['a', '', null, 'b', undefined, 0, 'c'];
+    log('truthy only:', messy.filter(Boolean));
+
+    // Removing duplicates:
+    const dupes = [1, 2, 2, 3, 1];
+    log('unique:', dupes.filter((v, i, arr) => arr.indexOf(v) === i));
+  }</script>
+</section>
+
+<section>
+  <h2>reduce — many values into one</h2>
+  <p>The callback gets an accumulator and the current value, and returns the next
+  accumulator. Always pass a starting value.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [45, 4, 9, 16, 25];
+
+    log('sum:', numbers.reduce((total, n) => total + n, 0));
+    log('max:', numbers.reduce((best, n) => (n > best ? n : best)));
+
+    // Watch it work:
+    numbers.reduce((total, n, i) => {
+      const next = total + n;
+      log('  step ' + i + ':', total, '+', n, '=', next);
+      return next;
+    }, 0);
+
+    // The accumulator can be any shape at all:
+    const words = ['apple', 'avocado', 'banana', 'blueberry', 'cherry'];
+    const grouped = words.reduce((acc, word) => {
+      const letter = word[0];
+      (acc[letter] ||= []).push(word);
+      return acc;
+    }, {});
+    log('grouped by first letter:', grouped);
+
+    log('reduceRight:', ['a', 'b', 'c'].reduceRight((a, b) => a + b));
+  }</script>
+</section>
+
+<section>
+  <h2>flatMap, entries, keys, values</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const sentences = ['hello world', 'how are you'];
+    log('map then flat:', sentences.map(s => s.split(' ')).flat());
+    log('flatMap:      ', sentences.flatMap(s => s.split(' ')));
+
+    // flatMap can also drop items, by returning an empty array:
+    log('filter+map in one:', [1, 2, 3, 4].flatMap(n => (n % 2 ? [n * 10] : [])));
+
+    const fruit = ['Apple', 'Banana'];
+    for (const [i, value] of fruit.entries()) log('entries:', i, value);
+    log('keys:  ', [...fruit.keys()]);
+    log('values:', [...fruit.values()]);
+  }</script>
+</section>
+
+<section>
+  <h2>Chaining them</h2>
+  <p>Each method returns an array, so they compose. This is the standard shape of data
+  handling in JavaScript.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const orders = [
+      { customer: 'Ada', total: 120, status: 'paid' },
+      { customer: 'Alan', total: 80, status: 'pending' },
+      { customer: 'Ada', total: 45, status: 'paid' },
+      { customer: 'Grace', total: 200, status: 'paid' }
+    ];
+
+    const revenue = orders
+      .filter(o => o.status === 'paid')
+      .map(o => o.total)
+      .reduce((a, b) => a + b, 0);
+
+    log('paid revenue:', revenue);
+
+    const perCustomer = orders
+      .filter(o => o.status === 'paid')
+      .reduce((acc, o) => {
+        acc[o.customer] = (acc[o.customer] || 0) + o.total;
+        return acc;
+      }, {});
+
+    log('per customer:', perCustomer);
+    log('best:', Object.entries(perCustomer).sort((a, b) => b[1] - a[1])[0]);
+  }</script>
+</section>
+
+<section>
+  <h2>Which to use</h2>
+  <table class="ref">
+    <tr><th>You want</th><th>Method</th></tr>
+    <tr><td>a side effect per item</td><td><code>forEach</code> (or <code>for…of</code>)</td></tr>
+    <tr><td>the same number of transformed items</td><td><code>map</code></td></tr>
+    <tr><td>fewer items</td><td><code>filter</code></td></tr>
+    <tr><td>one value out of many</td><td><code>reduce</code></td></tr>
+    <tr><td>to stop early</td><td><code>for…of</code>, <code>some</code>, <code>find</code></td></tr>
+  </table>
+</section>
+
+</body>
+</html>

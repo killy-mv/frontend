@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Number Properties — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="number-properties">
+
+<h1>Number Properties</h1>
+<p class="lede">Constants that describe the limits of the number type. They live on
+<code>Number</code> itself, not on individual numbers.</p>
+
+<section>
+  <h2>The constants</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('MAX_VALUE        ', Number.MAX_VALUE);
+    log('MIN_VALUE        ', Number.MIN_VALUE, '(smallest positive, not most negative)');
+    log('MAX_SAFE_INTEGER ', Number.MAX_SAFE_INTEGER);
+    log('MIN_SAFE_INTEGER ', Number.MIN_SAFE_INTEGER);
+    log('EPSILON          ', Number.EPSILON);
+    log('POSITIVE_INFINITY', Number.POSITIVE_INFINITY);
+    log('NEGATIVE_INFINITY', Number.NEGATIVE_INFINITY);
+    log('NaN              ', Number.NaN);
+  }</script>
+</section>
+
+<section>
+  <h2>MAX_VALUE and overflow</h2>
+  <p>Go past the maximum and you get <code>Infinity</code> — no error, no wrap-around.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('MAX_VALUE     ', Number.MAX_VALUE);
+    log('MAX_VALUE * 2 ', Number.MAX_VALUE * 2);
+    log('MIN_VALUE / 2 ', Number.MIN_VALUE / 2, '(underflows to zero)');
+    log('-MAX_VALUE * 2', -Number.MAX_VALUE * 2);
+  }</script>
+</section>
+
+<section>
+  <h2>MAX_SAFE_INTEGER</h2>
+  <p>"Safe" means every integer up to it can be represented exactly, and no two integers
+  share a representation.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const max = Number.MAX_SAFE_INTEGER;
+
+    log('max          ', max);
+    log('max + 1      ', max + 1);
+    log('max + 2      ', max + 2);
+    log('max + 1 === max + 2 →', max + 1 === max + 2, '← both are the same double');
+
+    log('isSafeInteger(max)   →', Number.isSafeInteger(max));
+    log('isSafeInteger(max+1) →', Number.isSafeInteger(max + 1));
+  }</script>
+</section>
+
+<section>
+  <h2>EPSILON</h2>
+  <p>The gap between 1 and the next representable number. Use it as a tolerance when
+  comparing decimals.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('EPSILON        ', Number.EPSILON);
+    log('0.1 + 0.2      ', 0.1 + 0.2);
+    log('difference     ', Math.abs((0.1 + 0.2) - 0.3));
+
+    function nearlyEqual(a, b, tolerance = Number.EPSILON) {
+      return Math.abs(a - b) < tolerance;
+    }
+
+    log('=== comparison ', 0.1 + 0.2 === 0.3);
+    log('nearlyEqual    ', nearlyEqual(0.1 + 0.2, 0.3));
+    log('but for big numbers, scale the tolerance:');
+    log('  1e10 case    ', nearlyEqual(1e10 + 0.1 + 0.2, 1e10 + 0.3, 1e-6));
+  }</script>
+</section>
+
+<section>
+  <h2>They belong to Number, not to numbers</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const n = 42;
+
+    log('Number.MAX_VALUE →', Number.MAX_VALUE);
+    log('n.MAX_VALUE      →', n.MAX_VALUE, '← undefined');
+    log('(42).MAX_VALUE   →', (42).MAX_VALUE);
+  }</script>
+</section>
+
+<section>
+  <h2>A range check helper</h2>
+
+  <div class="stage">
+    <input id="probe" type="text" value="9007199254740993" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function describe(raw) {
+      const n = Number(raw);
+      log.clear();
+      log('input          ', raw);
+      log('Number(input)  ', n);
+      log('finite?        ', Number.isFinite(n));
+      log('integer?       ', Number.isInteger(n));
+      log('safe integer?  ', Number.isSafeInteger(n));
+      log('exact round trip?', String(n) === raw.trim());
+      if (!Number.isSafeInteger(n) && /^\d+$/.test(raw.trim())) {
+        log('as BigInt      ', BigInt(raw.trim()));
+      }
+    }
+
+    $('#probe').addEventListener('input', e => describe(e.target.value));
+    describe($('#probe').value);
+  }</script>
+</section>
+
+</body>
+</html>

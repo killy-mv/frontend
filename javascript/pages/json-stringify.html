@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON.stringify — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-stringify">
+
+<h1>JSON.stringify</h1>
+<p class="lede">Value in, text out. Three arguments: the value, a filter, and how to indent.</p>
+
+<section>
+  <h2>The three arguments</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const user = { id: 1, name: 'Ada', password: 'secret', tags: ['a', 'b'] };
+
+    log('1. value only:');
+    log('  ', JSON.stringify(user));
+
+    log('');
+    log('2. with a list of keys to keep:');
+    log('  ', JSON.stringify(user, ['id', 'name']));
+
+    log('');
+    log('3. with an indent:');
+    log(JSON.stringify(user, ['id', 'name', 'tags'], 2));
+
+    log('');
+    log('the indent can be a string, too:');
+    log(JSON.stringify({ a: 1, b: { c: 2 } }, null, '··'));
+  }</script>
+</section>
+
+<section>
+  <h2>The replacer function</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const record = {
+      id: 7,
+      name: 'Ada',
+      password: 'hunter2',
+      secretToken: 'abc123',
+      profile: { bio: 'Engineer', password: 'nested' },
+      balance: 1234.5678
+    };
+
+    // Called for every key, top down. Return undefined to omit the key.
+    const text = JSON.stringify(record, (key, value) => {
+      if (/password|token|secret/i.test(key)) return undefined;
+      if (typeof value === 'number' && !Number.isInteger(value)) return Number(value.toFixed(2));
+      return value;
+    }, 2);
+
+    log(text);
+
+    log('');
+    log('note it removed the NESTED password too — the replacer visits');
+    log('every level.');
+
+    log('');
+    log('the first call is always ("", theWholeValue):');
+    JSON.stringify({ a: 1 }, (key, value) => {
+      log('  key', JSON.stringify(key), '→', JSON.stringify(value));
+      return value;
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>toJSON</h2>
+  <p>If a value has a <code>toJSON</code> method, <code>stringify</code> uses its return
+  value instead. This is how <code>Date</code> works, and how your own classes can.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Money {
+      constructor(amount, currency) {
+        this.amount = amount;
+        this.currency = currency;
+      }
+      toJSON() {
+        return `${this.amount.toFixed(2)} ${this.currency}`;
+      }
+    }
+
+    class User {
+      #password = 'never-serialised';
+      constructor(id, name) { this.id = id; this.name = name; }
+      toJSON() {
+        return { id: this.id, name: this.name, type: 'user' };
+      }
+    }
+
+    const order = {
+      user: new User(1, 'Ada'),
+      total: new Money(49.5, 'GBP'),
+      placed: new Date('2026-09-09T10:00:00Z')
+    };
+
+    log(JSON.stringify(order, null, 2));
+
+    log('');
+    log('without toJSON, User would serialise its public fields and silently');
+    log('drop the private one. With it, you decide exactly what goes out.');
+  }</script>
+</section>
+
+<section>
+  <h2>Pretty printing</h2>
+
+  <div class="stage">
+    <label>indent <input id="indent" type="number" value="2" min="0" max="10" style="width:70px"></label>
+    <button id="sort">sort keys</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const data = { zebra: 1, apple: { nested: true, another: [1, 2] }, mango: 'fruit' };
+    let sorted = false;
+
+    function show() {
+      log.clear();
+      const indent = Number($('#indent').value);
+      const replacer = sorted
+        ? (key, value) => (value && typeof value === 'object' && !Array.isArray(value)
+            ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+            : value)
+        : null;
+
+      log(JSON.stringify(data, replacer, indent) || '(empty)');
+      log('');
+      log('length:', JSON.stringify(data, replacer, indent).length, 'characters');
+      log('indent 0 or omitted gives the compact form — always use that on');
+      log('the wire, and indent only for humans.');
+    }
+
+    $('#indent').addEventListener('input', show);
+    $('#sort').addEventListener('click', () => { sorted = !sorted; show(); });
+    show();
+  }</script>
+</section>
+
+<section>
+  <h2>Things that surprise people</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('stringify can return undefined, not a string:');
+    [undefined, function () {}, Symbol('s')].forEach(v =>
+      log('  ', String(JSON.stringify(v)), '←', typeof v));
+
+    log('');
+    log('so this is a real bug:');
+    log('  JSON.stringify(undefined).length  → TypeError');
+    log('  String(JSON.stringify(x))         → always safe');
+
+    log('');
+    log('wrapper objects unwrap:');
+    log('  new String("a") →', JSON.stringify(new String('a')));
+    log('  new Number(5)   →', JSON.stringify(new Number(5)));
+    log('  new Boolean(1)  →', JSON.stringify(new Boolean(1)));
+
+    log('');
+    log('a getter is called, and its result serialised:');
+    const withGetter = { base: 2, get double() { return this.base * 2; } };
+    log('  ', JSON.stringify(withGetter));
+
+    log('');
+    log('non-enumerable properties are skipped:');
+    const partly = { visible: 1 };
+    Object.defineProperty(partly, 'hidden', { value: 2, enumerable: false });
+    log('  ', JSON.stringify(partly));
+  }</script>
+</section>
+
+<section>
+  <h2>Circular references</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const parent = { name: 'parent' };
+    const child = { name: 'child', parent };
+    parent.child = child;
+
+    try { JSON.stringify(parent); }
+    catch (err) { log(err.name + ':', err.message.split('\n')[0]); }
+
+    log('');
+    log('the standard fix — remember what you have seen:');
+
+    function safeStringify(value, indent) {
+      const seen = new WeakSet();
+      return JSON.stringify(value, (key, v) => {
+        if (typeof v === 'object' && v !== null) {
+          if (seen.has(v)) return '[Circular]';
+          seen.add(v);
+        }
+        return v;
+      }, indent);
+    }
+
+    log(safeStringify(parent, 2));
+
+    log('');
+    log('DOM nodes are a different trap — they do not throw, they come out');
+    log('empty, because everything useful lives on the prototype:');
+    log('  JSON.stringify(document.body) →', JSON.stringify(document.body));
+    log('  but add one own property and the cycles appear:');
+    const node = document.createElement('div');
+    node.appendChild(document.createElement('span'));
+    node.own = node.firstChild;
+    node.firstChild.back = node;
+    try { JSON.stringify(node); }
+    catch (err) { log('  →', err.name + ':', err.message.split('\n')[0]); }
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing and cloning with it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = { x: 1, y: [2, 3] };
+    const b = { x: 1, y: [2, 3] };
+
+    log('a === b                              →', a === b);
+    log('JSON.stringify(a) === JSON.stringify(b) →',
+        JSON.stringify(a) === JSON.stringify(b));
+
+    log('');
+    log('but key ORDER matters, so it is not a real deep-equal:');
+    log('  {a:1,b:2} vs {b:2,a:1} →',
+        JSON.stringify({ a: 1, b: 2 }) === JSON.stringify({ b: 2, a: 1 }));
+
+    log('');
+    log('the same caveat for cloning:');
+    const original = { when: new Date(), fn: () => 1, set: new Set([1]), n: undefined };
+    const cloned = JSON.parse(JSON.stringify(original));
+    log('  original →', Object.keys(original));
+    log('  cloned   →', Object.keys(cloned), '← two keys lost, the Date is now a string');
+
+    log('');
+    log('use structuredClone for a real deep copy:');
+    log('  ', Object.keys(structuredClone({ when: new Date(), set: new Set([1]), n: undefined })));
+  }</script>
+</section>
+
+<section>
+  <h2>Size</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const rows = Array.from({ length: 1000 }, (_, i) => ({
+      identifier: i, displayName: 'row ' + i, isActive: i % 2 === 0
+    }));
+
+    const verbose = JSON.stringify(rows);
+    const compact = JSON.stringify(rows.map(r => [r.identifier, r.displayName, r.isActive]));
+
+    log('as objects →', (verbose.length / 1024).toFixed(1) + 'KB');
+    log('as tuples  →', (compact.length / 1024).toFixed(1) + 'KB',
+        '(' + Math.round((1 - compact.length / verbose.length) * 100) + '% smaller)');
+
+    log('');
+    log('the key names repeat on every row. For a large list, sending');
+    log('["id","name","active"] once plus an array of arrays is dramatically');
+    log('smaller — at the cost of readability.');
+    log('');
+    log('but measure first: gzip compresses repeated keys very well, and');
+    log('the difference over the wire is usually far smaller than this.');
+  }</script>
+</section>
+
+</body>
+</html>

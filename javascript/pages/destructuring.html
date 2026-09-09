@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Destructuring — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="destructuring">
+
+<h1>Destructuring</h1>
+<p class="lede">Unpacking values out of arrays and objects into variables, by writing a
+pattern on the left of the <code>=</code>.</p>
+
+<section>
+  <h2>Objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { firstName: 'Ada', lastName: 'Lovelace', age: 36, city: 'London' };
+
+    const { firstName, age } = person;
+    log(firstName, age);
+
+    // Order does not matter — names do:
+    const { age: years, firstName: given } = person;
+    log('renamed:', given, years);
+
+    // Defaults for missing properties:
+    const { country = 'UK', city } = person;
+    log('country:', country, '| city:', city);
+
+    // Rest collects the leftovers:
+    const { firstName: f, ...rest } = person;
+    log('rest:', rest);
+  }</script>
+</section>
+
+<section>
+  <h2>Arrays</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const colours = ['red', 'green', 'blue', 'yellow'];
+
+    const [first, second] = colours;
+    log(first, second);
+
+    const [, , third] = colours;              // skip with holes
+    log('third:', third);
+
+    const [head, ...tail] = colours;
+    log('head:', head, '| tail:', tail);
+
+    const [a, b, c, d, e = 'none'] = colours;
+    log('past the end, with a default:', e);
+
+    // Swapping:
+    let x = 1, y = 2;
+    [x, y] = [y, x];
+    log('swapped:', x, y);
+  }</script>
+</section>
+
+<section>
+  <h2>Nested patterns</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const response = {
+      status: 200,
+      data: {
+        user: { name: 'Ada', roles: ['admin', 'dev'] },
+        meta: { page: 1 }
+      }
+    };
+
+    const { status, data: { user: { name, roles: [primaryRole] } } } = response;
+    log(status, name, primaryRole);
+
+    // A missing branch throws, so give it a default:
+    const { data: { missing: { deep } = {} } = {} } = response;
+    log('safely undefined:', deep);
+  }</script>
+</section>
+
+<section>
+  <h2>Function parameters</h2>
+  <p>The most common use: named arguments, which are order-independent and self-documenting
+  at the call site.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Positional — what does true, false, 3 mean?
+    function oldStyle(url, retry, cache, timeout) {
+      return url + ' r=' + retry + ' c=' + cache + ' t=' + timeout;
+    }
+    log(oldStyle('/api', true, false, 3000));
+
+    // Destructured, with defaults:
+    function request({ url, retry = false, cache = true, timeout = 5000 } = {}) {
+      return `${url} r=${retry} c=${cache} t=${timeout}`;
+    }
+    log(request({ url: '/api', timeout: 3000 }));
+    log(request({ url: '/api' }));
+
+    // Array parameters too:
+    const distance = ([x1, y1], [x2, y2]) => Math.hypot(x2 - x1, y2 - y1);
+    log('distance:', distance([0, 0], [3, 4]));
+  }</script>
+</section>
+
+<section>
+  <h2>In loops and callbacks</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const users = [
+      { id: 1, name: 'Ada', tags: ['x'] },
+      { id: 2, name: 'Alan', tags: ['y', 'z'] }
+    ];
+
+    for (const { id, name } of users) log(id, name);
+
+    log('');
+    log(users.map(({ name, tags }) => `${name} (${tags.length})`));
+
+    log('');
+    for (const [index, { name }] of users.entries()) log(index, name);
+
+    log('');
+    const scores = new Map([['ada', 95], ['alan', 88]]);
+    for (const [who, score] of scores) log(who, score);
+
+    log('');
+    for (const [key, value] of Object.entries({ a: 1, b: 2 })) log(key, '=', value);
+  }</script>
+</section>
+
+<section>
+  <h2>The gotchas</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // 1. Destructuring null or undefined throws:
+    try {
+      const { a } = null;
+    } catch (err) {
+      log('from null →', err.name + ':', err.message);
+    }
+    const { a } = {};
+    log('from {} → a is', a);
+
+    // 2. A default only applies to undefined, not to null:
+    const { x = 'default' } = { x: null };
+    log('x with a null value →', x);
+
+    // 3. Assigning to existing variables needs parentheses:
+    let p, q;
+    ({ p, q } = { p: 1, q: 2 });
+    log('assigned without let:', p, q);
+
+    // 4. Strings destructure too:
+    const [c1, c2] = 'hi';
+    log('from a string:', c1, c2);
+  }</script>
+</section>
+
+<section>
+  <h2>Try a pattern</h2>
+  <div class="stage">
+    <input id="pattern" value="{ name, age = 0 }" style="flex:1">
+    <span style="font-size:13px;color:var(--ink-faint)">applied to { name: "Ada", city: "Oslo" }</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const source = { name: 'Ada', city: 'Oslo', tags: ['a', 'b'] };
+
+    function apply() {
+      const pattern = $('#pattern').value;
+      log.clear();
+      log('source:', source);
+      try {
+        const result = new Function('src',
+          'const ' + pattern + ' = src; ' +
+          'return JSON.stringify(' + pattern.replace(/\s*=\s*[^,}\]]+/g, '') + ');'
+        )(source);
+        log('bound: ', result);
+      } catch (err) {
+        log('error: ', err.name + ':', err.message);
+      }
+    }
+
+    $('#pattern').addEventListener('input', apply);
+    apply();
+  }</script>
+</section>
+
+</body>
+</html>

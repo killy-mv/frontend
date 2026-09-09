@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Data Types — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="json-datatypes">
+
+<h1>JSON Data Types</h1>
+<p class="lede">Six types, and no more: string, number, boolean, null, object, array.
+Everything else in JavaScript has to be encoded as one of them.</p>
+
+<section>
+  <h2>The six</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const sample = {
+      string: "text",
+      number: 42,
+      float: 3.14,
+      boolean: true,
+      nothing: null,
+      array: [1, 2, 3],
+      object: { nested: true }
+    };
+
+    Object.entries(sample).forEach(([key, value]) =>
+      log(key.padEnd(9),
+          JSON.stringify(value).padEnd(18),
+          'JS type: ' + (Array.isArray(value) ? 'array' :
+                         value === null ? 'null' : typeof value)));
+
+    log('');
+    log('round-trips exactly →',
+        JSON.stringify(JSON.parse(JSON.stringify(sample))) === JSON.stringify(sample));
+  }</script>
+</section>
+
+<section>
+  <h2>What does not survive</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const problematic = {
+      undef: undefined,
+      fn: function () { return 1; },
+      arrow: () => 1,
+      sym: Symbol('id'),
+      nan: NaN,
+      inf: Infinity,
+      negInf: -Infinity,
+      minusZero: -0,
+      date: new Date('2026-09-09T12:00:00Z'),
+      regex: /ab+c/gi,
+      map: new Map([['a', 1]]),
+      set: new Set([1, 2]),
+      err: new Error('boom')
+    };
+
+    log('stringified:');
+    log(JSON.stringify(problematic, null, 2));
+
+    log('');
+    log('what happened to each:');
+    log('  undefined, functions, symbols → the key is DROPPED entirely');
+    log('  NaN, Infinity, -Infinity      → null');
+    log('  -0                            → 0');
+    log('  Date                          → an ISO string (via toJSON)');
+    log('  RegExp, Error                 → {} — their data is not enumerable');
+    log('  Map, Set                      → {} — their contents are internal');
+
+    log('');
+    log('bigint does not even try:');
+    try { JSON.stringify({ n: 10n }); }
+    catch (err) { log('  ', err.name + ':', err.message); }
+  }</script>
+</section>
+
+<section>
+  <h2>In an array, dropping becomes null</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const object = { a: undefined, b: 1 };
+    const array = [undefined, 1, function () {}, Symbol('s')];
+
+    log('in an object →', JSON.stringify(object), '← keys vanish');
+    log('in an array  →', JSON.stringify(array), '← positions become null');
+    log('');
+    log('an array must keep its length, so there is nothing to drop.');
+
+    log('');
+    log('sparse arrays fill in too:');
+    const sparse = [1, , 3];
+    log('  the array →', sparse, '| length', sparse.length);
+    log('  as JSON   →', JSON.stringify(sparse));
+  }</script>
+</section>
+
+<section>
+  <h2>Dates</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const date = new Date('2026-09-09T12:34:56.789Z');
+
+    log('a Date object      →', date.toISOString());
+    log('stringified        →', JSON.stringify({ when: date }));
+    log('parsed back        →', JSON.parse(JSON.stringify({ when: date })).when);
+    log('which is a         →', typeof JSON.parse(JSON.stringify({ when: date })).when);
+
+    log('');
+    log('Date has a toJSON method — that is why it works one way:');
+    log('  date.toJSON() →', date.toJSON());
+
+    log('');
+    log('to get a Date back, use a reviver:');
+    const isoDate = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/;
+    const revived = JSON.parse('{"when":"2026-09-09T12:34:56.789Z"}',
+      (key, value) => (typeof value === 'string' && isoDate.test(value) ? new Date(value) : value));
+    log('  ', revived.when instanceof Date, '|', revived.when.getFullYear());
+
+    log('');
+    log('a warning: that reviver turns any ISO-looking STRING into a Date,');
+    log('including one that was genuinely meant to be text.');
+  }</script>
+</section>
+
+<section>
+  <h2>Big numbers</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Number.MAX_SAFE_INTEGER →', Number.MAX_SAFE_INTEGER);
+    log('');
+
+    const id = '9007199254740993';                 // one above the safe limit
+    log('a 19-digit id, as a JSON number:');
+    log('  sent    ', id);
+    log('  parsed  ', JSON.parse('{"id":' + id + '}').id);
+    log('  equal?  ', String(JSON.parse('{"id":' + id + '}').id) === id);
+
+    log('');
+    log('as a JSON string:');
+    log('  parsed  ', JSON.parse('{"id":"' + id + '"}').id);
+    log('  and BigInt can hold it:', BigInt(JSON.parse('{"id":"' + id + '"}').id));
+
+    log('');
+    log('this is why Twitter, Discord and Stripe all send ids as strings.');
+    log('If an API gives you a numeric id above 2^53, the value is already');
+    log('wrong before your code ever sees it.');
+  }</script>
+</section>
+
+<section>
+  <h2>Encoding the missing types</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A tagged encoding: every special value becomes an object with a marker.
+    function encode(value) {
+      return JSON.stringify(value, (key, v) => {
+        if (v instanceof Map) return { $type: 'Map', value: [...v] };
+        if (v instanceof Set) return { $type: 'Set', value: [...v] };
+        if (typeof v === 'bigint') return { $type: 'BigInt', value: v.toString() };
+        if (typeof v === 'number' && !Number.isFinite(v)) return { $type: 'Number', value: String(v) };
+        return v;
+      });
+    }
+
+    function decode(text) {
+      return JSON.parse(text, (key, v) => {
+        if (v && typeof v === 'object' && v.$type) {
+          if (v.$type === 'Map') return new Map(v.value);
+          if (v.$type === 'Set') return new Set(v.value);
+          if (v.$type === 'BigInt') return BigInt(v.value);
+          if (v.$type === 'Number') return Number(v.value);
+        }
+        return v;
+      });
+    }
+
+    const original = {
+      map: new Map([['a', 1], ['b', 2]]),
+      set: new Set([1, 2, 3]),
+      big: 9007199254740993n,
+      inf: Infinity
+    };
+
+    const text = encode(original);
+    const back = decode(text);
+
+    log('encoded →', text);
+    log('');
+    log('decoded →', back);
+    log('map is a Map? ', back.map instanceof Map);
+    log('set is a Set? ', back.set instanceof Set);
+    log('big is exact? ', back.big === 9007199254740993n);
+    log('inf           ', back.inf);
+  }</script>
+</section>
+
+<section>
+  <h2>structuredClone knows more types</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const value = {
+      date: new Date(2026, 0, 1),
+      map: new Map([['a', 1]]),
+      set: new Set([1, 2]),
+      regex: /ab+c/g,
+      big: 123n,
+      buffer: new Uint8Array([1, 2, 3])
+    };
+
+    const cloned = structuredClone(value);
+
+    log('structuredClone keeps them all:');
+    Object.entries(cloned).forEach(([k, v]) =>
+      log('  ' + k.padEnd(7), v.constructor.name, '→', String(v).slice(0, 30)));
+
+    log('');
+    log('and it handles cycles, which JSON cannot:');
+    const cyclic = { name: 'root' };
+    cyclic.self = cyclic;
+    log('  cloned  →', structuredClone(cyclic).self.name);
+    try { JSON.stringify(cyclic); }
+    catch (err) { log('  JSON    →', err.name + ': circular structure'); }
+
+    log('');
+    log('but structuredClone produces an OBJECT, not a string — it is for');
+    log('postMessage and IndexedDB, not for the network.');
+  }</script>
+</section>
+
+<section>
+  <h2>A summary table</h2>
+
+  <table class="ref">
+    <tr><th>JavaScript</th><th>JSON.stringify</th><th>structuredClone</th></tr>
+    <tr><td>string, number, boolean, null</td><td>kept</td><td>kept</td></tr>
+    <tr><td>plain object, array</td><td>kept</td><td>kept</td></tr>
+    <tr><td><code>undefined</code></td><td>dropped / null</td><td>kept</td></tr>
+    <tr><td><code>Date</code></td><td>ISO string</td><td>a Date</td></tr>
+    <tr><td><code>Map</code>, <code>Set</code></td><td><code>{}</code></td><td>kept</td></tr>
+    <tr><td><code>RegExp</code></td><td><code>{}</code></td><td>kept</td></tr>
+    <tr><td><code>BigInt</code></td><td>throws</td><td>kept</td></tr>
+    <tr><td>typed arrays</td><td>object of indices</td><td>kept</td></tr>
+    <tr><td>functions, symbols</td><td>dropped</td><td>throws</td></tr>
+    <tr><td>circular references</td><td>throws</td><td>kept</td></tr>
+    <tr><td>class instances</td><td>plain object</td><td>plain object</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

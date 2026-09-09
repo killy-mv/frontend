@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reserved Words — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="reserved-words">
+
+<h1>Reserved Words</h1>
+<p class="lede">Names the language has claimed. Some are always forbidden, some only in
+strict mode, and some are reserved for a future that never arrived.</p>
+
+<section>
+  <h2>Always reserved</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const keywords = [
+      'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger',
+      'default', 'delete', 'do', 'else', 'export', 'extends', 'false',
+      'finally', 'for', 'function', 'if', 'import', 'in', 'instanceof',
+      'new', 'null', 'return', 'super', 'switch', 'this', 'throw', 'true',
+      'try', 'typeof', 'var', 'void', 'while', 'with'
+    ];
+
+    log(keywords.length, 'keywords:');
+    for (let i = 0; i < keywords.length; i += 6) {
+      log('  ' + keywords.slice(i, i + 6).map(k => k.padEnd(11)).join(''));
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Testing whether a name is legal</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function isValidIdentifier(name) {
+      try {
+        new Function('var ' + name + ';');
+        return true;
+      } catch (err) {
+        return false;
+      }
+    }
+
+    const candidates = ['userName', 'class', '_private', '$el', '1st',
+                        'my-name', 'let', 'await', 'yield', 'undefined',
+                        'NaN', 'π', 'if'];
+
+    candidates.forEach(name =>
+      log(name.padEnd(12), isValidIdentifier(name) ? 'usable' : 'reserved or invalid'));
+  }</script>
+</section>
+
+<section>
+  <h2>Contextual keywords</h2>
+  <p>Some words are only special in certain positions, so they remain usable as names —
+  though doing so is a bad idea.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Legal, and thoroughly confusing:
+    var async = 1;
+    var of = 2;
+    var from = 3;
+    var get = 4;
+    var set = 5;
+    var target = 6;
+
+    log('async, of, from, get, set:', async, of, from, get, set, target);
+
+    log('');
+    log('await and yield are only reserved inside async functions and generators:');
+    log('  var await = 1;   → fine in a plain script, error in a module');
+    log('  var yield = 1;   → fine in a plain function, error in a generator');
+  }</script>
+</section>
+
+<section>
+  <h2>Reserved in strict mode only</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const strictOnly = ['implements', 'interface', 'let', 'package',
+                        'private', 'protected', 'public', 'static', 'yield'];
+
+    strictOnly.forEach(name => {
+      let sloppy = 'allowed';
+      try { new Function('var ' + name + ';'); } catch (e) { sloppy = 'error'; }
+
+      let strict = 'allowed';
+      try { new Function('"use strict"; var ' + name + ';'); } catch (e) { strict = 'error'; }
+
+      log(name.padEnd(12), 'sloppy:', sloppy.padEnd(9), 'strict:', strict);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Not reserved, but do not use them</h2>
+  <p>Global names you can technically shadow, with excellent chances of confusing the next
+  reader — or yourself.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const dangerous = ['name', 'length', 'top', 'self', 'status', 'history',
+                       'location', 'origin', 'closed', 'parent', 'event'];
+
+    dangerous.forEach(name =>
+      log(name.padEnd(10), 'window.' + name + ' is', typeof window[name]));
+
+    log('');
+    log('shadowing them locally works but reads badly:');
+    (function () {
+      const location = 'Oslo';
+      log('  local location →', location);
+    })();
+    log('  window.location is still', window.location.protocol + '//…');
+  }</script>
+</section>
+
+<section>
+  <h2>Reserved words as property names</h2>
+  <p>Since ES5, any reserved word is fine as an object key or after a dot.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const element = {
+      class: 'button primary',
+      for: 'email',
+      new: true,
+      delete: () => 'removed',
+      default: 'none'
+    };
+
+    log(element.class);
+    log(element.for);
+    log(element.delete());
+    log('all keys:', Object.keys(element));
+
+    log('');
+    log('this is why DOM APIs use className and htmlFor —');
+    log('they were named before this rule existed.');
+  }</script>
+</section>
+
+<section>
+  <h2>Check a name</h2>
+  <div class="stage">
+    <input id="name" value="class" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function check() {
+      const name = $('#name').value.trim();
+      log.clear();
+
+      if (!name) { log('(type a name)'); return; }
+
+      const tryIt = (prefix) => {
+        try { new Function(prefix + 'var ' + name + ';'); return 'ok'; }
+        catch (err) { return err.message.slice(0, 50); }
+      };
+
+      log('as a variable, sloppy  :', tryIt(''));
+      log('as a variable, strict  :', tryIt('"use strict";'));
+
+      try {
+        new Function('return { ' + name + ': 1 };');
+        log('as a property name     : ok');
+      } catch (err) {
+        log('as a property name     :', err.message.slice(0, 50));
+      }
+
+      log('shadows a global?      :', name in window);
+    }
+
+    $('#name').addEventListener('input', check);
+    check();
+  }</script>
+</section>
+
+</body>
+</html>

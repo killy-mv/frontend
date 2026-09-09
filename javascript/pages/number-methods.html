@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Number Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="number-methods">
+
+<h1>Number Methods</h1>
+<p class="lede">Methods for turning numbers into strings and strings into numbers. Note
+which ones return a string — <code>toFixed</code> catches people out constantly.</p>
+
+<section>
+  <h2>toString</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const n = 255;
+
+    log('toString()   →', n.toString());
+    log('toString(2)  →', n.toString(2));
+    log('toString(8)  →', n.toString(8));
+    log('toString(16) →', n.toString(16));
+    log('toString(36) →', n.toString(36));
+
+    log('back again: parseInt("ff", 16) →', parseInt('ff', 16));
+  }</script>
+</section>
+
+<section>
+  <h2>toFixed and toPrecision</h2>
+  <p>Both return <b>strings</b>. <code>toFixed</code> counts decimal places;
+  <code>toPrecision</code> counts significant digits.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const x = 9.656;
+
+    log('toFixed(0) →', x.toFixed(0), typeof x.toFixed(0));
+    log('toFixed(2) →', x.toFixed(2));
+    log('toFixed(4) →', x.toFixed(4));
+
+    log('toPrecision(2) →', x.toPrecision(2));
+    log('toPrecision(6) →', x.toPrecision(6));
+
+    // The trap: string concatenation instead of addition
+    log('x.toFixed(2) + 1 →', x.toFixed(2) + 1);
+    log('+x.toFixed(2) + 1 →', +x.toFixed(2) + 1);
+
+    // And a rounding quirk, because 1.005 is really 1.00499999…
+    log('(1.005).toFixed(2) →', (1.005).toFixed(2));
+  }</script>
+</section>
+
+<section>
+  <h2>parseInt and parseFloat</h2>
+  <p>They read from the start of a string and stop at the first character that does not fit.
+  <code>Number()</code> refuses the whole thing instead.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const samples = ['42', '42.9', '42px', '  42  ', 'px42', '', '1e3', '0x1f'];
+
+    samples.forEach(s => log(
+      JSON.stringify(s).padEnd(9),
+      'parseInt:', String(parseInt(s)).padEnd(7),
+      'parseFloat:', String(parseFloat(s)).padEnd(7),
+      'Number:', String(Number(s))
+    ));
+
+    log('');
+    log('always pass the radix: parseInt("08") →', parseInt('08', 10));
+  }</script>
+</section>
+
+<section>
+  <h2>Number.isInteger and friends</h2>
+  <p>The <code>Number.*</code> versions do not coerce their argument, which is what you
+  almost always want.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Number.isInteger(10)      →', Number.isInteger(10));
+    log('Number.isInteger(10.5)    →', Number.isInteger(10.5));
+    log('Number.isInteger("10")    →', Number.isInteger('10'));
+
+    log('Number.isSafeInteger(2**53) →', Number.isSafeInteger(2 ** 53));
+    log('Number.isFinite("10")     →', Number.isFinite('10'));
+    log('global isFinite("10")     →', isFinite('10'), '(coerces — avoid)');
+    log('Number.isNaN(NaN)         →', Number.isNaN(NaN));
+  }</script>
+</section>
+
+<section>
+  <h2>Formatting for humans</h2>
+  <p><code>toLocaleString</code> adds thousands separators, currency symbols and percent
+  signs in the right place for a locale.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const amount = 1234567.891;
+
+    log('default:  ', amount.toLocaleString());
+    log('en-US:    ', amount.toLocaleString('en-US'));
+    log('de-DE:    ', amount.toLocaleString('de-DE'));
+    log('currency: ', amount.toLocaleString('en-GB', { style: 'currency', currency: 'GBP' }));
+    log('compact:  ', amount.toLocaleString('en', { notation: 'compact' }));
+    log('percent:  ', (0.256).toLocaleString('en', { style: 'percent', maximumFractionDigits: 1 }));
+  }</script>
+</section>
+
+<section>
+  <h2>Try it</h2>
+  <div class="stage">
+    <input id="value" type="number" step="any" value="1234.5678" style="width:160px">
+    <label>digits <input id="digits" type="number" value="2" min="0" max="10" style="width:70px"></label>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function show() {
+      const n = Number($('#value').value);
+      const d = Number($('#digits').value);
+      log.clear();
+      log('toFixed      ', n.toFixed(d));
+      log('toPrecision  ', n.toPrecision(Math.max(1, d)));
+      log('toExponential', n.toExponential(d));
+      log('toLocaleString', n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d }));
+      log('binary       ', Math.trunc(n).toString(2));
+    }
+
+    $('#value').addEventListener('input', show);
+    $('#digits').addEventListener('input', show);
+    show();
+  }</script>
+</section>
+
+</body>
+</html>

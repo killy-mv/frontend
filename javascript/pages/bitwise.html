@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitwise — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="bitwise">
+
+<h1>Bitwise</h1>
+<p class="lede">Operators that work on the individual bits of a number. JavaScript converts
+its 64-bit floats to 32-bit signed integers first, then converts back.</p>
+
+<section>
+  <h2>The operators</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const bin = n => (n >>> 0).toString(2).padStart(8, '0');
+
+    const a = 5;   // 00000101
+    const b = 3;   // 00000011
+
+    log('a        ', bin(a), '=', a);
+    log('b        ', bin(b), '=', b);
+    log('a & b    ', bin(a & b), '=', a & b, '(AND: both bits set)');
+    log('a | b    ', bin(a | b), '=', a | b, '(OR: either bit set)');
+    log('a ^ b    ', bin(a ^ b), '=', a ^ b, '(XOR: exactly one)');
+    log('~a       ', bin(~a), '=', ~a, '(NOT: every bit flipped)');
+    log('a << 1   ', bin(a << 1), '=', a << 1, '(shift left = ×2)');
+    log('a >> 1   ', bin(a >> 1), '=', a >> 1, '(shift right = ÷2)');
+    log('-5 >>> 1 ', bin(-5 >>> 1), '=', -5 >>> 1, '(unsigned shift)');
+  }</script>
+</section>
+
+<section>
+  <h2>Everything becomes a 32-bit integer</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('5.9 | 0        →', 5.9 | 0, '(truncates, like Math.trunc)');
+    log('-5.9 | 0       →', -5.9 | 0);
+    log('"7" & 3        →', '7' & 3, '(strings are converted)');
+    log('true | 0       →', true | 0);
+
+    log('');
+    log('and it overflows past 32 bits:');
+    log('2**31          →', 2 ** 31);
+    log('(2**31) | 0    →', (2 ** 31) | 0, '← wrapped to negative');
+    log('(2**32) | 0    →', (2 ** 32) | 0);
+    log('Math.trunc is safer for big numbers:', Math.trunc(2 ** 31));
+  }</script>
+</section>
+
+<section>
+  <h2>Flags in a single number</h2>
+  <p>The classic use: pack several booleans into one integer, one bit each.</p>
+
+  <div class="stage">
+    <label><input type="checkbox" data-bit="1"> Read (1)</label>
+    <label><input type="checkbox" data-bit="2"> Write (2)</label>
+    <label><input type="checkbox" data-bit="4"> Execute (4)</label>
+    <label><input type="checkbox" data-bit="8"> Delete (8)</label>
+  </div>
+  <script class="run">{
+    const { log, $$ } = demo();
+
+    const READ = 1, WRITE = 2, EXECUTE = 4, DELETE = 8;
+
+    function update() {
+      let flags = 0;
+      $$('input[data-bit]').forEach(box => {
+        if (box.checked) flags |= Number(box.dataset.bit);   // set a bit
+      });
+
+      log.clear();
+      log('value       ', flags);
+      log('binary      ', flags.toString(2).padStart(4, '0'));
+      log('can read?   ', (flags & READ) !== 0);
+      log('can write?  ', (flags & WRITE) !== 0);
+      log('can execute?', (flags & EXECUTE) !== 0);
+      log('can delete? ', (flags & DELETE) !== 0);
+      log('toggle WRITE→', flags ^ WRITE);
+      log('clear READ  →', flags & ~READ);
+    }
+
+    $$('input[data-bit]').forEach(box => box.addEventListener('change', update));
+    update();
+  }</script>
+</section>
+
+<section>
+  <h2>Colours</h2>
+  <p>A 24-bit colour is three 8-bit channels packed together. Shifts and masks pull them
+  apart.</p>
+
+  <div class="stage">
+    <input id="hex" type="color" value="#2563eb">
+    <span id="swatch" style="font-family:var(--mono)"></span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function split() {
+      const value = parseInt($('#hex').value.slice(1), 16);
+
+      const r = (value >> 16) & 0xff;
+      const g = (value >> 8) & 0xff;
+      const b = value & 0xff;
+
+      log.clear();
+      log('hex      ', '#' + value.toString(16).padStart(6, '0'));
+      log('as int   ', value);
+      log('red      ', String(r).padStart(3), (r).toString(2).padStart(8, '0'));
+      log('green    ', String(g).padStart(3), (g).toString(2).padStart(8, '0'));
+      log('blue     ', String(b).padStart(3), (b).toString(2).padStart(8, '0'));
+      log('repacked ', '#' + ((r << 16) | (g << 8) | b).toString(16).padStart(6, '0'));
+      log('luminance', Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b));
+
+      $('#swatch').textContent = `rgb(${r} ${g} ${b})`;
+    }
+
+    $('#hex').addEventListener('input', split);
+    split();
+  }</script>
+</section>
+
+<section>
+  <h2>Tricks you will see in the wild</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('n | 0     truncate    ', 7.9 | 0);
+    log('n >> 1    halve       ', 9 >> 1);
+    log('n << 3    ×8          ', 3 << 3);
+    log('n & 1     is odd?     ', 7 & 1, 8 & 1);
+    log('a ^ b ^ b recover a   ', (12 ^ 5) ^ 5);
+    log('~~n       double NOT  ', ~~3.7);
+    log('~idx      -1 becomes 0', ~[1, 2].indexOf(9));
+
+    log('');
+    log('the old includes test:  if (~arr.indexOf(x))');
+    log('write arr.includes(x) instead — these tricks are not faster now,');
+    log('and they silently break above 2**31.');
+  }</script>
+</section>
+
+<section>
+  <h2>Genuine uses</h2>
+  <ul>
+    <li>Permission and feature flags stored as one integer.</li>
+    <li>Colour channel packing and unpacking.</li>
+    <li>Hashing, checksums and binary file formats.</li>
+    <li>Working with <code>TypedArray</code> data from a canvas or a socket.</li>
+  </ul>
+  <div class="note">For integers larger than 32 bits, use <code>BigInt</code> — its bitwise
+  operators have no width limit.</div>
+</section>
+
+</body>
+</html>

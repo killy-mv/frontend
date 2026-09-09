@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparisons — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="comparisons">
+
+<h1>Comparisons</h1>
+<p class="lede">The short version: use <code>===</code>. The long version is why
+<code>==</code> exists and what it does when the types differ.</p>
+
+<section>
+  <h2>The operators</h2>
+
+  <table class="ref">
+    <tr><th>Operator</th><th>Means</th><th>Converts types?</th></tr>
+    <tr><td><code>==</code></td><td>equal value</td><td>yes</td></tr>
+    <tr><td><code>===</code></td><td>equal value and type</td><td>no</td></tr>
+    <tr><td><code>!=</code> / <code>!==</code></td><td>the negations</td><td>yes / no</td></tr>
+    <tr><td><code>&gt; &lt; &gt;= &lt;=</code></td><td>ordering</td><td>yes</td></tr>
+    <tr><td><code>?:</code></td><td>ternary choice</td><td>—</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('5 == "5"   →', 5 == '5');
+    log('5 === "5"  →', 5 === '5');
+    log('5 != "5"   →', 5 != '5');
+    log('5 !== "5"  →', 5 !== '5');
+    log('5 > 4      →', 5 > 4);
+    log('5 <= 5     →', 5 <= 5);
+  }</script>
+</section>
+
+<section>
+  <h2>What == actually does</h2>
+  <p>When the types differ, it converts and tries again — usually to a number. These are the
+  cases worth knowing.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const cases = [
+      ['0 == ""', 0 == ''],
+      ['0 == "0"', 0 == '0'],
+      ['"" == "0"', '' == '0'],
+      ['0 == false', 0 == false],
+      ['"" == false', '' == false],
+      ['null == undefined', null == undefined],
+      ['null == 0', null == 0],
+      ['null >= 0', null >= 0],
+      ['NaN == NaN', NaN == NaN],
+      ['[] == false', [] == false],
+      ['[] == ""', [] == ''],
+      ['[1] == 1', [1] == 1],
+      ['[1,2] == "1,2"', [1, 2] == '1,2']
+    ];
+
+    cases.forEach(([label, result]) => log(label.padEnd(20), '→', result));
+
+    log('');
+    log('== is not transitive: "" == 0 and 0 == "0", but "" != "0"');
+  }</script>
+</section>
+
+<section>
+  <h2>=== is simple</h2>
+  <p>Different types? Not equal. That is the whole rule.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('0 === ""              →', 0 === '');
+    log('null === undefined    →', null === undefined);
+    log('NaN === NaN           →', NaN === NaN, '← the one exception to "same is equal"');
+    log('Object.is(NaN, NaN)   →', Object.is(NaN, NaN));
+    log('0 === -0              →', 0 === -0);
+    log('Object.is(0, -0)      →', Object.is(0, -0));
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing strings</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('"a" < "b"       →', 'a' < 'b');
+    log('"Z" < "a"       →', 'Z' < 'a', '(uppercase code points are lower)');
+    log('"2" > "12"      →', '2' > '12', '(character by character)');
+    log('2 > 12          →', 2 > 12);
+    log('"2" > 12        →', '2' > 12, '(one is a number → both become numbers)');
+    log('"apple".localeCompare("banana") →', 'apple'.localeCompare('banana'));
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing objects</h2>
+  <p>Objects compare by identity, never by content. Two identical-looking objects are never
+  <code>===</code>.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = { x: 1 };
+    const b = { x: 1 };
+    const c = a;
+
+    log('a === b →', a === b);
+    log('a === c →', a === c);
+    log('a == b  →', a == b, '(== does not help either)');
+
+    // Comparing content: shallow, or by serialising
+    const shallowEqual = (o1, o2) =>
+      Object.keys(o1).length === Object.keys(o2).length &&
+      Object.keys(o1).every(k => o1[k] === o2[k]);
+
+    log('shallowEqual(a, b)   →', shallowEqual(a, b));
+    log('JSON comparison      →', JSON.stringify(a) === JSON.stringify(b));
+    log('…but JSON depends on key order:',
+        JSON.stringify({ x: 1, y: 2 }) === JSON.stringify({ y: 2, x: 1 }));
+  }</script>
+</section>
+
+<section>
+  <h2>The nullish operators</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const settings = { volume: 0, label: '', theme: null };
+
+    log('settings.volume || 50 →', settings.volume || 50, '← 0 is falsy, so the default wins');
+    log('settings.volume ?? 50 →', settings.volume ?? 50, '← only null/undefined trigger it');
+    log('settings.label  ?? "x"→', settings.label ?? 'x');
+    log('settings.theme  ?? "dark" →', settings.theme ?? 'dark');
+    log('settings.missing?.deep →', settings.missing?.deep);
+  }</script>
+</section>
+
+<section>
+  <h2>Compare two values</h2>
+  <div class="stage">
+    <input id="left" value="0" style="width:130px">
+    <input id="right" value="false" style="width:130px">
+    <span style="font-size:13px;color:var(--ink-faint)">values are evaluated as JS literals</span>
+  </div>
+  <script class="run">{
+    const { log, $, $$ } = demo();
+
+    function compare() {
+      let a, b;
+      try {
+        a = eval('(' + $('#left').value + ')');
+        b = eval('(' + $('#right').value + ')');
+      } catch (err) {
+        log.clear(); log('cannot parse:', err.message); return;
+      }
+
+      log.clear();
+      log('left  ', a, '  type', typeof a);
+      log('right ', b, '  type', typeof b);
+      log('a == b   →', a == b);
+      log('a === b  →', a === b);
+      log('a < b    →', a < b);
+      log('a > b    →', a > b);
+      log('Object.is→', Object.is(a, b));
+    }
+
+    $$('input').forEach(el => el.addEventListener('input', compare));
+    compare();
+  }</script>
+</section>
+
+</body>
+</html>

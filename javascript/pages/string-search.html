@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>String Search — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="string-search">
+
+<h1>String Search</h1>
+<p class="lede">Six ways to ask "is it in there, and where?". Which one you want depends on
+whether you need a position, a yes/no, or the matched text itself.</p>
+
+<section>
+  <h2>indexOf and lastIndexOf</h2>
+  <p>Return the position of a match, or <code>-1</code> when there is none. That
+  <code>-1</code> is why <code>includes()</code> exists.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'Please locate where "locate" occurs!';
+
+    log('indexOf("locate")      →', text.indexOf('locate'));
+    log('indexOf("locate", 15)  →', text.indexOf('locate', 15), '(start from 15)');
+    log('lastIndexOf("locate")  →', text.lastIndexOf('locate'));
+    log('indexOf("missing")     →', text.indexOf('missing'));
+
+    // The old idiom, still seen everywhere:
+    if (text.indexOf('locate') !== -1) log('found it');
+  }</script>
+</section>
+
+<section>
+  <h2>includes, startsWith, endsWith</h2>
+  <p>Plain booleans, and much easier to read.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const file = 'report-2024-final.pdf';
+
+    log('includes("2024")   →', file.includes('2024'));
+    log('startsWith("report")→', file.startsWith('report'));
+    log('endsWith(".pdf")   →', file.endsWith('.pdf'));
+    log('endsWith(".PDF")   →', file.endsWith('.PDF'), '(case sensitive)');
+    log('includes("f", 20)  →', file.includes('f', 20), '(from position 20)');
+  }</script>
+</section>
+
+<section>
+  <h2>search</h2>
+  <p>Like <code>indexOf</code>, but takes a regular expression. It cannot take a start
+  position.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'The rain in SPAIN stays';
+
+    log('search(/ain/)   →', text.search(/ain/));
+    log('search(/ain/i)  →', text.search(/AIN/i));
+    log('search(/\\d+/)   →', text.search(/\d+/), '(no digits)');
+  }</script>
+</section>
+
+<section>
+  <h2>match and matchAll</h2>
+  <p><code>match()</code> returns the first match with its capture groups, or — with the
+  <code>/g</code> flag — every matched string. <code>matchAll()</code> gives you full match
+  objects for every occurrence.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const text = 'Ada was born in 1815 and died in 1852.';
+
+    log('match(/\\d{4}/)  →', text.match(/\d{4}/));
+    log('match(/\\d{4}/g) →', text.match(/\d{4}/g));
+
+    for (const m of text.matchAll(/(\d{4})/g)) {
+      log('at index', m.index, '→', m[0]);
+    }
+
+    // Named capture groups:
+    const date = '2024-05-17'.match(/(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/);
+    log('groups:', date.groups);
+  }</script>
+</section>
+
+<section>
+  <h2>Which one to use</h2>
+  <table class="ref">
+    <tr><th>You want</th><th>Use</th></tr>
+    <tr><td>a yes/no answer</td><td><code>includes()</code></td></tr>
+    <tr><td>a position</td><td><code>indexOf()</code></td></tr>
+    <tr><td>a prefix or suffix test</td><td><code>startsWith()</code> / <code>endsWith()</code></td></tr>
+    <tr><td>a pattern, position only</td><td><code>search()</code></td></tr>
+    <tr><td>the matched text</td><td><code>match()</code> / <code>matchAll()</code></td></tr>
+    <tr><td>a pattern, yes/no</td><td><code>regex.test(string)</code></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>A live filter</h2>
+  <div class="stage">
+    <input id="needle" placeholder="search…" style="flex:1" value="an">
+    <label><input id="ci" type="checkbox" checked> ignore case</label>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const fruit = ['Banana', 'Orange', 'Mango', 'Apple', 'Cranberry', 'Grape'];
+    const needle = $('#needle');
+    const ci = $('#ci');
+
+    function search() {
+      const term = needle.value;
+      log.clear();
+
+      if (!term) { log('(type something)'); return; }
+
+      const hits = fruit.filter(name => {
+        const haystack = ci.checked ? name.toLowerCase() : name;
+        const term2 = ci.checked ? term.toLowerCase() : term;
+        return haystack.includes(term2);
+      });
+
+      log(hits.length + ' of ' + fruit.length + ' match:');
+      hits.forEach(name => {
+        const at = (ci.checked ? name.toLowerCase() : name)
+          .indexOf(ci.checked ? term.toLowerCase() : term);
+        log('  ' + name.padEnd(12) + ' at index ' + at);
+      });
+    }
+
+    needle.addEventListener('input', search);
+    ci.addEventListener('change', search);
+    search();
+  }</script>
+</section>
+
+</body>
+</html>

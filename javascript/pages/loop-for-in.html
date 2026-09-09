@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>For In — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="loop-for-in">
+
+<h1>For In</h1>
+<p class="lede">Loops over the enumerable string <b>keys</b> of an object — including
+inherited ones. It is for objects; using it on arrays is a well-known mistake.</p>
+
+<section>
+  <h2>Looping over an object</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = { firstName: 'Ada', lastName: 'Lovelace', age: 36 };
+
+    for (const key in person) {
+      log(key.padEnd(10), '→', person[key]);
+    }
+
+    log('');
+    log('the loop variable is the key, not the value');
+  }</script>
+</section>
+
+<section>
+  <h2>It walks the prototype chain</h2>
+  <p>Anything enumerable inherited from a prototype shows up too. This is why
+  <code>hasOwnProperty</code> guards exist in older code.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const base = { inherited: 'from the prototype' };
+    const own = Object.create(base);
+    own.mine = 'own property';
+
+    log('for…in sees:');
+    for (const key in own) log('  ' + key);
+
+    log('');
+    log('own keys only:');
+    for (const key in own) {
+      if (Object.hasOwn(own, key)) log('  ' + key);
+    }
+
+    log('');
+    log('Object.keys skips inherited ones automatically:', Object.keys(own));
+  }</script>
+</section>
+
+<section>
+  <h2>Why not on arrays</h2>
+  <p>The keys come back as <b>strings</b>, the order is not guaranteed, and any extra
+  property you attached is included.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [10, 20, 30];
+    numbers.total = 60;
+
+    log('for…in:');
+    for (const i in numbers) {
+      log('  key', JSON.stringify(i), 'typeof', typeof i, '→', numbers[i]);
+    }
+
+    log('');
+    log('for…of skips the extra property and gives values:');
+    for (const value of numbers) log('  ' + value);
+
+    log('');
+    log('and the string keys break arithmetic:');
+    for (const i in numbers) {
+      if (i === 'total') continue;
+      log('  i + 1 =', i + 1, '← concatenation, not addition');
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>The modern replacements</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const scores = { ada: 95, alan: 88, grace: 99 };
+
+    log('Object.keys:   ', Object.keys(scores));
+    log('Object.values: ', Object.values(scores));
+    log('Object.entries:', Object.entries(scores));
+
+    log('');
+    for (const [name, score] of Object.entries(scores)) {
+      log(name.padEnd(6), '█'.repeat(Math.round(score / 5)), score);
+    }
+
+    log('');
+    log('total:', Object.values(scores).reduce((a, b) => a + b, 0));
+    log('best: ', Object.entries(scores).sort((a, b) => b[1] - a[1])[0][0]);
+  }</script>
+</section>
+
+<section>
+  <h2>Key order</h2>
+  <p>Integer-like keys come first in ascending numeric order, then string keys in insertion
+  order. Do not rely on it for anything that matters.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const mixed = { b: 1, 2: 'two', a: 3, 1: 'one', 10: 'ten' };
+
+    log('written:  b, 2, a, 1, 10');
+    log('iterated:', Object.keys(mixed).join(', '));
+
+    // A Map preserves insertion order for every key type:
+    const map = new Map([['b', 1], [2, 'two'], ['a', 3], [1, 'one']]);
+    log('Map order:', [...map.keys()]);
+  }</script>
+</section>
+
+<section>
+  <h2>Inspect any object</h2>
+  <div class="stage">
+    <select id="pick">
+      <option value="plain">a plain object</option>
+      <option value="array">an array</option>
+      <option value="date">a Date</option>
+      <option value="created">Object.create with a prototype</option>
+    </select>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const samples = {
+      plain: { a: 1, b: 2 },
+      array: ['x', 'y'],
+      date: new Date(),
+      created: Object.assign(Object.create({ inherited: true }), { own: 1 })
+    };
+
+    function inspect() {
+      const target = samples[$('#pick').value];
+      log.clear();
+
+      const forIn = [];
+      for (const k in target) forIn.push(k);
+
+      log('for…in           :', forIn.length ? forIn : '(nothing)');
+      log('Object.keys      :', Object.keys(target));
+      log('own, incl. hidden:', Object.getOwnPropertyNames(target).slice(0, 12));
+      log('prototype        :', Object.getPrototypeOf(target)?.constructor?.name ?? '(none)');
+    }
+
+    $('#pick').addEventListener('change', inspect);
+    inspect();
+  }</script>
+</section>
+
+</body>
+</html>

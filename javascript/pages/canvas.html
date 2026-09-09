@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Canvas — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+<style>
+  canvas { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+           display: block; max-width: 100%; }
+</style>
+</head>
+<body data-topic="canvas">
+
+<h1>Canvas</h1>
+<p class="lede">A bitmap you draw on with JavaScript. Unlike the DOM there are no elements —
+once a pixel is painted, the canvas has forgotten what drew it.</p>
+
+<section>
+  <h2>Getting a context</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="basic" width="420" height="140"></canvas>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const canvas = $('#basic');
+    const ctx = canvas.getContext('2d');
+
+    // Rectangles — the only shape with a dedicated method.
+    ctx.fillStyle = '#2563eb';
+    ctx.fillRect(20, 20, 100, 60);
+
+    ctx.strokeStyle = 'crimson';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(150, 20, 100, 60);
+
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.5)';
+    ctx.fillRect(280, 20, 100, 60);
+
+    ctx.clearRect(300, 40, 60, 20);          // erase back to transparent
+
+    ctx.fillStyle = '#16212c';
+    ctx.font = '14px system-ui';
+    ctx.fillText('fillRect, strokeRect, clearRect', 20, 110);
+
+    log('canvas    →', canvas.width + '×' + canvas.height, '(the bitmap)');
+    log('CSS size  →', Math.round(canvas.getBoundingClientRect().width) + 'px wide');
+    log('context   →', ctx.constructor.name);
+    log('');
+    log('the coordinate origin is the TOP LEFT, y increases downwards.');
+  }</script>
+</section>
+
+<section>
+  <h2>Paths</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="paths" width="420" height="160"></canvas>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const ctx = $('#paths').getContext('2d');
+
+    // A triangle
+    ctx.beginPath();
+    ctx.moveTo(60, 20);
+    ctx.lineTo(110, 110);
+    ctx.lineTo(10, 110);
+    ctx.closePath();
+    ctx.fillStyle = '#2563eb';
+    ctx.fill();
+    ctx.strokeStyle = '#16212c';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // A circle
+    ctx.beginPath();
+    ctx.arc(200, 65, 45, 0, Math.PI * 2);
+    ctx.fillStyle = 'crimson';
+    ctx.fill();
+
+    // An arc, not a full circle
+    ctx.beginPath();
+    ctx.arc(320, 65, 45, 0, Math.PI * 1.4);
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = 'seagreen';
+    ctx.stroke();
+
+    // A curve
+    ctx.beginPath();
+    ctx.moveTo(20, 145);
+    ctx.quadraticCurveTo(210, 100, 400, 145);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'goldenrod';
+    ctx.stroke();
+
+    log('every path starts with beginPath() — forget it and the new shape');
+    log('joins the previous one, and re-strokes it.');
+    log('');
+    log('moveTo / lineTo / arc / arcTo / quadraticCurveTo / bezierCurveTo / rect');
+    log('then fill() or stroke(), or both.');
+    log('');
+    log('angles are in RADIANS and start at 3 o\'clock:');
+    log('  90° =', (Math.PI / 2).toFixed(4), '| 180° =', Math.PI.toFixed(4));
+  }</script>
+</section>
+
+<section>
+  <h2>State and transforms</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="state" width="420" height="160"></canvas>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const ctx = $('#state').getContext('2d');
+
+    // save/restore is a stack of the whole drawing state.
+    for (let i = 0; i < 8; i++) {
+      ctx.save();                                   // push
+
+      ctx.translate(60 + i * 45, 80);
+      ctx.rotate((i * Math.PI) / 12);
+      ctx.scale(1 - i * 0.08, 1 - i * 0.08);
+      ctx.globalAlpha = 1 - i * 0.1;
+
+      ctx.fillStyle = `hsl(${i * 40} 70% 55%)`;
+      ctx.fillRect(-20, -20, 40, 40);
+
+      ctx.restore();                                // pop
+    }
+
+    log('save() and restore() cover style, transform, clipping — everything.');
+    log('');
+    log('transforms are CUMULATIVE and apply to the coordinate system,');
+    log('not to the shape. Draw at the origin, and move the origin instead:');
+    log('  translate(x, y); rotate(angle); fillRect(-w/2, -h/2, w, h);');
+    log('');
+    log('  translate(x, y)  move the origin');
+    log('  rotate(rad)      about the current origin');
+    log('  scale(x, y)      including line widths');
+    log('  setTransform(1,0,0,1,0,0)  reset everything');
+  }</script>
+</section>
+
+<section>
+  <h2>Gradients, shadows and images</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="fancy" width="420" height="160"></canvas>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const ctx = $('#fancy').getContext('2d');
+
+    const linear = ctx.createLinearGradient(20, 0, 200, 0);
+    linear.addColorStop(0, '#2563eb');
+    linear.addColorStop(1, 'crimson');
+    ctx.fillStyle = linear;
+    ctx.fillRect(20, 20, 180, 60);
+
+    const radial = ctx.createRadialGradient(300, 50, 5, 300, 50, 45);
+    radial.addColorStop(0, '#fff');
+    radial.addColorStop(1, 'seagreen');
+    ctx.fillStyle = radial;
+    ctx.beginPath();
+    ctx.arc(300, 50, 45, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.35)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 4;
+    ctx.fillStyle = 'goldenrod';
+    ctx.fillRect(20, 100, 380, 36);
+    ctx.restore();
+
+    ctx.fillStyle = '#16212c';
+    ctx.font = '600 16px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('text, centred with textAlign and textBaseline', 210, 118);
+
+    log('measuring text:');
+    const m = ctx.measureText('measure me');
+    log('  width →', m.width.toFixed(1) + 'px');
+    log('  ascent/descent →',
+        m.actualBoundingBoxAscent.toFixed(1), '/', m.actualBoundingBoxDescent.toFixed(1));
+
+    log('');
+    log('drawImage takes an <img>, a <video>, another canvas, or an');
+    log('ImageBitmap — and can crop and scale in one call:');
+    log('  drawImage(src, sx, sy, sw, sh, dx, dy, dw, dh)');
+  }</script>
+</section>
+
+<section>
+  <h2>Sharpness on a high-DPI screen</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="blurry" width="200" height="60" style="width:200px;height:60px"></canvas>
+    <canvas id="sharp" style="width:200px;height:60px;margin-top:8px"></canvas>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const dpr = window.devicePixelRatio || 1;
+
+    // Wrong: the bitmap is 200×60 but the screen may have 2× the pixels.
+    const blurry = $('#blurry').getContext('2d');
+    blurry.font = '16px system-ui';
+    blurry.fillStyle = '#16212c';
+    blurry.fillText('1× bitmap — soft on a retina screen', 10, 35);
+
+    // Right: scale the bitmap up, keep the CSS size, then scale the context.
+    const canvas = $('#sharp');
+    canvas.width = 200 * dpr;
+    canvas.height = 60 * dpr;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.font = '16px system-ui';
+    ctx.fillStyle = '#16212c';
+    ctx.fillText(dpr + '× bitmap — sharp', 10, 35);
+
+    log('devicePixelRatio →', dpr);
+    log('blurry canvas    →', $('#blurry').width + '×' + $('#blurry').height, 'bitmap');
+    log('sharp canvas     →', canvas.width + '×' + canvas.height, 'bitmap, same CSS size');
+    log('');
+    log('note: setting canvas.width or .height CLEARS the canvas —');
+    log('which is also the fastest way to erase it.');
+  }</script>
+</section>
+
+<section>
+  <h2>Animation and input</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="game" width="420" height="180"></canvas>
+    <div style="margin-top:8px">
+      <button id="toggle">start / stop</button>
+      <button id="add">add a ball</button>
+      <span style="font-size:13px;color:var(--ink-faint)">move the mouse over the canvas</span>
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const canvas = $('#game');
+    const ctx = canvas.getContext('2d');
+    const balls = [];
+    let running = false, raf = null, frames = 0, last = performance.now();
+    const mouse = { x: -100, y: -100 };
+
+    function addBall() {
+      balls.push({
+        x: Math.random() * 380 + 20, y: Math.random() * 140 + 20,
+        vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+        r: 8 + Math.random() * 10,
+        hue: Math.floor(Math.random() * 360)
+      });
+    }
+    for (let i = 0; i < 5; i++) addBall();
+
+    // Canvas coordinates are not page coordinates — convert with the rect.
+    canvas.addEventListener('mousemove', event => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = (event.clientX - rect.left) * (canvas.width / rect.width);
+      mouse.y = (event.clientY - rect.top) * (canvas.height / rect.height);
+    });
+
+    function frame(now) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      balls.forEach(ball => {
+        // Push away from the pointer.
+        const dx = ball.x - mouse.x, dy = ball.y - mouse.y;
+        const dist = Math.hypot(dx, dy);
+        if (dist < 60 && dist > 0) { ball.vx += dx / dist * 0.4; ball.vy += dy / dist * 0.4; }
+
+        ball.x += ball.vx;
+        ball.y += ball.vy;
+        ball.vx *= 0.995;
+        ball.vy *= 0.995;
+
+        if (ball.x < ball.r || ball.x > canvas.width - ball.r) ball.vx *= -1;
+        if (ball.y < ball.r || ball.y > canvas.height - ball.r) ball.vy *= -1;
+        ball.x = Math.min(Math.max(ball.x, ball.r), canvas.width - ball.r);
+        ball.y = Math.min(Math.max(ball.y, ball.r), canvas.height - ball.r);
+
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+        ctx.fillStyle = `hsl(${ball.hue} 70% 55%)`;
+        ctx.fill();
+      });
+
+      frames++;
+      if (now - last > 1000) {
+        log('fps ≈', Math.round((frames * 1000) / (now - last)), '|', balls.length, 'balls');
+        frames = 0;
+        last = now;
+      }
+
+      if (running) raf = requestAnimationFrame(frame);
+    }
+
+    $('#toggle').addEventListener('click', () => {
+      running = !running;
+      log(running ? 'started' : 'stopped');
+      if (running) { last = performance.now(); frames = 0; raf = requestAnimationFrame(frame); }
+      else cancelAnimationFrame(raf);
+    });
+
+    $('#add').addEventListener('click', () => { addBall(); if (!running) frame(performance.now()); });
+
+    frame(performance.now());          // draw one frame so it is not blank
+    log('the loop: clear → update → draw → requestAnimationFrame');
+  }</script>
+</section>
+
+<section>
+  <h2>Reading and writing pixels</h2>
+
+  <div class="stage" style="display:block">
+    <canvas id="pixels" width="420" height="120"></canvas>
+    <button id="invert" style="margin-top:8px">invert</button>
+    <button id="grey">greyscale</button>
+    <button id="reset">reset</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const canvas = $('#pixels');
+    const ctx = canvas.getContext('2d');
+
+    function draw() {
+      const g = ctx.createLinearGradient(0, 0, 420, 0);
+      g.addColorStop(0, '#2563eb');
+      g.addColorStop(0.5, 'goldenrod');
+      g.addColorStop(1, 'crimson');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, 420, 120);
+      ctx.fillStyle = 'white';
+      ctx.font = '600 22px system-ui';
+      ctx.fillText('getImageData', 20, 70);
+    }
+    draw();
+
+    function transform(fn) {
+      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = image.data;                 // Uint8ClampedArray, 4 bytes per pixel
+      for (let i = 0; i < data.length; i += 4) fn(data, i);
+      ctx.putImageData(image, 0, 0);
+    }
+
+    $('#invert').addEventListener('click', () => {
+      transform((d, i) => { d[i] = 255 - d[i]; d[i + 1] = 255 - d[i + 1]; d[i + 2] = 255 - d[i + 2]; });
+      log('inverted');
+    });
+
+    $('#grey').addEventListener('click', () => {
+      transform((d, i) => {
+        const v = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        d[i] = d[i + 1] = d[i + 2] = v;
+      });
+      log('greyscaled');
+    });
+
+    $('#reset').addEventListener('click', () => { draw(); log('redrawn'); });
+
+    const sample = ctx.getImageData(10, 10, 1, 1).data;
+    log('one pixel →', 'r' + sample[0], 'g' + sample[1], 'b' + sample[2], 'a' + sample[3]);
+    log('total bytes →', (canvas.width * canvas.height * 4).toLocaleString());
+    log('');
+    log('getImageData is blocked cross-origin — drawing an image from');
+    log('another domain "taints" the canvas and reading throws SecurityError.');
+  }</script>
+</section>
+
+<section>
+  <h2>Exporting</h2>
+
+  <div class="stage">
+    <button id="save">download the canvas above</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#save').addEventListener('click', () => {
+      const canvas = document.getElementById('pixels');
+
+      canvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'canvas.png';
+        a.click();
+        URL.revokeObjectURL(url);
+        log('saved', (blob.size / 1024).toFixed(1) + 'KB as', blob.type);
+      }, 'image/png');
+    });
+
+    log('toDataURL()  → a base64 string, synchronous, ~33% larger');
+    log('toBlob()     → a Blob, asynchronous, what you want for downloads');
+    log('  both take "image/png", "image/jpeg" or "image/webp", and a quality');
+    log('');
+    log('always revokeObjectURL when you are done, or the blob is held');
+    log('in memory for the life of the document.');
+  }</script>
+</section>
+
+<section>
+  <h2>Canvas or SVG?</h2>
+
+  <table class="ref">
+    <tr><th></th><th>Canvas</th><th>SVG</th></tr>
+    <tr><td>model</td><td>pixels, immediate</td><td>elements, retained</td></tr>
+    <tr><td>many objects</td><td>fast — one bitmap</td><td>slow — one node each</td></tr>
+    <tr><td>hit testing</td><td>you write it</td><td>free, via events</td></tr>
+    <tr><td>accessibility</td><td>none by default</td><td>real elements</td></tr>
+    <tr><td>scaling</td><td>resolution-dependent</td><td>resolution-independent</td></tr>
+    <tr><td>styling</td><td>JavaScript only</td><td>CSS</td></tr>
+    <tr><td>use for</td><td>games, particles, image editing, big charts</td><td>icons, diagrams, small charts, anything interactive</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a rough rule: under a thousand shapes that need interaction → SVG.');
+    log('Ten thousand shapes redrawn every frame → canvas.');
+    log('');
+    log('and for 3D or very heavy 2D, the same element gives you WebGL:');
+    // A canvas can only ever have ONE context type, so test on a fresh one:
+    ['2d', 'webgl', 'webgl2', 'bitmaprenderer'].forEach(type => {
+      let ok = false;
+      try { ok = Boolean(document.createElement('canvas').getContext(type)); }
+      catch (err) { ok = false; }
+      log('  ' + (ok ? '✔' : '✘'), type);
+    });
+    log('  ✔ webgpu →', 'gpu' in navigator);
+
+    log('');
+    log('one accessibility note: put fallback content inside the element,');
+    log('and mirror anything important in the DOM. A canvas is invisible');
+    log('to a screen reader.');
+  }</script>
+</section>
+
+</body>
+</html>

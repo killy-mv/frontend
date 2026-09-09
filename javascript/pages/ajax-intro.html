@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AJAX — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="ajax-intro">
+
+<h1>AJAX</h1>
+<p class="lede">Asynchronous JavaScript And XML — a 2005 name for a 2026 habit: fetching data
+in the background and updating part of the page, instead of loading a whole new one.</p>
+
+<section>
+  <h2>What changed</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('before AJAX, every interaction was a round trip:');
+    log('');
+    log('  click → full request → server renders a whole page → browser');
+    log('  repaints everything → the scroll position is lost');
+    log('');
+    log('with AJAX:');
+    log('');
+    log('  click → small request → server returns just the data →');
+    log('  JavaScript updates one element');
+    log('');
+    log('nothing about the SERVER changed. What changed is that the browser');
+    log('learned to make a request without navigating.');
+  }</script>
+</section>
+
+<section>
+  <h2>The X is a lie</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const xml = '<user><id>1</id><name>Ada</name></user>';
+    const json = '{"id":1,"name":"Ada"}';
+
+    log('XML  ', xml, '  (' + xml.length + ' characters)');
+    log('JSON ', json, '                (' + json.length + ' characters)');
+
+    log('');
+    log('parsing XML by hand:');
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    log('  name →', doc.querySelector('name').textContent);
+    log('  and every value is a string, wrapped in a node');
+
+    log('');
+    log('parsing JSON:');
+    log('  name →', JSON.parse(json).name);
+    log('  and the types survive:', typeof JSON.parse(json).id);
+
+    log('');
+    log('so "AJAX" today means JSON over fetch. The acronym stuck anyway.');
+  }</script>
+</section>
+
+<section>
+  <h2>Three generations</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('1999  XMLHttpRequest  — callbacks and readyState');
+    log('');
+    log('  const xhr = new XMLHttpRequest();');
+    log('  xhr.open("GET", url);');
+    log('  xhr.onload = () => JSON.parse(xhr.responseText);');
+    log('  xhr.send();');
+    log('');
+    log('2015  fetch           — promises');
+    log('');
+    log('  fetch(url).then(r => r.json()).then(data => …);');
+    log('');
+    log('2017  async/await     — the same fetch, read top to bottom');
+    log('');
+    log('  const data = await (await fetch(url)).json();');
+    log('');
+    log('all three are still supported. Only one is worth writing today.');
+  }</script>
+</section>
+
+<section>
+  <h2>A live example</h2>
+  <p>Fetching data and rendering it, with the three states every request has:
+  loading, success, failure.</p>
+
+  <div class="stage">
+    <button id="load">load users</button>
+    <label><input type="checkbox" id="fail"> simulate a failure</label>
+  </div>
+  <div class="stage" id="out" style="display:block;min-height:40px">nothing loaded</div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // A stand-in endpoint so this works offline and from file://
+    function endpoint(shouldFail) {
+      const body = JSON.stringify([
+        { id: 1, name: 'Ada Lovelace', role: 'engineer' },
+        { id: 2, name: 'Alan Turing', role: 'mathematician' },
+        { id: 3, name: 'Grace Hopper', role: 'admiral' }
+      ]);
+      return shouldFail
+        ? 'https://example.invalid/users'
+        : URL.createObjectURL(new Blob([body], { type: 'application/json' }));
+    }
+
+    const out = $('#out');
+
+    async function load() {
+      out.textContent = 'Loading…';
+      log.clear();
+      log('state → loading');
+
+      try {
+        const response = await fetch(endpoint($('#fail').checked));
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+
+        const users = await response.json();
+
+        out.replaceChildren();
+        users.forEach(user => {
+          const row = document.createElement('div');
+          row.textContent = `${user.name} — ${user.role}`;
+          out.append(row);
+        });
+
+        log('state → success,', users.length, 'rows rendered');
+      } catch (err) {
+        out.textContent = 'Could not load. Try again.';
+        log('state → error:', err.name + ':', err.message);
+        log('  the user sees a message, not a blank box');
+      }
+    }
+
+    $('#load').addEventListener('click', load);
+    log('press load, then tick the box and press again');
+  }</script>
+</section>
+
+<section>
+  <h2>Updating without reloading</h2>
+
+  <div class="stage">
+    <input id="new-item" placeholder="an item" value="something" style="flex:1">
+    <button id="add">add (optimistic)</button>
+  </div>
+  <div class="stage" id="list" style="display:block"></div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const list = $('#list');
+    let items = ['first item'];
+
+    function render() {
+      list.replaceChildren();
+      items.forEach(text => {
+        const row = document.createElement('div');
+        row.textContent = text;
+        row.style.opacity = text.endsWith(' (saving…)') ? '0.5' : '1';
+        list.append(row);
+      });
+    }
+
+    // Pretend to save, failing one time in three.
+    const save = text => new Promise((resolve, reject) =>
+      setTimeout(() => (Math.random() < 0.66 ? resolve(text) : reject(new Error('server said no'))), 700));
+
+    $('#add').addEventListener('click', async () => {
+      const text = $('#new-item').value.trim();
+      if (!text) return;
+
+      // Optimistic: show it immediately.
+      const pending = text + ' (saving…)';
+      items.push(pending);
+      render();
+      log('added optimistically —', items.length, 'rows');
+
+      try {
+        await save(text);
+        items[items.indexOf(pending)] = text;
+        render();
+        log('✔ confirmed by the server');
+      } catch (err) {
+        items = items.filter(i => i !== pending);
+        render();
+        log('✘ rolled back:', err.message);
+      }
+    });
+
+    render();
+    log('an optimistic update feels instant, but you must be able to undo it');
+  }</script>
+</section>
+
+<section>
+  <h2>Race conditions</h2>
+  <p>Requests do not come back in the order you sent them. This is the single most common
+  AJAX bug.</p>
+
+  <div class="stage">
+    <input id="search" placeholder="type quickly" value="" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // Short queries answer SLOWLY, long ones quickly — so results arrive
+    // out of order, exactly as a real server sometimes does.
+    const query = term => new Promise(resolve =>
+      setTimeout(() => resolve(term), 600 - term.length * 100));
+
+    let latest = 0;
+    let naiveResult = '';
+
+    $('#search').addEventListener('input', async event => {
+      const term = event.target.value;
+      if (!term) return;
+
+      const id = ++latest;
+
+      const answer = await query(term);
+
+      // Naive: whatever comes back last wins.
+      naiveResult = answer;
+
+      // Correct: ignore anything that is not the most recent request.
+      const isCurrent = id === latest;
+
+      log('answer for', JSON.stringify(answer),
+          '| naive shows:', JSON.stringify(naiveResult),
+          '|', isCurrent ? 'accepted' : 'DISCARDED (stale)');
+    });
+
+    log('type "abcd" quickly and watch the order of the answers');
+    log('');
+    log('two standard fixes:');
+    log('  • a request id, and ignore anything that is not the latest');
+    log('  • an AbortController, and cancel the previous request outright');
+  }</script>
+</section>
+
+<section>
+  <h2>What AJAX cost us</h2>
+  <div class="note">Fetching in the background breaks things the browser used to handle for
+  free: the URL no longer describes what is on screen, Back does not undo the last action,
+  and a screen reader is not told that anything changed. Update the URL with the History
+  API, and announce changes with <code>aria-live</code>.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the checklist for any AJAX-driven view:');
+    log('  □ a loading state, so the page is not silently blank');
+    log('  □ an error state with a way to retry');
+    log('  □ the URL reflects what is shown (History API)');
+    log('  □ aria-live="polite" on the region that changes');
+    log('  □ focus moved sensibly after a big update');
+    log('  □ stale responses discarded');
+  }</script>
+</section>
+
+</body>
+</html>

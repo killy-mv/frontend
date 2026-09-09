@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Common Mistakes — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="mistakes">
+
+<h1>Common Mistakes</h1>
+<p class="lede">Every one of these has been written by everyone at least once.</p>
+
+<section>
+  <h2>= instead of ==</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let x = 0;
+
+    if (x = 10) {                     // assigns, then tests 10 — always truthy
+      log('this branch runs, and x is now', x);
+    }
+
+    let y = 0;
+    if (y === 10) {
+      log('never');
+    } else {
+      log('=== compares:', y);
+    }
+
+    log('');
+    log('this is why linters flag an assignment inside a condition');
+  }</script>
+</section>
+
+<section>
+  <h2>Loose equality surprises</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('"" == 0        →', '' == 0);
+    log('"0" == 0       →', '0' == 0);
+    log('"" == "0"      →', '' == '0', '← not transitive');
+    log('[] == false    →', [] == false);
+    log('null == 0      →', null == 0);
+    log('null >= 0      →', null >= 0, '← but this is true');
+    log('NaN == NaN     →', NaN == NaN);
+
+    log('');
+    log('use === and the whole category disappears');
+  }</script>
+</section>
+
+<section>
+  <h2>Adding when you meant to add</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = '10';                    // from an input field
+    const b = 5;
+
+    log('a + b →', a + b, '← concatenation');
+    log('a - b →', a - b, '← subtraction converts');
+    log('Number(a) + b →', Number(a) + b);
+
+    log('');
+    log('the same bug in a total:');
+    const prices = ['10', '20', '30'];
+    log('reduce as-is:', prices.reduce((t, p) => t + p, 0));
+    log('converted:   ', prices.reduce((t, p) => t + Number(p), 0));
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing floats</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('0.1 + 0.2 === 0.3 →', 0.1 + 0.2 === 0.3);
+    log('0.1 + 0.2         →', 0.1 + 0.2);
+    log('within EPSILON    →', Math.abs(0.1 + 0.2 - 0.3) < Number.EPSILON);
+    log('rounded compare   →', (0.1 + 0.2).toFixed(2) === (0.3).toFixed(2));
+  }</script>
+</section>
+
+<section>
+  <h2>Off-by-one in a loop</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const list = ['a', 'b', 'c'];
+
+    log('with <= :');
+    for (let i = 0; i <= list.length; i++) log('  ', i, list[i]);
+
+    log('with < :');
+    for (let i = 0; i < list.length; i++) log('  ', i, list[i]);
+  }</script>
+</section>
+
+<section>
+  <h2>Semicolon after if or for</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let count = 0;
+
+    for (let i = 0; i < 5; i++);        // the semicolon IS the loop body
+    {
+      count++;                          // just a block, runs once
+    }
+    log('count after the stray semicolon →', count);
+
+    count = 0;
+    for (let i = 0; i < 5; i++) {
+      count++;
+    }
+    log('count without it →', count);
+  }</script>
+</section>
+
+<section>
+  <h2>Breaking a return</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function broken() {
+      return
+        'never returned';
+    }
+
+    function fixed() {
+      return 'returned';
+    }
+
+    log('broken() →', broken());
+    log('fixed()  →', fixed());
+  }</script>
+</section>
+
+<section>
+  <h2>Expecting arrays to be objects</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const arr = [1, 2, 3];
+
+    arr['name'] = 'oops';               // now it is an array AND an object
+    log('array:', arr);
+    log('length:', arr.length, '← the string key does not count');
+    log('for…of skips it:', [...arr]);
+    log('for…in sees it: ', Object.keys(arr));
+
+    log('');
+    log('typeof [] →', typeof [], '| use Array.isArray:', Array.isArray([]));
+    log('[] + []   →', JSON.stringify([] + []));
+    log('[] + {}   →', JSON.stringify([] + {}));
+  }</script>
+</section>
+
+<section>
+  <h2>Forgetting that objects are shared</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const defaults = { retries: 3, tags: [] };
+    const configA = { ...defaults };
+    const configB = { ...defaults };
+
+    configA.tags.push('a');             // the array was shared by the shallow copy
+    log('configB.tags →', configB.tags);
+
+    const safeA = structuredClone(defaults);
+    safeA.tags.push('a');
+    log('after a deep clone, defaults.tags →', defaults.tags);
+  }</script>
+</section>
+
+<section>
+  <h2>Using an element before it exists</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('an element further down the page:', document.getElementById('later'));
+    log('scripts run in order, so it is not parsed yet');
+    log('fixes: put the script last, use defer, or wait for DOMContentLoaded');
+  }</script>
+  <p id="later">This paragraph comes after the script.</p>
+</section>
+
+<section>
+  <h2>Async results read too early</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function fetchLater() {
+      let result = 'not ready';
+      setTimeout(() => { result = 'ready'; }, 50);
+      return result;                    // returns before the timeout fires
+    }
+
+    log('returned immediately:', fetchLater());
+
+    function fetchProperly() {
+      return new Promise(resolve => setTimeout(() => resolve('ready'), 50));
+    }
+
+    fetchProperly().then(value => log('with a promise:', value));
+    log('…and the promise result arrives after this line');
+  }</script>
+</section>
+
+</body>
+</html>

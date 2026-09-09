@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>bind() — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-bind">
+
+<h1>bind()</h1>
+<p class="lede"><code>call</code> and <code>apply</code> run the function now.
+<code>bind</code> hands you a <b>new function</b> with <code>this</code> permanently
+attached, to run later.</p>
+
+<section>
+  <h2>Borrowing a method for later</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      fullName() { return this.firstName + ' ' + this.lastName; }
+    };
+
+    const member = { firstName: 'Alan', lastName: 'Turing' };
+
+    const memberName = person.fullName.bind(member);
+
+    log('bind returns a', typeof memberName);
+    log('calling it later →', memberName());
+    log('the original is untouched →', person.fullName());
+  }</script>
+</section>
+
+<section>
+  <h2>The problem it solves</h2>
+  <p>A method passed somewhere else loses its object. <code>bind</code> pins it back on.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const timer = {
+      seconds: 0,
+      tick() {
+        this.seconds++;
+        return this.seconds;
+      }
+    };
+
+    const loose = timer.tick;
+    const bound = timer.tick.bind(timer);
+
+    log('timer.tick() →', timer.tick());
+    log('loose()      →', loose(), '← this was window; timer.seconds never moved');
+    log('bound()      →', bound());
+    log('timer.seconds is now', timer.seconds);
+  }</script>
+</section>
+
+<section>
+  <h2>With setTimeout and event handlers</h2>
+
+  <div class="stage">
+    <button id="inc">count up</button>
+    <span id="readout">0</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const counter = {
+      value: 0,
+      element: null,
+      increment() {
+        this.value++;
+        this.element.textContent = this.value;
+        log('increment ran, this.value =', this.value);
+      }
+    };
+
+    counter.element = $('#readout');
+
+    // Without bind, `this` inside increment would be the <button>.
+    $('#inc').addEventListener('click', counter.increment.bind(counter));
+
+    setTimeout(counter.increment.bind(counter), 300);
+    log('a bound increment is queued for 300ms from now');
+  }</script>
+</section>
+
+<section>
+  <h2>Partial application</h2>
+  <p>Arguments given to <code>bind</code> are locked in front of whatever you pass later.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function multiply(a, b) { return a * b; }
+
+    const double = multiply.bind(null, 2);
+    const triple = multiply.bind(null, 3);
+
+    log('double(8) →', double(8));
+    log('triple(8) →', triple(8));
+
+    log('');
+    function greet(greeting, punctuation, name) {
+      return `${greeting}, ${name}${punctuation}`;
+    }
+    const shout = greet.bind(null, 'HELLO', '!');
+    log(shout('Ada'));
+    log(shout('Alan'));
+
+    log('');
+    log('bound arguments are always leftmost — there is no way to skip one');
+  }</script>
+</section>
+
+<section>
+  <h2>Properties of a bound function</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function original(a, b, c) { return [a, b, c]; }
+
+    const bound = original.bind(null, 1);
+
+    log('name:  ', original.name, '→', bound.name);
+    log('length:', original.length, '→', bound.length, '← one parameter is already supplied');
+    log('is it the same function?', bound === original);
+    log('prototype:', typeof bound.prototype, '← bound functions have none');
+  }</script>
+</section>
+
+<section>
+  <h2>Binding is permanent</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function whoAmI() { return this.name; }
+
+    const bound = whoAmI.bind({ name: 'first' });
+
+    log('bound()            →', bound());
+    log('bound.call(other)  →', bound.call({ name: 'second' }), '← ignored');
+    log('bound.apply(other) →', bound.apply({ name: 'third' }), '← ignored');
+    log('re-binding         →', bound.bind({ name: 'fourth' })(), '← still ignored');
+
+    log('');
+    log('the one exception is new — it makes a fresh this:');
+    function Point(x, y) { this.x = x; this.y = y; }
+    const BoundPoint = Point.bind({ ignored: true }, 10);
+    log('  new BoundPoint(20) →', new BoundPoint(20));
+    log('  instanceof Point?  →', new BoundPoint(20) instanceof Point);
+  }</script>
+</section>
+
+<section>
+  <h2>Bind in a class or constructor</h2>
+  <p>Binding once in the constructor gives every handler a stable identity, which matters if
+  you ever need to remove the listener.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Toggle {
+      constructor(label) {
+        this.label = label;
+        this.on = false;
+        this.handle = this.handle.bind(this);   // shadows the prototype method
+      }
+      handle() {
+        this.on = !this.on;
+        return `${this.label}: ${this.on ? 'on' : 'off'}`;
+      }
+    }
+
+    const t = new Toggle('lamp');
+    const detached = t.handle;
+
+    log(detached());
+    log(detached());
+    log('same reference every time?', t.handle === t.handle);
+
+    log('');
+    log('a class field arrow does the same thing without the ceremony:');
+    class Toggle2 {
+      on = false;
+      handle = () => (this.on = !this.on);
+    }
+    const t2 = new Toggle2();
+    const d2 = t2.handle;
+    log('  ', d2(), d2(), '← this still points at the instance');
+  }</script>
+</section>
+
+<section>
+  <h2>Writing bind yourself</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function myBind(fn, thisArg, ...preset) {
+      return function (...later) {
+        return fn.apply(thisArg, [...preset, ...later]);
+      };
+    }
+
+    function describe(adjective, noun) {
+      return `${this.name} is a ${adjective} ${noun}`;
+    }
+
+    const mine = myBind(describe, { name: 'Rex' }, 'good');
+    log(mine('dog'));
+    log('the real thing:', describe.bind({ name: 'Rex' }, 'good')('dog'));
+    log('(the real bind also handles new, and copies name/length)');
+  }</script>
+</section>
+
+</body>
+</html>

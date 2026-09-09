@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Function Parameters — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-parameters">
+
+<h1>Function Parameters</h1>
+<p class="lede">JavaScript never checks the number or type of arguments. Missing ones are
+<code>undefined</code>; extra ones are ignored, but still available.</p>
+
+<section>
+  <h2>Missing and extra arguments</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function show(a, b, c) {
+      return { a, b, c, given: arguments.length, declared: show.length };
+    }
+
+    log(show(1));
+    log(show(1, 2, 3));
+    log(show(1, 2, 3, 4, 5), '← the extras are not in a, b or c');
+  }</script>
+</section>
+
+<section>
+  <h2>Default values</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function greet(name = 'friend', greeting = 'Hello') {
+      return `${greeting}, ${name}!`;
+    }
+
+    log(greet());
+    log(greet('Ada'));
+    log(greet('Ada', 'Hi'));
+    log(greet(undefined, 'Hi'), '← undefined triggers the default');
+    log(greet(null, 'Hi'), '← null does not');
+
+    // A default is evaluated at CALL time, and can use earlier parameters:
+    function makeId(prefix = 'id', suffix = Date.now(), full = prefix + '-' + suffix) {
+      return full;
+    }
+    log(makeId());
+    log(makeId('user'));
+
+    // Which makes "required" easy to express:
+    const required = name => { throw new Error(name + ' is required'); };
+    function connect(host = required('host')) { return 'connecting to ' + host; }
+
+    log(connect('localhost'));
+    try { connect(); } catch (err) { log('connect() →', err.message); }
+  }</script>
+</section>
+
+<section>
+  <h2>Rest parameters</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sum(...numbers) {
+      return numbers.reduce((total, n) => total + n, 0);
+    }
+    log('sum(1,2,3)  →', sum(1, 2, 3));
+    log('sum()       →', sum());
+
+    function tag(name, ...values) {
+      return name + ': ' + values.join(', ');
+    }
+    log(tag('colours', 'red', 'green'));
+
+    log('');
+    log('rest must be last, and does not count towards .length:');
+    log('  tag.length →', tag.length);
+  }</script>
+</section>
+
+<section>
+  <h2>arguments</h2>
+  <p>An array-like object present in every non-arrow function. Rest parameters replace it in
+  new code.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function old() {
+      log('arguments:', arguments);
+      log('length:', arguments.length, '| isArray:', Array.isArray(arguments));
+      log('as an array:', Array.from(arguments));
+      log('spread also works:', [...arguments]);
+    }
+    old('a', 'b', 'c');
+
+    log('');
+    const arrow = () => {
+      try { return arguments.length; }
+      catch (err) { return err.name + ' — arrows have no arguments object'; }
+    };
+    log('inside an arrow:', arrow(1, 2));
+  }</script>
+</section>
+
+<section>
+  <h2>Destructured parameters</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Named arguments: order-free and self-documenting.
+    function drawRect({ x = 0, y = 0, width, height, colour = 'black' } = {}) {
+      return `rect at ${x},${y} ${width}×${height} in ${colour}`;
+    }
+
+    log(drawRect({ width: 10, height: 5 }));
+    log(drawRect({ height: 5, width: 10, colour: 'red', x: 3 }));
+
+    // The trailing `= {}` is what makes a no-argument call work:
+    function fragile({ a } = undefined) { return a; }
+    try { fragile(); } catch (err) { log('without a default →', err.name); }
+
+    log('');
+    log('array parameters too:');
+    const midpoint = ([x1, y1], [x2, y2]) => [(x1 + x2) / 2, (y1 + y2) / 2];
+    log(midpoint([0, 0], [10, 4]));
+  }</script>
+</section>
+
+<section>
+  <h2>Arguments are passed by value</h2>
+  <p>Always — but for an object, the value being copied is a reference.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function reassign(x) { x = 99; }
+    function mutate(obj) { obj.value = 99; }
+    function replace(obj) { obj = { value: 99 }; }
+
+    let number = 1;
+    reassign(number);
+    log('primitive after reassign:', number);
+
+    const object = { value: 1 };
+    mutate(object);
+    log('object after mutate:     ', object);
+
+    const other = { value: 1 };
+    replace(other);
+    log('object after replace:    ', other, '← the parameter was repointed, not the object');
+  }</script>
+</section>
+
+<section>
+  <h2>Argument validation</h2>
+  <div class="stage">
+    <input id="args" value='"Ada", 36' style="flex:1">
+    <span style="font-size:13px;color:var(--ink-faint)">arguments for register(name, age, city="?")</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function register(name, age, city = 'unknown') {
+      if (typeof name !== 'string' || !name.trim()) throw new TypeError('name must be a non-empty string');
+      if (!Number.isInteger(age) || age < 0) throw new RangeError('age must be a whole number');
+      return { name: name.trim(), age, city };
+    }
+
+    function run() {
+      log.clear();
+      try {
+        const args = new Function('return [' + $('#args').value + ']')();
+        log('arguments:', args, '(' + args.length + ' given, ' + register.length + ' declared)');
+        log('result:   ', register(...args));
+      } catch (err) {
+        log('rejected: ', err.name + ':', err.message);
+      }
+    }
+
+    $('#args').addEventListener('input', run);
+    run();
+  }</script>
+</section>
+
+</body>
+</html>

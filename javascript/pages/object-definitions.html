@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Definitions — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-definitions">
+
+<h1>Object Definitions</h1>
+<p class="lede">Five ways to create an object. The literal covers almost every case; the
+others exist for inheritance, factories and dynamic keys.</p>
+
+<section>
+  <h2>The object literal</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const car = {
+      brand: 'Fiat',
+      model: 500,
+      year: 1957,
+      start() { return this.brand + ' started'; }
+    };
+
+    log(car);
+    log(car.start());
+
+    // Written across lines, one property per line, is the normal style:
+    const empty = {};
+    log('an empty object:', empty, '| keys:', Object.keys(empty).length);
+  }</script>
+</section>
+
+<section>
+  <h2>Shorthand and computed keys</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const name = 'Ada';
+    const age = 36;
+
+    log('shorthand:', { name, age });        // same as { name: name, age: age }
+
+    const key = 'dynamic' + 'Key';
+    const withComputed = {
+      [key]: 'value',
+      ['total_' + 2024]: 100
+    };
+    log('computed keys:', withComputed);
+
+    // Methods, getters and setters in one literal:
+    const temp = {
+      celsius: 20,
+      get fahrenheit() { return this.celsius * 9 / 5 + 32; },
+      set fahrenheit(f) { this.celsius = (f - 32) * 5 / 9; },
+      describe() { return this.celsius + '°C'; }
+    };
+    log('getter:', temp.fahrenheit);
+    temp.fahrenheit = 212;
+    log('after the setter:', temp.describe());
+  }</script>
+</section>
+
+<section>
+  <h2>new Object()</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = new Object();
+    person.name = 'Ada';
+    person.age = 36;
+
+    log(person);
+    log('identical to a literal:', JSON.stringify(person) === JSON.stringify({ name: 'Ada', age: 36 }));
+    log('');
+    log('there is no reason to write this — the literal is shorter and faster');
+  }</script>
+</section>
+
+<section>
+  <h2>Constructor functions</h2>
+  <p>For making many objects of the same shape, before <code>class</code> existed.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(first, last, year) {
+      this.firstName = first;
+      this.lastName = last;
+      this.born = year;
+    }
+
+    Person.prototype.fullName = function () {
+      return this.firstName + ' ' + this.lastName;
+    };
+
+    const ada = new Person('Ada', 'Lovelace', 1815);
+    const alan = new Person('Alan', 'Turing', 1912);
+
+    log(ada.fullName(), '|', alan.fullName());
+    log('one shared method:', ada.fullName === alan.fullName);
+    log('instanceof Person:', ada instanceof Person);
+  }</script>
+</section>
+
+<section>
+  <h2>Classes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Person {
+      constructor(first, last) {
+        this.firstName = first;
+        this.lastName = last;
+      }
+      fullName() {
+        return this.firstName + ' ' + this.lastName;
+      }
+    }
+
+    const ada = new Person('Ada', 'Lovelace');
+    log(ada.fullName());
+    log('a class is a function underneath:', typeof Person);
+    log('methods live on the prototype:', Object.getOwnPropertyNames(Person.prototype));
+  }</script>
+</section>
+
+<section>
+  <h2>Object.create</h2>
+  <p>Builds an object with a prototype you choose — including <code>null</code>, for a
+  dictionary with no inherited keys at all.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const animal = {
+      speak() { return this.sound + '!'; }
+    };
+
+    const dog = Object.create(animal);
+    dog.sound = 'Woof';
+    log(dog.speak());
+    log('own properties:', Object.keys(dog));
+    log('prototype is animal:', Object.getPrototypeOf(dog) === animal);
+
+    log('');
+    const bare = Object.create(null);
+    bare.key = 'value';
+    log('a null-prototype object:', bare);
+    log('  "toString" in bare →', 'toString' in bare);
+    log('  safe as a lookup table with untrusted keys');
+  }</script>
+</section>
+
+<section>
+  <h2>Factory functions</h2>
+  <p>A plain function that returns an object. No <code>new</code>, no <code>this</code>, and
+  real privacy through closure.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function createCounter(start = 0) {
+      let count = start;                    // private, genuinely
+
+      return {
+        increment() { return ++count; },
+        decrement() { return --count; },
+        get value() { return count; }
+      };
+    }
+
+    const c = createCounter(10);
+    c.increment();
+    c.increment();
+    log('value:', c.value);
+    log('count is unreachable:', c.count);
+
+    log('');
+    log('the trade-off: every instance gets its own copy of the methods,');
+    log('where a class shares one copy on the prototype.');
+  }</script>
+</section>
+
+</body>
+</html>

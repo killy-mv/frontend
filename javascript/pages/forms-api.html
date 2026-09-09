@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Forms API — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="forms-api">
+
+<h1>The Forms API</h1>
+<p class="lede">Constraint validation lets the browser check a form for you — the same rules
+your CSS can style with <code>:invalid</code>, exposed to JavaScript.</p>
+
+<section>
+  <h2>ValidityState</h2>
+
+  <div class="stage" style="display:block">
+    <form id="f" style="display:grid;gap:6px;max-width:380px">
+      <input name="email" type="email" placeholder="email" required>
+      <input name="handle" pattern="[a-z0-9_]{3,15}" placeholder="handle: a-z 0-9 _ , 3–15">
+      <input name="age" type="number" min="18" max="120" step="1" placeholder="age (18+)">
+      <input name="bio" maxlength="20" placeholder="bio, max 20 chars">
+      <button>check</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const form = $('#f');
+
+    const flags = ['valueMissing', 'typeMismatch', 'patternMismatch', 'tooLong',
+                   'tooShort', 'rangeUnderflow', 'rangeOverflow', 'stepMismatch',
+                   'badInput', 'customError'];
+
+    function check() {
+      log.clear();
+      Array.from(form.elements).forEach(el => {
+        if (!el.name) return;
+        const failed = flags.filter(f => el.validity[f]);
+        log(el.name.padEnd(8),
+            el.validity.valid ? '✔ valid' : '✘ ' + failed.join(', '));
+        if (el.validationMessage) log('         ', el.validationMessage);
+      });
+      log('');
+      log('form.checkValidity() →', form.checkValidity());
+    }
+
+    form.addEventListener('input', check);
+    form.addEventListener('submit', e => { e.preventDefault(); check(); });
+    check();
+
+    log('');
+    log('every one of those flags maps to one HTML attribute.');
+  }</script>
+</section>
+
+<section>
+  <h2>checkValidity vs reportValidity</h2>
+
+  <div class="stage">
+    <input id="v" type="email" placeholder="an email" required>
+    <button id="silent">checkValidity</button>
+    <button id="loud">reportValidity</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const field = $('#v');
+
+    $('#silent').addEventListener('click', () =>
+      log('checkValidity()  →', field.checkValidity(), '(no bubble shown)'));
+
+    $('#loud').addEventListener('click', () =>
+      log('reportValidity() →', field.reportValidity(),
+          '(and the browser shows its bubble)'));
+
+    field.addEventListener('invalid', () =>
+      log('  the "invalid" event fired on the field'));
+
+    log('both return the same boolean.');
+    log('reportValidity also focuses the field and shows the native message.');
+    log('Both fire an "invalid" event you can intercept.');
+  }</script>
+</section>
+
+<section>
+  <h2>Custom messages</h2>
+
+  <div class="stage" style="display:block">
+    <form id="custom" style="display:grid;gap:6px;max-width:380px">
+      <input name="user" placeholder="username" required minlength="3">
+      <input name="pass" type="password" placeholder="password" required>
+      <input name="pass2" type="password" placeholder="repeat password" required>
+      <button>submit</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const form = $('#custom');
+    const messages = {
+      valueMissing: 'This field is required.',
+      tooShort: el => `At least ${el.minLength} characters, you typed ${el.value.length}.`,
+      typeMismatch: 'That does not look right.'
+    };
+
+    function describe(el) {
+      for (const key of Object.keys(messages)) {
+        if (el.validity[key]) {
+          const m = messages[key];
+          return typeof m === 'function' ? m(el) : m;
+        }
+      }
+      return el.validationMessage;
+    }
+
+    form.addEventListener('input', () => {
+      const [, pass, pass2] = form.elements;
+      pass2.setCustomValidity(pass2.value && pass2.value !== pass.value
+        ? 'The passwords do not match.' : '');
+    });
+
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      log.clear();
+      const bad = Array.from(form.elements).filter(el => el.name && !el.checkValidity());
+      if (!bad.length) return log('✔ everything valid — would submit now');
+      bad.forEach(el => log('✘', el.name.padEnd(6), describe(el)));
+    });
+
+    log('replace the browser wording with your own, in your own layout —');
+    log('the native bubble cannot be styled at all.');
+  }</script>
+</section>
+
+<section>
+  <h2>Suppressing the native UI</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('add the novalidate attribute to the form:');
+    log('  <form novalidate>');
+    log('');
+    log('the browser then stops blocking submission and stops showing bubbles,');
+    log('but the validity API keeps working exactly the same. That is the');
+    log('usual setup for a custom-styled form:');
+    log('');
+    log('  form.noValidate = true;');
+    log('  form.addEventListener("submit", e => {');
+    log('    e.preventDefault();');
+    log('    if (form.checkValidity()) send();');
+    log('    else showMyOwnErrors();');
+    log('  });');
+    log('');
+    log('and in CSS, :user-invalid only styles fields the user has touched:');
+    log('  input:user-invalid { border-color: crimson; }');
+    log('');
+    log(':user-invalid supported here →', CSS.supports('selector(:user-invalid)'));
+  }</script>
+</section>
+
+<section>
+  <h2>FormData</h2>
+
+  <div class="stage" style="display:block">
+    <form id="fd" style="display:grid;gap:6px;max-width:380px">
+      <input name="title" value="A post">
+      <textarea name="body" rows="2">Some text</textarea>
+      <label><input type="checkbox" name="tags" value="js" checked> js</label>
+      <label><input type="checkbox" name="tags" value="css" checked> css</label>
+      <label><input type="checkbox" name="tags" value="html"> html</label>
+      <input type="file" name="upload">
+      <button>inspect</button>
+    </form>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#fd').addEventListener('submit', event => {
+      event.preventDefault();
+      log.clear();
+
+      const data = new FormData(event.target);
+
+      log('entries:');
+      for (const [key, value] of data) {
+        log('  ' + key.padEnd(8),
+            value instanceof File ? `File(${value.name || 'none selected'}, ${value.size}B)` : value);
+      }
+
+      log('');
+      log('getAll("tags") →', data.getAll('tags'), '← repeated names');
+      log('as an object   →', Object.fromEntries(data), '← loses the repeats');
+      log('as a query     →', new URLSearchParams(
+        Array.from(data).filter(([, v]) => !(v instanceof File))).toString());
+
+      log('');
+      log('unchecked boxes are simply absent — there is no "false".');
+    });
+
+    log('press inspect');
+  }</script>
+</section>
+
+<section>
+  <h2>Sending it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('three encodings, three ways:');
+    log('');
+    log('1. multipart/form-data — needed for files. Do NOT set Content-Type;');
+    log('   fetch adds the boundary for you.');
+    log('     fetch(url, { method: "POST", body: new FormData(form) })');
+    log('');
+    log('2. urlencoded — the classic form encoding:');
+    log('     body: new URLSearchParams(new FormData(form))');
+    log('');
+    log('3. JSON — what most APIs want today:');
+    log('     body: JSON.stringify(Object.fromEntries(new FormData(form))),');
+    log('     headers: { "Content-Type": "application/json" }');
+
+    log('');
+    log('and for analytics on the way out, where the response does not matter:');
+    log('     navigator.sendBeacon(url, new FormData(form))');
+    log('  supported here →', typeof navigator.sendBeacon === 'function');
+  }</script>
+</section>
+
+<section>
+  <h2>Input types do work for you</h2>
+
+  <div class="stage" style="display:block">
+    <div style="display:grid;gap:6px;max-width:380px">
+      <input id="t-date" type="date" value="2026-09-09">
+      <input id="t-color" type="color" value="#2563eb">
+      <input id="t-range" type="range" min="0" max="100" value="40">
+      <input id="t-number" type="number" value="3.5" step="0.5">
+    </div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function show() {
+      log.clear();
+      const date = $('#t-date');
+      log('date   value →', JSON.stringify(date.value),
+          '| valueAsDate →', date.valueAsDate && date.valueAsDate.toISOString().slice(0, 10));
+      log('color  value →', $('#t-color').value);
+      log('range  value →', $('#t-range').value, '(a string, always)');
+      const num = $('#t-number');
+      log('number value →', JSON.stringify(num.value),
+          '| valueAsNumber →', num.valueAsNumber);
+      log('');
+      log('typing letters into type=number gives value "" and badInput=true:');
+      log('  badInput →', num.validity.badInput);
+    }
+
+    $('.stage').addEventListener('input', show);
+    show();
+  }</script>
+</section>
+
+</body>
+</html>

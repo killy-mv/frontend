@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>For Loop — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="loop-for">
+
+<h1>For Loop</h1>
+<p class="lede">Three expressions separated by semicolons: where to start, how long to keep
+going, and what to do after each pass.</p>
+
+<section>
+  <h2>The anatomy</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (let i = 0; i < 3; i++) {
+      log('pass', i);
+    }
+
+    log('');
+    log('1. let i = 0   runs once, before the loop');
+    log('2. i < 3       is checked before every pass');
+    log('3. body        runs when the check passes');
+    log('4. i++         runs after every pass, then back to 2');
+  }</script>
+</section>
+
+<section>
+  <h2>Walking an array</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = ['Apple', 'Banana', 'Cherry', 'Date'];
+
+    for (let i = 0; i < fruit.length; i++) {
+      log(i, '→', fruit[i]);
+    }
+
+    log('');
+    log('backwards:');
+    for (let i = fruit.length - 1; i >= 0; i--) {
+      log(i, '→', fruit[i]);
+    }
+
+    log('');
+    log('every other one:');
+    for (let i = 0; i < fruit.length; i += 2) log(fruit[i]);
+  }</script>
+</section>
+
+<section>
+  <h2>All three parts are optional</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    let i = 0;
+    for (; i < 3;) {          // initialiser and step moved elsewhere
+      log('pass', i);
+      i++;
+    }
+
+    // An infinite loop with an internal exit:
+    let n = 0;
+    for (;;) {
+      n++;
+      if (n > 3) break;
+    }
+    log('exited at n =', n);
+
+    // Two counters at once, using the comma operator:
+    for (let a = 0, b = 10; a < b; a++, b--) {
+      log('a =', a, 'b =', b);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>let vs var in the head</h2>
+  <p><code>let</code> gives each iteration its own copy of the counter, which matters as
+  soon as the body creates a function.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const varFns = [];
+    for (var i = 0; i < 3; i++) varFns.push(() => i);
+
+    const letFns = [];
+    for (let j = 0; j < 3; j++) letFns.push(() => j);
+
+    log('var →', varFns.map(f => f()), '← all see the final value');
+    log('let →', letFns.map(f => f()));
+
+    log('after the loop, var i is still visible:', i);
+    log('after the loop, let j is:', typeof j);
+  }</script>
+</section>
+
+<section>
+  <h2>Caching the length</h2>
+  <p>An old micro-optimisation. Modern engines make it irrelevant for arrays, but it still
+  matters for live DOM collections, where <code>.length</code> is recalculated each time.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const big = Array.from({ length: 200000 }, (_, i) => i);
+
+    let t = performance.now();
+    let sum1 = 0;
+    for (let i = 0; i < big.length; i++) sum1 += big[i];
+    const plain = performance.now() - t;
+
+    t = performance.now();
+    let sum2 = 0;
+    for (let i = 0, len = big.length; i < len; i++) sum2 += big[i];
+    const cached = performance.now() - t;
+
+    log('sums match:', sum1 === sum2);
+    log('plain: ', plain.toFixed(2), 'ms');
+    log('cached:', cached.toFixed(2), 'ms');
+    log('(the difference is noise — write whichever reads better)');
+  }</script>
+</section>
+
+<section>
+  <h2>Nested loops</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (let row = 1; row <= 4; row++) {
+      let line = '';
+      for (let col = 1; col <= 4; col++) {
+        line += String(row * col).padStart(4);
+      }
+      log(line);
+    }
+
+    log('');
+    log('the inner loop runs completely for every pass of the outer one:',
+        4 * 4, 'iterations');
+  }</script>
+</section>
+
+<section>
+  <h2>Build a grid</h2>
+  <div class="stage">
+    <label>size <input id="size" type="range" min="2" max="10" value="5"></label>
+    <div id="grid" style="display:grid;gap:2px"></div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function build() {
+      const n = Number($('#size').value);
+      const grid = $('#grid');
+
+      grid.style.gridTemplateColumns = `repeat(${n}, 20px)`;
+      grid.innerHTML = '';
+
+      let cells = 0;
+      for (let row = 0; row < n; row++) {
+        for (let col = 0; col < n; col++) {
+          const cell = document.createElement('div');
+          cell.style.cssText = 'height:20px;border-radius:3px;background:' +
+            ((row + col) % 2 ? '#2563eb' : '#dfe6ee');
+          grid.appendChild(cell);
+          cells++;
+        }
+      }
+
+      log.clear();
+      log(n + '×' + n, '=', cells, 'cells created');
+    }
+
+    $('#size').addEventListener('input', build);
+    build();
+  }</script>
+</section>
+
+</body>
+</html>

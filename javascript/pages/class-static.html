@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Static Members — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="class-static">
+
+<h1>Static Members</h1>
+<p class="lede">A <code>static</code> member belongs to the class itself, not to instances.
+Use it for factories, constants, and helpers that do not need a particular object.</p>
+
+<section>
+  <h2>Static methods</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Temperature {
+      constructor(celsius) { this.celsius = celsius; }
+
+      static fromFahrenheit(f) {
+        return new Temperature((f - 32) * 5 / 9);
+      }
+
+      static compare(a, b) {
+        return a.celsius - b.celsius;
+      }
+
+      describe() { return this.celsius.toFixed(1) + '°C'; }
+    }
+
+    log('Temperature.fromFahrenheit(212) →', Temperature.fromFahrenheit(212).describe());
+
+    const readings = [new Temperature(20), new Temperature(-5), new Temperature(31)];
+    log('sorted:', readings.sort(Temperature.compare).map(t => t.describe()));
+
+    log('');
+    log('an instance cannot see it:', typeof readings[0].fromFahrenheit);
+    log('the class can:            ', typeof Temperature.fromFahrenheit);
+  }</script>
+</section>
+
+<section>
+  <h2>Static properties</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Circle {
+      static PI = 3.14159;
+      static instances = 0;
+      static #secret = 'private to the class';
+
+      constructor(r) {
+        this.r = r;
+        Circle.instances++;
+      }
+
+      area() { return Circle.PI * this.r ** 2; }
+      static reveal() { return Circle.#secret; }
+    }
+
+    new Circle(1); new Circle(2); new Circle(3);
+
+    log('Circle.PI        →', Circle.PI);
+    log('Circle.instances →', Circle.instances);
+    log('static private   →', Circle.reveal());
+    log('area of r=2      →', new Circle(2).area().toFixed(3));
+    log('instances now    →', Circle.instances);
+  }</script>
+</section>
+
+<section>
+  <h2>this inside a static method</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Base {
+      static create(...args) {
+        return new this(...args);       // `this` is the class it was called on
+      }
+      static get label() { return this.name; }
+    }
+
+    class Special extends Base {
+      constructor(value) { super(); this.value = value; }
+    }
+
+    log('Base.create()        →', Base.create().constructor.name);
+    log('Special.create(42)   →', Special.create(42));
+    log('statics are inherited:', Object.getPrototypeOf(Special) === Base);
+    log('Special.label        →', Special.label);
+  }</script>
+</section>
+
+<section>
+  <h2>Static blocks</h2>
+  <p>ES2022 added <code>static { … }</code> — a one-off setup step that runs when the class
+  is defined.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Config {
+      static defaults;
+      static keys;
+
+      static {
+        Config.defaults = { theme: 'light', fontSize: 14 };
+        Config.keys = Object.keys(Config.defaults);
+        log('  static block ran while the class was being defined');
+      }
+
+      static get(key) { return Config.defaults[key]; }
+    }
+
+    log('defaults:', Config.defaults);
+    log('keys:    ', Config.keys);
+    log('get:     ', Config.get('theme'));
+  }</script>
+</section>
+
+<section>
+  <h2>Static factories in practice</h2>
+
+  <div class="stage">
+    <input id="src" value="2026-09-09" style="width:160px">
+    <span style="font-size:13px;color:var(--ink-faint)">try a date, a number, or anything else</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    class Value {
+      constructor(kind, raw) { this.kind = kind; this.raw = raw; }
+
+      static parse(text) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return new Value('date', new Date(text));
+        if (text.trim() !== '' && !Number.isNaN(Number(text))) return new Value('number', Number(text));
+        if (text === 'true' || text === 'false') return new Value('boolean', text === 'true');
+        return new Value('string', text);
+      }
+
+      static isDate(v) { return v.kind === 'date'; }
+
+      toString() { return `${this.kind}(${this.raw})`; }
+    }
+
+    function show() {
+      log.clear();
+      const v = Value.parse($('#src').value);
+      log('parsed  →', String(v));
+      log('isDate  →', Value.isDate(v));
+      log('raw type→', typeof v.raw);
+    }
+
+    $('#src').addEventListener('input', show);
+    show();
+  }</script>
+</section>
+
+<section>
+  <h2>Where you have seen them</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the standard library is full of statics:');
+    log('  Object.keys, Object.assign, Object.freeze');
+    log('  Array.isArray, Array.from, Array.of');
+    log('  Number.isInteger, Number.parseFloat, Number.MAX_SAFE_INTEGER');
+    log('  Promise.all, Promise.resolve, Promise.race');
+    log('  Date.now, JSON.parse, Math.max');
+
+    log('');
+    log('Array.of(7)  →', Array.of(7), '← static: builds an array');
+    log('[7].fill(0)  →', [7].fill(0), '← instance: works on an array');
+    log('Number.MAX_SAFE_INTEGER →', Number.MAX_SAFE_INTEGER);
+  }</script>
+</section>
+
+<section>
+  <h2>When not to use static</h2>
+  <div class="note">If a method never touches <code>this</code> and never uses the class's
+  own state, a plain exported function is usually simpler than a static method on a class
+  that exists only as a namespace. Static is at its best for <b>alternative
+  constructors</b> (<code>from…</code>, <code>parse</code>), <b>class-wide constants</b>, and
+  <b>counters or registries</b> shared by every instance.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Registry {
+      static #all = new Map();
+
+      constructor(id) {
+        this.id = id;
+        Registry.#all.set(id, this);
+      }
+
+      static find(id) { return Registry.#all.get(id) ?? null; }
+      static get size() { return Registry.#all.size; }
+    }
+
+    new Registry('a'); new Registry('b');
+
+    log('size:', Registry.size);
+    log('find("a"):', Registry.find('a'));
+    log('find("z"):', Registry.find('z'));
+  }</script>
+</section>
+
+</body>
+</html>

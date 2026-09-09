@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class Inheritance — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="class-inheritance">
+
+<h1>Class Inheritance</h1>
+<p class="lede"><code>extends</code> makes one class inherit from another;
+<code>super</code> reaches the parent's constructor and methods.</p>
+
+<section>
+  <h2>extends and super</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Animal {
+      constructor(name) { this.name = name; }
+      speak() { return `${this.name} makes a sound`; }
+    }
+
+    class Dog extends Animal {
+      constructor(name, breed) {
+        super(name);                    // must come before any use of `this`
+        this.breed = breed;
+      }
+      speak() { return `${this.name} barks`; }
+      describe() { return `${super.speak()} — specifically, it barks`; }
+    }
+
+    const rex = new Dog('Rex', 'collie');
+
+    log(rex);
+    log('overridden:', rex.speak());
+    log('via super: ', rex.describe());
+    log('inherited from Animal?', 'speak' in Object.getPrototypeOf(Object.getPrototypeOf(rex)));
+  }</script>
+</section>
+
+<section>
+  <h2>this before super throws</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Base { constructor() { this.ok = true; } }
+
+    class Broken extends Base {
+      constructor() {
+        try {
+          this.tooEarly = 1;
+        } catch (err) {
+          log('touching this first →', err.name + ':', err.message);
+        }
+        super();
+        this.fine = 1;
+        log('after super(), this works:', this);
+      }
+    }
+
+    new Broken();
+
+    log('');
+    log('omitting the constructor entirely gives you an implicit');
+    log('constructor(...args) { super(...args); }');
+    class Simple extends Base {}
+    log('  ', new Simple());
+  }</script>
+</section>
+
+<section>
+  <h2>The prototype chain</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class A { hello() { return 'A'; } }
+    class B extends A { }
+    class C extends B { hello() { return 'C → ' + super.hello(); } }
+
+    const c = new C();
+
+    log('c.hello() →', c.hello());
+
+    const chain = ['the instance'];
+    let level = Object.getPrototypeOf(c);
+    while (level) {
+      chain.push(level.constructor.name + '.prototype');
+      level = Object.getPrototypeOf(level);
+    }
+    log('chain:', chain.join(' → ') + ' → null');
+
+    log('');
+    log('instanceof walks that chain:');
+    log('  c instanceof C:', c instanceof C, '| B:', c instanceof B,
+        '| A:', c instanceof A, '| Object:', c instanceof Object);
+  }</script>
+</section>
+
+<section>
+  <h2>Extending built-ins</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Stack extends Array {
+      peek() { return this[this.length - 1]; }
+      get isEmpty() { return this.length === 0; }
+    }
+
+    const s = new Stack();
+    s.push('a', 'b', 'c');
+
+    log('stack:', [...s]);
+    log('peek:', s.peek(), '| isEmpty:', s.isEmpty);
+    log('still an Array?', Array.isArray(s));
+    log('map returns a', s.map(x => x).constructor.name, '← built-ins preserve the subclass');
+
+    log('');
+    class ValidationError extends Error {
+      constructor(field, message) {
+        super(message);
+        this.name = 'ValidationError';
+        this.field = field;
+      }
+    }
+
+    try {
+      throw new ValidationError('email', 'not a valid address');
+    } catch (err) {
+      log('caught:', err.name + ':', err.message, '| field:', err.field);
+      log('instanceof Error:', err instanceof Error);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Abstract-ish base classes</h2>
+  <p>JavaScript has no <code>abstract</code> keyword, but <code>new.target</code> and a
+  throwing method get you most of the way.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Shape {
+      constructor() {
+        if (new.target === Shape) throw new TypeError('Shape is abstract');
+      }
+      area() { throw new Error(this.constructor.name + ' must implement area()'); }
+      report() { return `${this.constructor.name}: ${this.area()}`; }
+    }
+
+    class Circle extends Shape {
+      constructor(r) { super(); this.r = r; }
+      area() { return +(Math.PI * this.r ** 2).toFixed(2); }
+    }
+
+    class Blob extends Shape {}
+
+    try { new Shape(); } catch (err) { log('new Shape() →', err.message); }
+    log(new Circle(2).report());
+    try { new Blob().report(); } catch (err) { log('Blob →', err.message); }
+  }</script>
+</section>
+
+<section>
+  <h2>Composition with mixins</h2>
+  <p>A class can only extend one parent. A mixin is a function that adds behaviour to any
+  class, so you can stack several.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const Serialisable = Base => class extends Base {
+      toJSONString() { return JSON.stringify(this); }
+    };
+
+    const Timestamped = Base => class extends Base {
+      constructor(...args) {
+        super(...args);
+        this.created = '2026-01-01T00:00:00Z';
+      }
+      get age() { return 'created at ' + this.created; }
+    };
+
+    class Note {
+      constructor(text) { this.text = text; }
+    }
+
+    class RichNote extends Serialisable(Timestamped(Note)) {}
+
+    const n = new RichNote('hello');
+    log(n.toJSONString());
+    log(n.age);
+    log('RichNote → Serialisable → Timestamped → Note');
+    log('instanceof Note:', n instanceof Note);
+  }</script>
+</section>
+
+<section>
+  <h2>Prefer composition when you can</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Inheritance says "is a". Composition says "has a", and bends more easily.
+    const canFly = state => ({ fly: () => `${state.name} flies` });
+    const canSwim = state => ({ swim: () => `${state.name} swims` });
+
+    function createDuck(name) {
+      const state = { name };
+      return Object.assign({ name }, canFly(state), canSwim(state));
+    }
+
+    const duck = createDuck('Donald');
+    log(duck.fly());
+    log(duck.swim());
+    log('capabilities:', Object.keys(duck));
+
+    log('');
+    log('a deep class hierarchy is hard to change later;');
+    log('a bag of small behaviours usually is not.');
+  }</script>
+</section>
+
+</body>
+</html>

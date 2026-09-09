@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Short History — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="js-history">
+
+<h1>A Short History</h1>
+<p class="lede">Ten days in 1995 to a language running on servers, phones, satellites and
+watches. Knowing how it got here explains most of its oddities.</p>
+
+<section>
+  <h2>1995 — ten days</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('Brendan Eich was hired by Netscape to put Scheme in the browser.');
+    log('By the time he started, the brief had changed: it had to look like');
+    log('Java, which Netscape was about to bundle. He had ten days.');
+    log('');
+    log('what survived from Scheme  → first-class functions, closures');
+    log('what survived from Self    → prototypes, not classes');
+    log('what survived from Java    → the syntax, and the name');
+    log('what was rushed            → almost everything else');
+    log('');
+    log('it was called Mocha, then LiveScript, then — as a marketing deal');
+    log('with Sun — JavaScript. It has never had anything to do with Java.');
+
+    log('');
+    log('the ten-day legacy, still visible:');
+    log('  typeof null       →', typeof null, '← a bug in the very first release');
+    log('  0.1 + 0.2         →', 0.1 + 0.2, '← IEEE 754, inherited, not a bug');
+    log('  [] + {}           →', [] + {});
+    log('  automatic semicolon insertion, and everything that follows from it');
+  }</script>
+</section>
+
+<section>
+  <h2>1996–1999 — standardisation, and a war</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('1996  Microsoft ships JScript in Internet Explorer 3 — a');
+    log('      reverse-engineered clone, deliberately not identical.');
+    log('');
+    log('1997  Netscape submits the language to Ecma International.');
+    log('      "ECMAScript" is chosen because JavaScript was trademarked.');
+    log('      Eich has called the name "an unwanted trade name that sounds');
+    log('      like a skin disease".');
+    log('');
+    log('1999  ES3 — regular expressions, try/catch, do/while.');
+    log('      This is the version that ran the web for the next decade.');
+    log('');
+    log('the browser wars produced the habits of the era:');
+    log('  • sniffing navigator.userAgent to decide what to do');
+    log('  • document.all vs document.layers');
+    log('  • "Best viewed in Netscape Navigator 4"');
+  }</script>
+</section>
+
+<section>
+  <h2>2000–2008 — the wilderness, and AJAX</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('ES4 was ambitious: classes, modules, static types, namespaces.');
+    log('Microsoft and Yahoo opposed it, the committee deadlocked, and in');
+    log('2008 it was abandoned entirely. ES4 never shipped.');
+    log('');
+    log('meanwhile, the web moved anyway:');
+    log('');
+    log('  1999  Microsoft adds XMLHttpRequest for Outlook Web Access');
+    log('  2004  Gmail — a whole application in one page');
+    log('  2005  Google Maps; Jesse James Garrett coins "AJAX"');
+    log('  2006  jQuery — one API across four incompatible browsers');
+    log('  2008  Chrome ships with V8, and JavaScript becomes fast');
+    log('');
+    log('V8 mattered more than any language feature. Just-in-time');
+    log('compilation turned a scripting toy into something you could');
+    log('build an application in — and, a year later, a server.');
+  }</script>
+</section>
+
+<section>
+  <h2>2009–2015 — the rebuild</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('2009  ES5 — strict mode, JSON, array methods, descriptors');
+    log('2009  Node.js — the same language outside the browser');
+    log('2010  npm — which becomes the largest package registry anywhere');
+    log('2010  Backbone, then Angular; the single-page app arrives');
+    log('2013  React, and with it a decade of rethinking the DOM');
+    log('2015  ES6 — the release that changed how the language is written');
+    log('');
+    log('ES6 took six years and nearly repeated the ES4 failure. What saved');
+    log('it was Babel: developers could write ES6 and compile to ES5, so');
+    log('adoption did not have to wait for browsers. Transpilation became');
+    log('a permanent part of the ecosystem.');
+  }</script>
+</section>
+
+<section>
+  <h2>2016–now — the yearly train</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const releases = [
+      [2016, 'includes, **'],
+      [2017, 'async/await'],
+      [2018, 'object spread, for await'],
+      [2019, 'flat, fromEntries, stable sort'],
+      [2020, '?. ?? BigInt, dynamic import'],
+      [2021, 'replaceAll, logical assignment'],
+      [2022, 'class fields, top-level await'],
+      [2023, 'toSorted, findLast'],
+      [2024, 'Object.groupBy, withResolvers'],
+      [2025, 'Set methods, iterator helpers']
+    ];
+
+    releases.forEach(([year, what]) => log('  ' + year, what));
+
+    log('');
+    log('the change that mattered was procedural, not technical: ship');
+    log('every June with whatever is ready. No feature holds up a release,');
+    log('so no release becomes a decade-long negotiation.');
+  }</script>
+</section>
+
+<section>
+  <h2>Why the odd parts are odd</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('almost every wart has the same cause: the web cannot break.');
+    log('There are billions of pages, and no way to fix them.');
+    log('');
+
+    log('typeof null === "object"');
+    log('  a bug from 1995. Fixing it broke too much code, twice.');
+    log('  ', typeof null);
+    log('');
+
+    log('two equality operators');
+    log('  == was too clever, so === was added rather than == changed.');
+    log('  0 == "" →', 0 == '', '| 0 === "" →', 0 === '');
+    log('');
+
+    log('var, let and const');
+    log('  var could not be fixed, so two new keywords were added.');
+    log('');
+
+    log('semicolons are optional');
+    log('  ASI was meant to help beginners; it produced a decade of');
+    log('  style arguments and a small number of real bugs.');
+    log('');
+
+    log('sloppy mode still exists');
+    log('  "use strict" is opt-in because the old behaviour cannot be');
+    log('  removed. Modules made it the default instead.');
+    log('');
+
+    log('the pattern: JavaScript adds, it does not remove. Nothing you');
+    log('learn about it stops being true — which is a real advantage,');
+    log('and the reason for all of the above.');
+  }</script>
+</section>
+
+<section>
+  <h2>Where it runs now</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('browsers    — V8 (Chrome, Edge), SpiderMonkey (Firefox),');
+    log('              JavaScriptCore (Safari)');
+    log('servers     — Node.js, Deno, Bun');
+    log('edge        — Cloudflare Workers, Vercel, Deno Deploy');
+    log('mobile      — React Native, Ionic, Capacitor');
+    log('desktop     — Electron (VS Code, Slack, Discord)');
+    log('embedded    — Espruino, Johnny-Five, low-power microcontrollers');
+    log('databases   — MongoDB, CouchDB, Postgres via plv8');
+    log('mission control — NASA\'s Open MCT, the framework used to visualise');
+    log('              telemetry for several missions, is a JavaScript project');
+    log('');
+    log('and, increasingly, it is a compilation target: TypeScript,');
+    log('ReScript, Elm, Kotlin, Dart, C++ via WebAssembly. It is the');
+    log('assembly language of the web, whether or not you write it.');
+
+    log('');
+    log('this browser:', navigator.userAgent.split(') ').pop());
+  }</script>
+</section>
+
+<section>
+  <h2>Names worth knowing</h2>
+
+  <table class="ref">
+    <tr><th>Term</th><th>Means</th></tr>
+    <tr><td>ECMAScript</td><td>the standard; the language itself</td></tr>
+    <tr><td>JavaScript</td><td>ECMAScript, in practice — plus the host APIs</td></tr>
+    <tr><td>TC39</td><td>the committee that writes the standard</td></tr>
+    <tr><td>V8, SpiderMonkey, JSC</td><td>engines that run it</td></tr>
+    <tr><td>Node, Deno, Bun</td><td>runtimes: an engine plus APIs</td></tr>
+    <tr><td>Babel</td><td>compiles new syntax to old</td></tr>
+    <tr><td>TypeScript</td><td>JavaScript plus static types, erased at build time</td></tr>
+    <tr><td>WHATWG</td><td>writes the DOM and HTML standards, not the language</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the distinction that trips people up:');
+    log('');
+    log('  ECMAScript defines  Object, Array, Promise, Map, JSON, Math');
+    log('  the browser defines document, fetch, setTimeout, console, alert');
+    log('');
+    log('setTimeout is not part of JavaScript. Neither is console.log.');
+    log('They exist in every environment because every environment agreed');
+    log('to provide them — not because the language requires it.');
+  }</script>
+</section>
+
+</body>
+</html>

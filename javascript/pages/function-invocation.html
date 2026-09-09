@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Function Invocation — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-invocation">
+
+<h1>Function Invocation</h1>
+<p class="lede">The same function body behaves differently depending on how it is called.
+There are five ways to call one, and each sets <code>this</code> differently.</p>
+
+<section>
+  <h2>The five ways, side by side</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function reveal() {
+      if (this === undefined) return 'undefined (strict)';
+      if (this === window) return 'the global object';
+      return this.label ?? '(a new object)';
+    }
+
+    const owner = { label: 'owner object', reveal };
+
+    log('1. plain call    reveal()        →', reveal());
+    log('2. as a method   owner.reveal()  →', owner.reveal());
+    log('3. with new      new reveal()    →', typeof new reveal());
+    log('4. with call     reveal.call(x)  →', reveal.call({ label: 'x' }));
+    log('5. bound         bound()         →', reveal.bind({ label: 'bound' })());
+  }</script>
+</section>
+
+<section>
+  <h2>As a function</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function sloppyThis() { return this === window ? 'window' : String(this); }
+
+    function strictThis() {
+      'use strict';
+      return this === undefined ? 'undefined' : String(this);
+    }
+
+    log('sloppy mode →', sloppyThis());
+    log('strict mode →', strictThis());
+
+    log('');
+    log('this default is why detached methods break:');
+    const counter = { n: 0, bump() { this.n++; return this.n; } };
+    const detached = counter.bump;
+    log('  counter.bump() →', counter.bump());
+    log('  detached()     →', detached(), '← this was window, not counter');
+  }</script>
+</section>
+
+<section>
+  <h2>As a method</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function describe() {
+      return this.name + ' (' + this.type + ')';
+    }
+
+    const dog = { name: 'Rex', type: 'dog', describe };
+    const cat = { name: 'Tom', type: 'cat', describe };
+
+    log(dog.describe());
+    log(cat.describe());
+    log('the same function, different this:', dog.describe === cat.describe);
+
+    // Only the LAST dot counts:
+    const zoo = { name: 'Zoo', pet: dog };
+    log('zoo.pet.describe() →', zoo.pet.describe());
+  }</script>
+</section>
+
+<section>
+  <h2>With new</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Widget(title) {
+      this.title = title;
+      log('  inside: this is a fresh object?', Object.keys(this));
+    }
+
+    const w = new Widget('Panel');
+    log('result:', w, '| instanceof Widget:', w instanceof Widget);
+
+    log('');
+    log('new.target tells a function how it was called:');
+    function Guarded() {
+      if (!new.target) return 'called without new';
+      return 'called with new';
+    }
+    log('  Guarded()     →', Guarded());
+    log('  new Guarded() →', new Guarded() instanceof Guarded ? 'called with new' : '');
+  }</script>
+</section>
+
+<section>
+  <h2>As an event handler</h2>
+
+  <div class="stage">
+    <button id="btn">Click me</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function handler() {
+      log('this →', this === window ? 'window' : this.tagName + '#' + this.id);
+    }
+
+    $('#btn').addEventListener('click', handler);
+
+    log('the DOM calls the handler with this set to the element');
+    log('an arrow handler would keep the surrounding this instead');
+  }</script>
+</section>
+
+<section>
+  <h2>Indirect calls</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const timer = {
+      label: 'timer',
+      report() { return this?.label ?? 'this was lost'; }
+    };
+
+    log('direct:            ', timer.report());
+    log('through setTimeout:');
+
+    setTimeout(timer.report, 0);            // result thrown away, and this is lost
+    setTimeout(() => log('  arrow wrapper →', timer.report()), 0);
+    setTimeout(timer.report.bind(timer), 0);
+
+    // Assigned into an array or passed to map — the same problem:
+    log('via map:', [timer.report].map(fn => fn())[0]);
+    log('fixed:  ', [timer.report].map(fn => fn.call(timer))[0]);
+  }</script>
+</section>
+
+<section>
+  <h2>Arrow functions ignore all of this</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const obj = {
+      label: 'obj',
+      regular() { return this?.label; },
+      arrow: () => (typeof this === 'undefined' ? 'undefined' : 'the enclosing this')
+    };
+
+    log('obj.regular() →', obj.regular());
+    log('obj.arrow()   →', obj.arrow());
+    log('call() cannot change an arrow:', obj.arrow.call({ label: 'nope' }));
+  }</script>
+</section>
+
+</body>
+</html>

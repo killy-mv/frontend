@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Random — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="random">
+
+<h1>Random</h1>
+<p class="lede"><code>Math.random()</code> returns a float from 0 (inclusive) to 1
+(exclusive). Everything else is built on top of that one number.</p>
+
+<section>
+  <h2>The raw output</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (let i = 0; i < 5; i++) log(Math.random());
+
+    log('always 0 ≤ n < 1 — never exactly 1');
+  }</script>
+</section>
+
+<section>
+  <h2>A whole number in a range</h2>
+  <p>Multiply, floor, and offset. Getting the boundaries right is the whole exercise.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // 0 … max-1
+    const randomIndex = max => Math.floor(Math.random() * max);
+
+    // min … max, both included
+    const randomBetween = (min, max) =>
+      Math.floor(Math.random() * (max - min + 1)) + min;
+
+    log('randomIndex(10)      →', Array.from({ length: 8 }, () => randomIndex(10)));
+    log('randomBetween(1, 6)  →', Array.from({ length: 8 }, () => randomBetween(1, 6)));
+    log('randomBetween(10, 20)→', Array.from({ length: 8 }, () => randomBetween(10, 20)));
+  }</script>
+</section>
+
+<section>
+  <h2>Is it fair? A dice test</h2>
+  <p>Roll enough times and every face should land about the same number of times. This is
+  how you check a range formula is not off by one.</p>
+
+  <div class="stage">
+    <button id="roll">Roll 6000 dice</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function rollMany(times) {
+      const counts = [0, 0, 0, 0, 0, 0];
+      for (let i = 0; i < times; i++) {
+        counts[Math.floor(Math.random() * 6)]++;
+      }
+      return counts;
+    }
+
+    $('#roll').onclick = function () {
+      log.clear();
+      const counts = rollMany(6000);
+      counts.forEach((n, i) => {
+        const pct = (n / 6000 * 100).toFixed(1);
+        log((i + 1) + ':', String(n).padStart(5), '█'.repeat(Math.round(n / 25)), pct + '%');
+      });
+      log('expected about 1000 (16.7%) each');
+    };
+  }</script>
+</section>
+
+<section>
+  <h2>Picking and shuffling</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const colours = ['red', 'green', 'blue', 'yellow', 'purple'];
+
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    log('random pick:', pick(colours));
+
+    // Fisher–Yates: the correct shuffle. arr.sort(() => Math.random() - 0.5) is not.
+    function shuffle(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    log('shuffled:', shuffle(colours));
+    log('original:', colours);
+  }</script>
+</section>
+
+<section>
+  <h2>Random strings and ids</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const token = () => Math.random().toString(36).slice(2, 10);
+    log('quick token:', token(), token(), token());
+
+    // For anything security-related, use the crypto API instead.
+    // randomUUID needs a secure context (https, localhost, or file://):
+    log('crypto.randomUUID():', crypto.randomUUID
+      ? crypto.randomUUID()
+      : 'not available — this page is not a secure context');
+
+    const bytes = new Uint8Array(8);
+    crypto.getRandomValues(bytes);
+    log('getRandomValues:', [...bytes].map(b => b.toString(16).padStart(2, '0')).join(''));
+  }</script>
+
+  <div class="note warn">
+    <code>Math.random()</code> is <b>not</b> cryptographically secure and must never be used
+    for passwords, tokens or session ids. Use <code>crypto.getRandomValues()</code>.
+  </div>
+</section>
+
+<section>
+  <h2>Repeatable randomness</h2>
+  <p><code>Math.random()</code> cannot be seeded. When you need the same sequence twice —
+  for tests, or a procedurally generated level — write a small generator.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function seeded(seed) {
+      let state = seed >>> 0;
+      return function () {
+        state = (state * 1664525 + 1013904223) >>> 0;   // a linear congruential generator
+        return state / 4294967296;
+      };
+    }
+
+    const runA = seeded(42);
+    const runB = seeded(42);
+
+    log('run A:', Array.from({ length: 5 }, () => runA().toFixed(4)));
+    log('run B:', Array.from({ length: 5 }, () => runB().toFixed(4)));
+    log('identical, because both started from seed 42');
+  }</script>
+</section>
+
+</body>
+</html>

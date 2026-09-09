@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Changing CSS — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+<style>
+  .swatch { width: 90px; height: 60px; border-radius: 8px; background: #cbd5e1;
+            display: grid; place-items: center; font-size: 13px; transition: all .25s; }
+  .swatch.hot { background: crimson; color: white; }
+  .swatch.big { width: 150px; height: 90px; }
+  .swatch.round { border-radius: 50%; }
+</style>
+</head>
+<body data-topic="dom-css">
+
+<h1>Changing CSS</h1>
+<p class="lede">You can set styles directly on an element, or — better — toggle a class and
+let the stylesheet decide what that means.</p>
+
+<section>
+  <h2>element.style</h2>
+
+  <div class="stage">
+    <div id="direct" class="swatch">style</div>
+    <button id="paint">paint it</button>
+    <button id="clear-style">clear</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const box = $('#direct');
+
+    $('#paint').addEventListener('click', () => {
+      box.style.background = 'seagreen';
+      box.style.color = 'white';
+      box.style.fontWeight = 'bold';          // CSS font-weight → JS fontWeight
+      box.style.borderRadius = '50%';
+
+      log('style attribute now:', box.getAttribute('style'));
+      log('box.style.background →', box.style.background);
+      log('style.length →', box.style.length, 'declarations');
+    });
+
+    $('#clear-style').addEventListener('click', () => {
+      box.removeAttribute('style');
+      log('cleared — the stylesheet takes over again');
+    });
+
+    log('kebab-case in CSS becomes camelCase in JavaScript:');
+    log('  background-color → backgroundColor');
+    log('  z-index          → zIndex');
+    log('  float            → cssFloat (float was once reserved)');
+  }</script>
+</section>
+
+<section>
+  <h2>style only shows inline styles</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const box = document.getElementById('direct');   // the swatch above
+
+    log('box.style.width →', JSON.stringify(box.style.width), '← nothing inline');
+
+    const computed = getComputedStyle(box);
+    log('computed width  →', computed.width);
+    log('computed colour →', computed.backgroundColor);
+    log('computed radius →', computed.borderRadius);
+
+    log('');
+    log('getComputedStyle returns the final, resolved value —');
+    log('always in absolute units, and read-only.');
+    log('  font-size in em → ', computed.fontSize);
+  }</script>
+</section>
+
+<section>
+  <h2>classList</h2>
+
+  <div class="stage">
+    <div id="chip" class="swatch">class</div>
+    <button data-cls="hot">hot</button>
+    <button data-cls="big">big</button>
+    <button data-cls="round">round</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const chip = $('#chip');
+
+    $('.stage').querySelectorAll('button[data-cls]').forEach(button => {
+      button.addEventListener('click', () => {
+        const cls = button.dataset.cls;
+        const added = chip.classList.toggle(cls);
+        log((added ? 'added   ' : 'removed ') + cls,
+            '→ class="' + chip.className + '"');
+      });
+    });
+
+    log('add / remove / toggle / contains / replace');
+    log('  contains("hot") →', chip.classList.contains('hot'));
+    log('  it is iterable  →', [...chip.classList]);
+    log('');
+    log('toggle returns true if the class ended up present,');
+    log('and takes a second argument to force it: toggle("hot", isHot)');
+  }</script>
+</section>
+
+<section>
+  <h2>Style or class?</h2>
+
+  <table class="ref">
+    <tr><th>Use</th><th>When</th></tr>
+    <tr><td><code>classList</code></td><td>almost always — appearance stays in the stylesheet</td></tr>
+    <tr><td><code>style</code></td><td>values only known at run time: a position, a computed width, a user-picked colour</td></tr>
+    <tr><td>CSS variables</td><td>a run-time value the stylesheet should use in several places</td></tr>
+  </table>
+
+  <div class="stage">
+    <input id="hue" type="range" min="0" max="360" value="210">
+    <div id="var-box" class="swatch" style="background:hsl(210 70% 60%)">var</div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const box = $('#var-box');
+    const hue = $('#hue');
+
+    function apply() {
+      box.style.setProperty('--hue', hue.value);
+      box.style.background = 'hsl(' + hue.value + ' 70% 60%)';
+      log.clear();
+      log('--hue is now', box.style.getPropertyValue('--hue'));
+      log('background   ', getComputedStyle(box).backgroundColor);
+      log('');
+      log('setProperty is the only way to set a custom property —');
+      log('box.style["--hue"] silently does nothing.');
+    }
+
+    hue.addEventListener('input', apply);
+    apply();
+  }</script>
+</section>
+
+<section>
+  <h2>Reading a CSS variable</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const root = getComputedStyle(document.documentElement);
+
+    ['--bg', '--ink', '--accent', '--code-bg'].forEach(name =>
+      log(name.padEnd(12), '→', root.getPropertyValue(name).trim() || '(not set)'));
+
+    log('');
+    log('setting one on :root re-themes everything that uses it:');
+    log('  document.documentElement.style.setProperty("--accent", "crimson")');
+  }</script>
+</section>
+
+<section>
+  <h2>Hiding things</h2>
+
+  <div class="stage">
+    <div id="hider" class="swatch">visible</div>
+    <button data-mode="none">display:none</button>
+    <button data-mode="hidden">visibility:hidden</button>
+    <button data-mode="zero">opacity:0</button>
+    <button data-mode="show">show</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const el = $('#hider');
+
+    const modes = {
+      none:   () => { el.style.display = 'none'; },
+      hidden: () => { el.style.visibility = 'hidden'; },
+      zero:   () => { el.style.opacity = '0'; },
+      show:   () => { el.style.cssText = ''; }
+    };
+
+    $('.stage').querySelectorAll('button[data-mode]').forEach(b =>
+      b.addEventListener('click', () => {
+        modes[b.dataset.mode]();
+        log('applied', b.dataset.mode,
+            '| takes up space:', el.offsetParent !== null || el.offsetWidth > 0);
+      }));
+
+    log('display:none    — gone, no space, not measurable');
+    log('visibility:hidden — invisible, space reserved');
+    log('opacity:0       — invisible, still clickable');
+    log('hidden attribute — like display:none, but semantic');
+  }</script>
+</section>
+
+<section>
+  <h2>Measuring</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const box = document.getElementById('chip');     // the swatch in "classList"
+    const rect = box.getBoundingClientRect();
+
+    log('getBoundingClientRect:');
+    ['width', 'height', 'top', 'left'].forEach(k => log('  ' + k.padEnd(7), Math.round(rect[k])));
+
+    log('');
+    log('offsetWidth  →', box.offsetWidth, '(border box, integer)');
+    log('clientWidth  →', box.clientWidth, '(padding box, no border/scrollbar)');
+    log('scrollHeight →', box.scrollHeight, '(full content height)');
+
+    log('');
+    log('every one of these forces layout — read them in a batch,');
+    log('then do all your writes, or you cause "layout thrashing".');
+  }</script>
+</section>
+
+</body>
+</html>

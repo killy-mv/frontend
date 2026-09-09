@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Prototypes — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-prototypes">
+
+<h1>Object Prototypes</h1>
+<p class="lede">Every object has a link to another object, its prototype. When a property is
+not found, the search continues up that chain until it reaches <code>null</code>.</p>
+
+<section>
+  <h2>The chain, printed</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function chainOf(value) {
+      const names = [];
+      let current = value;
+      while (current !== null && current !== undefined) {
+        names.push(current.constructor ? current.constructor.name : '(null prototype)');
+        current = Object.getPrototypeOf(current);
+      }
+      return names.join(' → ') + ' → null';
+    }
+
+    log('{}        ', chainOf({}));
+    log('[]        ', chainOf([]));
+    log('"text"    ', chainOf('text'));
+    log('function  ', chainOf(function () {}));
+    log('new Date()', chainOf(new Date()));
+    log('a DOM node', chainOf(document.body));
+  }</script>
+</section>
+
+<section>
+  <h2>Lookup in action</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const base = { greeting: 'hello from the prototype', shared: true };
+    const child = Object.create(base);
+    child.own = 'my own property';
+
+    log('child.own      →', child.own);
+    log('child.greeting →', child.greeting, '← found on the prototype');
+    log('child.missing  →', child.missing, '← not found anywhere');
+
+    log('');
+    log('own?      ', Object.hasOwn(child, 'greeting'));
+    log('reachable?', 'greeting' in child);
+    log('keys:     ', Object.keys(child), '← own enumerable only');
+
+    // Writing always creates an OWN property; it never modifies the prototype:
+    child.greeting = 'my own greeting';
+    log('');
+    log('after writing:', child.greeting, '| the prototype still says:', base.greeting);
+  }</script>
+</section>
+
+<section>
+  <h2>Shadowing and deleting</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const base = { value: 'from prototype' };
+    const child = Object.create(base);
+
+    log('start:            ', child.value);
+    child.value = 'shadowed';
+    log('after assignment: ', child.value, '| own?', Object.hasOwn(child, 'value'));
+    delete child.value;
+    log('after delete:     ', child.value, '← the prototype shows through again');
+  }</script>
+</section>
+
+<section>
+  <h2>Reading and setting the prototype</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const canFly = { fly() { return this.name + ' flies'; } };
+    const bird = { name: 'Robin' };
+
+    log('before:', typeof bird.fly);
+
+    Object.setPrototypeOf(bird, canFly);
+    log('after: ', bird.fly());
+    log('getPrototypeOf === canFly:', Object.getPrototypeOf(bird) === canFly);
+
+    log('');
+    log('the legacy accessor, still everywhere:');
+    log('  bird.__proto__ === canFly →', bird.__proto__ === canFly);
+    log('setPrototypeOf is slow — build objects with the right prototype instead:');
+    log('  Object.create(canFly)');
+  }</script>
+</section>
+
+<section>
+  <h2>constructor.prototype vs an object's prototype</h2>
+  <p>Two different things with confusingly similar names. A function's
+  <code>.prototype</code> property becomes the prototype of the objects it constructs.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Dog(name) { this.name = name; }
+    Dog.prototype.bark = function () { return this.name + ' barks'; };
+
+    const rex = new Dog('Rex');
+
+    log('rex.bark()                          →', rex.bark());
+    log('Object.getPrototypeOf(rex) === Dog.prototype →',
+        Object.getPrototypeOf(rex) === Dog.prototype);
+    log('rex.prototype                       →', rex.prototype, '← instances have none');
+    log('Dog.prototype.constructor === Dog   →', Dog.prototype.constructor === Dog);
+  }</script>
+</section>
+
+<section>
+  <h2>Where the built-in methods live</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const arr = [3, 1, 2];
+
+    log('arr.sort exists on the instance?', Object.hasOwn(arr, 'sort'));
+    log('on Array.prototype?             ', Object.hasOwn(Array.prototype, 'sort'));
+    log('arr.sort === Array.prototype.sort →', arr.sort === Array.prototype.sort);
+
+    log('');
+    log('a few of Array.prototype:',
+        Object.getOwnPropertyNames(Array.prototype).slice(0, 12).join(', '));
+    log('Object.prototype:',
+        Object.getOwnPropertyNames(Object.prototype).join(', '));
+  }</script>
+</section>
+
+<section>
+  <h2>Do not extend the built-ins</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // It works…
+    Array.prototype.last = function () { return this[this.length - 1]; };
+    log('[1,2,3].last() →', [1, 2, 3].last());
+
+    // …and then it breaks other code:
+    const arr = [1, 2, 3];
+    const keys = [];
+    for (const key in arr) keys.push(key);
+    log('for…in now yields:', keys, '← "last" leaked in');
+
+    delete Array.prototype.last;
+    log('removed again. If you must, use defineProperty with enumerable: false —');
+    log('but the real answer is a plain function: last(arr)');
+  }</script>
+</section>
+
+<section>
+  <h2>Classes use the same machinery</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Animal {
+      constructor(name) { this.name = name; }
+      speak() { return this.name + ' makes a sound'; }
+    }
+    class Dog extends Animal {
+      speak() { return this.name + ' barks'; }
+    }
+
+    const rex = new Dog('Rex');
+
+    log(rex.speak());
+    log('own properties:', Object.keys(rex));
+    log('chain: rex →',
+        Object.getPrototypeOf(rex).constructor.name, '→',
+        Object.getPrototypeOf(Object.getPrototypeOf(rex)).constructor.name, '→ Object');
+    log('speak found on Dog.prototype:', Object.hasOwn(Dog.prototype, 'speak'));
+    log('and inherited from Animal too:', Object.hasOwn(Animal.prototype, 'speak'));
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Requests and Responses — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="ajax-request">
+
+<h1>Requests and Responses</h1>
+<p class="lede">What actually travels: a method, a URL, some headers, maybe a body — and
+back again, a status, some headers, and a body.</p>
+
+<section>
+  <h2>An HTTP exchange, in full</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the request:');
+    log('  POST /api/posts HTTP/1.1');
+    log('  Host: api.example.com');
+    log('  Content-Type: application/json');
+    log('  Accept: application/json');
+    log('  Authorization: Bearer eyJhbG…');
+    log('  Content-Length: 34');
+    log('');
+    log('  {"title":"Hello","body":"World"}');
+    log('');
+    log('the response:');
+    log('  HTTP/1.1 201 Created');
+    log('  Content-Type: application/json');
+    log('  Location: /api/posts/7');
+    log('');
+    log('  {"id":7,"title":"Hello","body":"World"}');
+    log('');
+    log('fetch builds the top half and parses the bottom half. Nothing more.');
+  }</script>
+</section>
+
+<section>
+  <h2>Methods</h2>
+
+  <table class="ref">
+    <tr><th>Method</th><th>Means</th><th>Body</th><th>Safe</th><th>Idempotent</th></tr>
+    <tr><td>GET</td><td>read</td><td>no</td><td>yes</td><td>yes</td></tr>
+    <tr><td>POST</td><td>create, or "do something"</td><td>yes</td><td>no</td><td>no</td></tr>
+    <tr><td>PUT</td><td>replace entirely</td><td>yes</td><td>no</td><td>yes</td></tr>
+    <tr><td>PATCH</td><td>change part of it</td><td>yes</td><td>no</td><td>no</td></tr>
+    <tr><td>DELETE</td><td>remove</td><td>rarely</td><td>no</td><td>yes</td></tr>
+    <tr><td>HEAD</td><td>headers only</td><td>no</td><td>yes</td><td>yes</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('safe       — changes nothing on the server');
+    log('idempotent — sending it twice has the same effect as once');
+    log('');
+    log('that second property is why a retry after a timeout is safe for');
+    log('PUT and dangerous for POST: the first POST may have succeeded and');
+    log('only the response been lost.');
+    log('');
+    log('a GET must never change anything. Browsers, proxies and prefetchers');
+    log('all assume this, and will happily send one twice.');
+  }</script>
+</section>
+
+<section>
+  <h2>Building each kind</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const base = 'https://api.example.com';
+
+    // Every one of these is just a Request object — inspectable before sending.
+    const requests = [
+      new Request(base + '/posts?page=2&limit=10'),
+      new Request(base + '/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Hello' })
+      }),
+      new Request(base + '/posts/7', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Edited' })
+      }),
+      new Request(base + '/posts/7', { method: 'DELETE' })
+    ];
+
+    requests.forEach(r =>
+      log(r.method.padEnd(7), new URL(r.url).pathname + new URL(r.url).search));
+
+    log('');
+    log('query parameters belong to GET, and go in the URL:');
+    const url = new URL(base + '/search');
+    url.searchParams.set('q', 'red shoes');
+    url.searchParams.set('page', '2');
+    log('  ', url.href);
+  }</script>
+</section>
+
+<section>
+  <h2>Bodies</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const data = { title: 'Hello', tags: ['a', 'b'] };
+
+    log('JSON — what most APIs want:');
+    log('  Content-Type: application/json');
+    log('  body:', JSON.stringify(data));
+    log('');
+
+    log('form encoded — the classic HTML form:');
+    const form = new URLSearchParams({ title: 'Hello', tag: 'a' });
+    log('  Content-Type: application/x-www-form-urlencoded');
+    log('  body:', form.toString());
+    log('');
+
+    log('multipart — the only one that can carry files:');
+    const fd = new FormData();
+    fd.append('title', 'Hello');
+    fd.append('file', new Blob(['contents'], { type: 'text/plain' }), 'note.txt');
+    log('  Content-Type: multipart/form-data; boundary=…  ← set by the browser');
+    log('  entries:', [...fd.keys()]);
+    log('');
+    log('with FormData, do NOT set Content-Type yourself. If you do, the');
+    log('boundary is missing and the server cannot parse the body.');
+  }</script>
+</section>
+
+<section>
+  <h2>Status codes</h2>
+
+  <div class="stage">
+    <input id="code" type="number" value="404" style="width:100px">
+    <span style="font-size:13px;color:var(--ink-faint)">try 200, 201, 204, 301, 401, 403, 404, 429, 500</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const meanings = {
+      200: ['OK', 'here is the thing you asked for'],
+      201: ['Created', 'made it; the Location header says where'],
+      204: ['No Content', 'done, and there is nothing to return — do not call .json()'],
+      301: ['Moved Permanently', 'update your links'],
+      304: ['Not Modified', 'your cached copy is still good'],
+      400: ['Bad Request', 'the request itself is malformed'],
+      401: ['Unauthorized', 'you are not logged in — really means unauthenticated'],
+      403: ['Forbidden', 'you are logged in, but not allowed'],
+      404: ['Not Found', 'no such thing'],
+      409: ['Conflict', 'someone else changed it first'],
+      422: ['Unprocessable', 'well formed, but the values are invalid'],
+      429: ['Too Many Requests', 'slow down; read the Retry-After header'],
+      500: ['Internal Server Error', 'their bug, not yours'],
+      502: ['Bad Gateway', 'a server in front of the real one failed'],
+      503: ['Service Unavailable', 'temporarily down — retry with a backoff']
+    };
+
+    function explain() {
+      const code = Number($('#code').value);
+      const klass = Math.floor(code / 100);
+      const names = { 1: 'informational', 2: 'success', 3: 'redirect',
+                      4: 'your fault', 5: 'their fault' };
+
+      log.clear();
+      log(code, '→', names[klass] || 'not a status code');
+      if (meanings[code]) {
+        log('  ', meanings[code][0]);
+        log('  ', meanings[code][1]);
+      }
+      log('');
+      log('response.ok is true for', '200–299', '— that is its entire definition.');
+      log('  ok for', code, '→', klass === 2);
+    }
+
+    $('#code').addEventListener('input', explain);
+    explain();
+  }</script>
+</section>
+
+<section>
+  <h2>Handling failure properly</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    async function send(url) {
+      let response;
+      try {
+        response = await fetch(url);
+      } catch (err) {
+        // Only network-level problems land here.
+        return { kind: 'network', message: 'Could not reach the server.' };
+      }
+
+      if (response.status === 401) return { kind: 'auth', message: 'Please sign in again.' };
+      if (response.status === 429) {
+        const wait = response.headers.get('retry-after') || 5;
+        return { kind: 'rate', message: `Too fast — retry in ${wait}s.` };
+      }
+      if (response.status >= 500) return { kind: 'server', message: 'Try again shortly.' };
+      if (!response.ok) return { kind: 'client', message: 'That request was rejected.' };
+
+      return { kind: 'ok', data: await response.json().catch(() => null) };
+    }
+
+    const good = URL.createObjectURL(new Blob(['{"ok":1}'], { type: 'application/json' }));
+
+    send(good).then(r => log('a working URL     →', r));
+    send('https://example.invalid/x').then(r => log('an unreachable host →', r));
+
+    log('');
+    log('each failure gets its own message and its own recovery:');
+    log('  network → offer a retry button');
+    log('  401     → send them to the login page');
+    log('  429     → back off, then retry automatically');
+    log('  5xx     → retry with exponential backoff');
+    log('  4xx     → do not retry; the request was wrong');
+  }</script>
+</section>
+
+<section>
+  <h2>Retrying with backoff</h2>
+
+  <div class="stage">
+    <button id="retry">run a flaky request</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    // Fails the first two times, then succeeds.
+    let attempts = 0;
+    function flaky() {
+      attempts++;
+      return attempts < 3
+        ? Promise.reject(new Error('503 Service Unavailable'))
+        : Promise.resolve('the data, on attempt ' + attempts);
+    }
+
+    async function withRetry(fn, { tries = 4, base = 200 } = {}) {
+      for (let i = 0; i < tries; i++) {
+        try {
+          return await fn();
+        } catch (err) {
+          if (i === tries - 1) throw err;
+          const wait = Math.round(base * 2 ** i + Math.random() * 100);   // + jitter
+          log('  attempt', i + 1, 'failed:', err.message, '— waiting', wait + 'ms');
+          await sleep(wait);
+        }
+      }
+    }
+
+    $('#retry').addEventListener('click', async () => {
+      log.clear();
+      attempts = 0;
+      log('starting…');
+      try { log('✔', await withRetry(flaky)); }
+      catch (err) { log('✘ gave up:', err.message); }
+    });
+
+    log('the delay doubles each time, plus a random "jitter" so that a');
+    log('thousand clients recovering from an outage do not all retry');
+    log('at exactly the same moment.');
+  }</script>
+</section>
+
+<section>
+  <h2>Caching</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('the browser caches GET responses according to the server headers:');
+    log('');
+    log('  Cache-Control: max-age=3600        use the copy for an hour');
+    log('  Cache-Control: no-cache            revalidate before using it');
+    log('  Cache-Control: no-store            never write it down at all');
+    log('  ETag: "abc123"                     a version tag for revalidation');
+    log('');
+    log('with an ETag, the second request sends:');
+    log('  If-None-Match: "abc123"');
+    log('and the server can answer 304 Not Modified with no body at all.');
+    log('');
+    log('from JavaScript you can override the policy per request:');
+    log('  fetch(url, { cache: "no-store" })   always hit the network');
+    log('  fetch(url, { cache: "force-cache" })use the cache even if stale');
+    log('');
+    log('the classic cache-buster, for a server you do not control:');
+    log('  fetch(url + "?t=" + Date.now())');
+  }</script>
+</section>
+
+</body>
+</html>

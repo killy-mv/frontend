@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Geolocation — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="geolocation-api">
+
+<h1>Geolocation</h1>
+<p class="lede">Ask the device where it is. The user must agree, every origin asks
+separately, and the answer is never guaranteed.</p>
+
+<div class="note warn">Geolocation requires a secure context — https or localhost. From
+<code>file://</code> most browsers refuse outright, and the examples will say so.</div>
+
+<section>
+  <h2>Is it available?</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('navigator.geolocation →', 'geolocation' in navigator ? 'present' : 'missing');
+    log('isSecureContext       →', window.isSecureContext);
+    log('protocol              →', location.protocol);
+
+    log('');
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' })
+        .then(status => {
+          log('permission state →', status.state);
+          status.addEventListener('change', () =>
+            log('permission changed →', status.state));
+        })
+        .catch(() => log('permission state → not queryable here'));
+    }
+
+    log('the three states: granted, denied, prompt.');
+    log('Querying never triggers the dialog — only calling the API does.');
+  }</script>
+</section>
+
+<section>
+  <h2>getCurrentPosition</h2>
+
+  <div class="stage">
+    <button id="locate">where am I?</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#locate').addEventListener('click', () => {
+      log.clear();
+      log('asking… (the browser will show a permission prompt)');
+
+      if (!navigator.geolocation) return log('not supported here');
+
+      navigator.geolocation.getCurrentPosition(
+        position => {
+          const c = position.coords;
+          log('✔ granted');
+          log('  latitude  →', c.latitude.toFixed(5));
+          log('  longitude →', c.longitude.toFixed(5));
+          log('  accuracy  →', Math.round(c.accuracy), 'metres');
+          log('  altitude  →', c.altitude === null ? 'not available' : c.altitude + 'm');
+          log('  heading   →', c.heading === null ? 'not available' : c.heading + '°');
+          log('  speed     →', c.speed === null ? 'not available' : c.speed + 'm/s');
+          log('  timestamp →', new Date(position.timestamp).toLocaleTimeString());
+        },
+        error => {
+          const names = { 1: 'PERMISSION_DENIED', 2: 'POSITION_UNAVAILABLE', 3: 'TIMEOUT' };
+          log('✘', names[error.code] || 'UNKNOWN');
+          log('  ' + error.message);
+          if (error.code === 1) log('  → the user said no, or the origin is not secure');
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
+      );
+    });
+
+    log('three arguments: success callback, error callback, options.');
+    log('This is a pre-promise API — note the shape.');
+  }</script>
+</section>
+
+<section>
+  <h2>The options</h2>
+
+  <table class="ref">
+    <tr><th>Option</th><th>Default</th><th>Meaning</th></tr>
+    <tr><td><code>enableHighAccuracy</code></td><td>false</td><td>use GPS if available — slower, more battery</td></tr>
+    <tr><td><code>timeout</code></td><td>Infinity</td><td>ms to wait before a TIMEOUT error</td></tr>
+    <tr><td><code>maximumAge</code></td><td>0</td><td>ms — accept a cached position this old</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('a fast, cheap fix (a city-level answer is often enough):');
+    log('  { enableHighAccuracy: false, timeout: 5000, maximumAge: 600000 }');
+    log('');
+    log('turn-by-turn navigation:');
+    log('  { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }');
+    log('');
+    log('the default timeout is Infinity, which means a request can hang');
+    log('forever if the user ignores the prompt. Always set one.');
+  }</script>
+</section>
+
+<section>
+  <h2>Promisifying it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function getPosition(options = {}) {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) return reject(new Error('not supported'));
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+    }
+
+    log('the wrapper is four lines:');
+    log('');
+    log('  function getPosition(options) {');
+    log('    return new Promise((resolve, reject) =>');
+    log('      navigator.geolocation.getCurrentPosition(resolve, reject, options));');
+    log('  }');
+    log('');
+    log('and then it reads like any other async call:');
+    log('');
+    log('  try {');
+    log('    const { coords } = await getPosition({ timeout: 5000 });');
+    log('    showMap(coords.latitude, coords.longitude);');
+    log('  } catch (err) {');
+    log('    showManualEntry();');
+    log('  }');
+    log('');
+    log('getPosition is defined →', typeof getPosition);
+    log('(not called — that would prompt you without asking first)');
+  }</script>
+</section>
+
+<section>
+  <h2>watchPosition</h2>
+
+  <div class="stage">
+    <button id="watch">start watching</button>
+    <button id="unwatch">stop</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    let id = null, updates = 0;
+
+    $('#watch').addEventListener('click', () => {
+      if (id !== null) return log('already watching');
+      if (!navigator.geolocation) return log('not supported here');
+
+      id = navigator.geolocation.watchPosition(
+        position => {
+          updates++;
+          log('update', updates, '→',
+              position.coords.latitude.toFixed(5) + ',' +
+              position.coords.longitude.toFixed(5),
+              '±' + Math.round(position.coords.accuracy) + 'm');
+        },
+        error => log('watch error:', error.message),
+        { enableHighAccuracy: true, maximumAge: 5000 }
+      );
+      log('watching, id', id);
+    });
+
+    $('#unwatch').addEventListener('click', () => {
+      if (id === null) return log('not watching');
+      navigator.geolocation.clearWatch(id);
+      log('stopped after', updates, 'update(s)');
+      id = null;
+    });
+
+    log('watchPosition fires whenever the position CHANGES meaningfully —');
+    log('on a desktop that may be never. Always clearWatch when you are done;');
+    log('leaving it running drains the battery.');
+  }</script>
+</section>
+
+<section>
+  <h2>Doing something with coordinates</h2>
+
+  <div class="stage">
+    <input id="lat1" value="51.5074" style="width:90px">
+    <input id="lon1" value="-0.1278" style="width:90px">
+    <span>→</span>
+    <input id="lat2" value="48.8566" style="width:90px">
+    <input id="lon2" value="2.3522" style="width:90px">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    // The haversine formula: great-circle distance between two points.
+    function distance(lat1, lon1, lat2, lon2) {
+      const R = 6371;                                  // Earth's radius in km
+      const toRad = deg => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function compute() {
+      log.clear();
+      const [a, b, c, d] = ['#lat1', '#lon1', '#lat2', '#lon2'].map(s => Number($(s).value));
+      const km = distance(a, b, c, d);
+      log('London → Paris, by default');
+      log('distance →', km.toFixed(1), 'km  (' + (km * 0.621371).toFixed(1) + ' miles)');
+      log('');
+      log('a map link for the second point:');
+      log('  https://www.openstreetmap.org/?mlat=' + c + '&mlon=' + d);
+    }
+
+    $('.stage').addEventListener('input', compute);
+    compute();
+  }</script>
+</section>
+
+<section>
+  <h2>Designing around it</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('every one of these will happen to real users:');
+    log('  • they refuse the prompt');
+    log('  • they accept, and the fix never arrives');
+    log('  • the accuracy is 40km, not 40 metres');
+    log('  • they are on a VPN in another country');
+    log('  • the browser has location permanently blocked for your site');
+    log('');
+    log('so:');
+    log('  1. never ask on page load — ask when the user presses "near me"');
+    log('  2. explain why, before the browser prompt appears');
+    log('  3. always offer manual entry as well');
+    log('  4. treat the result as a hint, never as identity or security');
+    log('');
+    log('and for a rough, no-permission answer, the server can look at the');
+    log('IP address instead — less accurate, but it needs no dialog.');
+  }</script>
+</section>
+
+</body>
+</html>

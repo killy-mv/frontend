@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Break &amp; Continue — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="break">
+
+<h1>Break &amp; Continue</h1>
+<p class="lede"><code>break</code> leaves the loop entirely. <code>continue</code> skips the
+rest of the current pass and starts the next one.</p>
+
+<section>
+  <h2>break</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (let i = 0; i < 10; i++) {
+      if (i === 4) {
+        log('breaking at', i);
+        break;
+      }
+      log(i);
+    }
+
+    log('the loop is finished');
+  }</script>
+</section>
+
+<section>
+  <h2>continue</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (let i = 0; i < 8; i++) {
+      if (i % 2 === 0) continue;      // skip even numbers
+      log('odd:', i);
+    }
+
+    log('');
+    log('careful in a while loop — continue skips the increment too:');
+    let n = 0;
+    let guard = 0;
+    while (n < 5) {
+      n++;                            // increment FIRST
+      if (n === 3) continue;
+      log('n =', n);
+      if (++guard > 20) break;
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Searching with break</h2>
+  <p>Stopping as soon as you find something is the classic use — and why
+  <code>find()</code> exists.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const users = [
+      { id: 1, name: 'Ada' },
+      { id: 2, name: 'Alan' },
+      { id: 3, name: 'Grace' }
+    ];
+
+    let found = null;
+    let checked = 0;
+
+    for (const user of users) {
+      checked++;
+      if (user.name === 'Alan') { found = user; break; }
+    }
+
+    log('found:', found, 'after checking', checked, 'of', users.length);
+    log('the same thing:', users.find(u => u.name === 'Alan'));
+  }</script>
+</section>
+
+<section>
+  <h2>Labels</h2>
+  <p>A label lets <code>break</code> and <code>continue</code> target an outer loop instead
+  of the innermost one.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const grid = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+    const target = 5;
+
+    outer:
+    for (let row = 0; row < grid.length; row++) {
+      for (let col = 0; col < grid[row].length; col++) {
+        log('checking', grid[row][col]);
+        if (grid[row][col] === target) {
+          log('found at row', row, 'col', col);
+          break outer;                 // leaves BOTH loops
+        }
+      }
+    }
+
+    log('');
+    log('continue with a label:');
+    rows:
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        if (c === 1) continue rows;    // abandon this row
+        log('  r' + r + 'c' + c);
+      }
+    }
+  }</script>
+
+  <div class="note">Labels are rare, and a nested search is often clearer extracted into a
+  function you can <code>return</code> from.</div>
+</section>
+
+<section>
+  <h2>break in switch, and the difference</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    for (const n of [1, 2, 3, 4]) {
+      switch (n) {
+        case 2:
+          log(n, '→ case 2, break leaves the SWITCH only');
+          break;
+        case 3:
+          log(n, '→ case 3');
+          break;
+        default:
+          log(n, '→ default');
+      }
+    }
+
+    log('the loop ran all four times');
+  }</script>
+</section>
+
+<section>
+  <h2>What break cannot do</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // forEach ignores it — in fact `break` there is a SyntaxError.
+    // The workaround people reach for:
+    let stopped = false;
+    [1, 2, 3, 4, 5].forEach(n => {
+      if (stopped) return;
+      if (n === 3) { stopped = true; return; }
+      log('forEach saw', n);
+    });
+    log('…but the callback still ran for every element');
+
+    log('');
+    log('use some() to stop for real:');
+    [1, 2, 3, 4, 5].some(n => {
+      log('  some saw', n);
+      return n === 3;
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Prime numbers, with both</h2>
+  <div class="stage">
+    <label>up to <input id="limit" type="number" value="40" style="width:90px"></label>
+    <button id="go">Find primes</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function primesUpTo(limit) {
+      const primes = [];
+
+      candidate:
+      for (let n = 2; n <= limit; n++) {
+        for (let d = 2; d * d <= n; d++) {
+          if (n % d === 0) continue candidate;   // not prime, try the next n
+        }
+        primes.push(n);
+        if (primes.length >= 200) break;         // a sanity limit
+      }
+
+      return primes;
+    }
+
+    $('#go').onclick = function () {
+      const limit = Math.min(Number($('#limit').value) || 0, 2000);
+      const primes = primesUpTo(limit);
+      log.clear();
+      log(primes.length, 'primes up to', limit);
+      log(primes.join(', '));
+    };
+  }</script>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BigInt — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="bigint">
+
+<h1>BigInt</h1>
+<p class="lede">A separate numeric type for integers of any size. Written with an
+<code>n</code> suffix, or created with <code>BigInt()</code>.</p>
+
+<section>
+  <h2>Where Number gives up</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('MAX_SAFE_INTEGER      ', Number.MAX_SAFE_INTEGER);
+    log('   + 1                ', Number.MAX_SAFE_INTEGER + 1);
+    log('   + 2                ', Number.MAX_SAFE_INTEGER + 2, '← same answer, wrong');
+
+    const big = BigInt(Number.MAX_SAFE_INTEGER);
+    log('as BigInt + 1n        ', big + 1n);
+    log('as BigInt + 2n        ', big + 2n);
+  }</script>
+</section>
+
+<section>
+  <h2>Creating one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = 9007199254740993n;
+    const b = BigInt(1234);
+    const c = BigInt('9007199254740993');
+    const d = BigInt('0x1fffffffffffff');
+
+    log(a, typeof a);
+    log(b, c, d);
+
+    try {
+      BigInt(1.5);
+    } catch (err) {
+      log('BigInt(1.5) →', err.name + ':', err.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Arithmetic</h2>
+  <p>All the operators work, but division truncates — there are no fractions.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('10n + 3n  =', 10n + 3n);
+    log('10n * 3n  =', 10n * 3n);
+    log('10n / 3n  =', 10n / 3n, '← truncated, not rounded');
+    log('10n % 3n  =', 10n % 3n);
+    log('2n ** 64n =', 2n ** 64n);
+
+    // 50! — impossible to hold exactly in a Number
+    let factorial = 1n;
+    for (let i = 1n; i <= 50n; i++) factorial *= i;
+    log('50! =', factorial);
+  }</script>
+</section>
+
+<section>
+  <h2>You cannot mix types</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      log(1n + 1);
+    } catch (err) {
+      log('1n + 1 →', err.name + ':', err.message);
+    }
+
+    log('convert first: 1n + BigInt(1) =', 1n + BigInt(1));
+    log('or the other way: Number(1n) + 1 =', Number(1n) + 1);
+
+    // Comparison does allow mixing:
+    log('10n == 10  →', 10n == 10);
+    log('10n === 10 →', 10n === 10);
+    log('10n > 9    →', 10n > 9);
+    log('sorting mixed:', [3n, 1, 2n, 4].sort((x, y) => (x < y ? -1 : x > y ? 1 : 0)));
+  }</script>
+</section>
+
+<section>
+  <h2>Practical notes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const id = 9007199254740993n;
+
+    log('toString()      →', id.toString());
+    log('toString(16)    →', id.toString(16));
+    log('template string →', `id is ${id}`);
+    log('Boolean(0n)     →', Boolean(0n));
+
+    try {
+      JSON.stringify({ id });
+    } catch (err) {
+      log('JSON.stringify  →', err.name + ':', err.message);
+    }
+    log('workaround      →', JSON.stringify({ id: id.toString() }));
+  }</script>
+</section>
+
+<section>
+  <h2>When to reach for it</h2>
+  <ul>
+    <li>Database ids and Twitter/X-style snowflake ids that exceed 2<sup>53</sup>.</li>
+    <li>Cryptography, hashing, and precise financial totals in the smallest unit.</li>
+    <li>Anywhere you were about to store a large integer in a string to keep it exact.</li>
+  </ul>
+  <div class="note">BigInt is slower than Number and cannot be used with <code>Math</code>.
+  Use it where exactness matters, not everywhere.</div>
+</section>
+
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adding and Removing Nodes — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-nodes">
+
+<h1>Adding and Removing Nodes</h1>
+<p class="lede">Create a node, put it somewhere, move it, replace it, take it away. The
+modern methods (<code>append</code>, <code>before</code>, <code>remove</code>) replaced a
+clumsier older set.</p>
+
+<section>
+  <h2>Create, then attach</h2>
+
+  <div class="stage" style="display:block">
+    <div id="host" style="border:1px dashed #94a3b8;border-radius:8px;padding:8px;min-height:28px"></div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const host = $('#host');
+
+    const heading = document.createElement('h3');
+    heading.textContent = 'A heading';
+    heading.style.margin = '0 0 6px';
+
+    const para = document.createElement('p');
+    para.textContent = 'A paragraph.';
+    para.style.margin = '0';
+
+    host.append(heading, para);            // several at once
+
+    log('host now contains:', host.innerHTML);
+    log('children:', host.children.length);
+    log('');
+    log('a node exists as soon as you create it, but is invisible');
+    log('until it is attached to a document.');
+  }</script>
+</section>
+
+<section>
+  <h2>The modern methods</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const box = document.createElement('div');
+    box.innerHTML = '<b>middle</b>';
+    const middle = box.firstElementChild;
+
+    box.prepend('[start] ');
+    box.append(' [end]');
+    middle.before('«');
+    middle.after('»');
+
+    log(box.innerHTML);
+
+    log('');
+    log('they all accept strings or nodes, and any number of them:');
+    const list = document.createElement('ul');
+    const li = document.createElement('li');
+    li.textContent = 'one';
+    list.append(li, Object.assign(document.createElement('li'), { textContent: 'two' }));
+    log(list.innerHTML);
+
+    log('');
+    log('replaceWith and replaceChildren:');
+    li.replaceWith('gone');
+    log('  after replaceWith  →', list.innerHTML);
+    list.replaceChildren();
+    log('  after replaceChildren() →', JSON.stringify(list.innerHTML), '(emptied)');
+  }</script>
+</section>
+
+<section>
+  <h2>The old methods</h2>
+
+  <table class="ref">
+    <tr><th>Old</th><th>New</th></tr>
+    <tr><td><code>parent.appendChild(n)</code></td><td><code>parent.append(n)</code></td></tr>
+    <tr><td><code>parent.insertBefore(n, ref)</code></td><td><code>ref.before(n)</code></td></tr>
+    <tr><td><code>parent.removeChild(n)</code></td><td><code>n.remove()</code></td></tr>
+    <tr><td><code>parent.replaceChild(new, old)</code></td><td><code>old.replaceWith(new)</code></td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const box = document.createElement('div');
+    const a = document.createElement('i'); a.textContent = 'a';
+    const b = document.createElement('i'); b.textContent = 'b';
+    const c = document.createElement('i'); c.textContent = 'c';
+
+    box.appendChild(a);
+    box.appendChild(c);
+    box.insertBefore(b, c);
+    log('after insertBefore:', box.innerHTML);
+
+    box.removeChild(a);
+    log('after removeChild: ', box.innerHTML);
+
+    const z = document.createElement('u'); z.textContent = 'z';
+    box.replaceChild(z, c);
+    log('after replaceChild:', box.innerHTML);
+
+    log('');
+    log('the differences that matter:');
+    log('  • appendChild takes ONE node and returns it');
+    log('  • append takes many, accepts strings, and returns undefined');
+    log('  • the old ones are called on the PARENT, the new ones on the node');
+  }</script>
+</section>
+
+<section>
+  <h2>Appending moves, it does not copy</h2>
+
+  <div class="stage" style="display:block">
+    <div style="display:flex;gap:8px">
+      <div id="left" style="flex:1;border:1px solid #94a3b8;border-radius:8px;padding:8px">
+        <span id="token" style="background:gold;padding:2px 8px;border-radius:4px">token</span>
+      </div>
+      <div id="right" style="flex:1;border:1px solid #94a3b8;border-radius:8px;padding:8px"></div>
+    </div>
+    <button id="move" style="margin-top:8px">move it</button>
+    <button id="copy">copy it</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const token = $('#token');
+    const left = $('#left');
+    const right = $('#right');
+
+    $('#move').addEventListener('click', () => {
+      const target = token.parentElement === left ? right : left;
+      target.append(token);                        // no removal needed
+      log('moved to #' + target.id,
+          '| still one on the page:', document.querySelectorAll('#token').length);
+    });
+
+    $('#copy').addEventListener('click', () => {
+      const clone = token.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.textContent = 'copy';
+      right.append(clone);
+      log('cloned — right side now has', right.children.length, 'children');
+    });
+
+    log('a node can only be in one place at a time, so append() moves it.');
+    log('To duplicate, clone first.');
+  }</script>
+</section>
+
+<section>
+  <h2>cloneNode</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = document.createElement('div');
+    original.innerHTML = '<b>bold</b> text';
+    original.className = 'sample';
+    original.addEventListener('click', () => log('clicked'));
+
+    const shallow = original.cloneNode(false);
+    const deep = original.cloneNode(true);
+
+    log('original →', original.outerHTML);
+    log('shallow  →', shallow.outerHTML, '← attributes only, no children');
+    log('deep     →', deep.outerHTML);
+
+    log('');
+    log('what a clone does NOT copy:');
+    log('  • event listeners added with addEventListener');
+    log('  • properties you set in JavaScript (only attributes survive)');
+
+    original.customField = 'set in JS';
+    log('  original.customField →', original.customField);
+    log('  clone.customField    →', original.cloneNode(true).customField);
+  }</script>
+</section>
+
+<section>
+  <h2>Removing</h2>
+
+  <div class="stage" style="display:block">
+    <ul id="removable" style="margin:0;padding-left:18px">
+      <li>alpha</li><li>beta</li><li>gamma</li><li>delta</li>
+    </ul>
+    <button id="pop" style="margin-top:8px">remove last</button>
+    <button id="wipe">remove all</button>
+    <button id="restore">restore</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const list = $('#removable');
+    const backup = list.cloneNode(true);
+
+    $('#pop').addEventListener('click', () => {
+      const last = list.lastElementChild;
+      if (!last) return log('nothing left');
+      last.remove();
+      log('removed — the node still exists in memory, just detached:',
+          last.isConnected);
+    });
+
+    $('#wipe').addEventListener('click', () => {
+      list.replaceChildren();                 // or: list.innerHTML = ''
+      log('emptied |', list.children.length, 'children');
+    });
+
+    $('#restore').addEventListener('click', () => {
+      list.replaceChildren(...backup.cloneNode(true).children);
+      log('restored from a clone taken at load |', list.children.length, 'children');
+    });
+
+    log('four ways to empty an element:');
+    log('  el.replaceChildren()          — clearest');
+    log('  el.innerHTML = ""             — reparses, drops listeners');
+    log('  while (el.firstChild) el.firstChild.remove()');
+    log('  el.textContent = ""           — also fine');
+  }</script>
+</section>
+
+<section>
+  <h2>Batch inserts with a fragment</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function buildSlow(n) {
+      const ul = document.createElement('ul');
+      for (let i = 0; i < n; i++) {
+        const li = document.createElement('li');
+        li.textContent = 'item ' + i;
+        ul.appendChild(li);                    // n separate insertions
+      }
+      return ul;
+    }
+
+    function buildFast(n) {
+      const ul = document.createElement('ul');
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < n; i++) {
+        const li = document.createElement('li');
+        li.textContent = 'item ' + i;
+        frag.appendChild(li);
+      }
+      ul.appendChild(frag);                    // ONE insertion
+      return ul;
+    }
+
+    const n = 5000;
+    let t = performance.now();
+    buildSlow(n);
+    const slow = performance.now() - t;
+
+    t = performance.now();
+    buildFast(n);
+    const fast = performance.now() - t;
+
+    log('one at a time →', slow.toFixed(1) + 'ms');
+    log('via fragment  →', fast.toFixed(1) + 'ms');
+    log('');
+    log('both are detached here, so the gap is small. Insert into the LIVE');
+    log('document instead and every appendChild can trigger layout —');
+    log('that is when a fragment matters.');
+  }</script>
+</section>
+
+</body>
+</html>

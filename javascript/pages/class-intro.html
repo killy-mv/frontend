@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classes — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="class-intro">
+
+<h1>Classes</h1>
+<p class="lede">A class is a template for objects. Underneath it is still a constructor
+function plus a prototype — the syntax is nicer, and a few rules are stricter.</p>
+
+<section>
+  <h2>Declaring one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Car {
+      constructor(brand, year) {
+        this.brand = brand;
+        this.year = year;
+      }
+
+      age(currentYear) {
+        return currentYear - this.year;
+      }
+
+      toString() {
+        return `${this.brand} (${this.year})`;
+      }
+    }
+
+    const myCar = new Car('Ford', 2014);
+
+    log(myCar);
+    log('age in 2026:', myCar.age(2026));
+    log('toString:', String(myCar));
+    log('instanceof Car:', myCar instanceof Car);
+  }</script>
+</section>
+
+<section>
+  <h2>It is a function</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Car {
+      constructor(brand) { this.brand = brand; }
+      honk() { return 'beep'; }
+    }
+
+    log('typeof Car          →', typeof Car);
+    log('Car.prototype.honk  →', typeof Car.prototype.honk);
+    log('methods live on the prototype, not on each instance:');
+
+    const a = new Car('Ford');
+    const b = new Car('Fiat');
+    log('  a.honk === b.honk →', a.honk === b.honk);
+    log('  own keys of a     →', Object.keys(a));
+
+    log('');
+    log('the equivalent pre-ES6 code:');
+    function OldCar(brand) { this.brand = brand; }
+    OldCar.prototype.honk = function () { return 'beep'; };
+    log('  ', new OldCar('Ford').honk());
+  }</script>
+</section>
+
+<section>
+  <h2>Two rules classes tighten</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Thing { constructor() { this.ok = true; } }
+
+    // 1. You must use `new`.
+    try { Thing(); } catch (err) { log('Thing() without new →', err.name + ':', err.message); }
+
+    // 2. Class bodies are always strict mode, and are not hoisted for use.
+    try { new Later(); } catch (err) { log('used before declared →', err.name + ':', err.message); }
+    class Later {}
+
+    log('');
+    log('a function declaration would have worked in both cases —');
+    log('classes are deliberately less forgiving.');
+  }</script>
+</section>
+
+<section>
+  <h2>Fields</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class Counter {
+      count = 0;                    // public field, set before the constructor body runs
+      #step;                        // private field, only reachable inside this class
+      static created = 0;
+
+      constructor(step = 1) {
+        this.#step = step;
+        Counter.created++;
+      }
+
+      increment() { return (this.count += this.#step); }
+
+      get isPrivateVisible() {
+        return #step in this;       // the ergonomic brand check
+      }
+    }
+
+    const c = new Counter(5);
+    log(c.increment(), c.increment(), c.increment());
+    log('own keys:', Object.keys(c), '← #step is not there');
+    log('JSON:', JSON.stringify(c));
+    log('instances created:', Counter.created);
+
+    try {
+      eval('c.#step');
+    } catch (err) {
+      log('reaching #step from outside →', err.name);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Getters and setters</h2>
+
+  <div class="stage">
+    <input id="temp" type="number" value="25" style="width:90px">
+    <span>°C</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    class Temperature {
+      constructor(celsius) { this.celsius = celsius; }
+
+      get fahrenheit() { return this.celsius * 9 / 5 + 32; }
+      set fahrenheit(value) { this.celsius = (value - 32) * 5 / 9; }
+
+      get description() {
+        if (this.celsius < 0) return 'freezing';
+        if (this.celsius < 15) return 'cold';
+        if (this.celsius < 25) return 'mild';
+        return 'hot';
+      }
+    }
+
+    const t = new Temperature(25);
+
+    function show() {
+      log.clear();
+      t.celsius = Number($('#temp').value);
+      log(t.celsius + '°C  =  ' + t.fahrenheit.toFixed(1) + '°F');
+      log('description:', t.description);
+      log('stored properties:', Object.keys(t), '← only celsius is real');
+    }
+
+    $('#temp').addEventListener('input', show);
+    show();
+  }</script>
+</section>
+
+<section>
+  <h2>Class expressions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const Rectangle = class {
+      constructor(w, h) { this.w = w; this.h = h; }
+      get area() { return this.w * this.h; }
+    };
+
+    log('anonymous class expression:', new Rectangle(3, 4).area);
+    log('name inferred:', Rectangle.name);
+
+    // Classes are values, so a function can return one:
+    function withLabel(label) {
+      return class {
+        constructor(value) { this.value = value; }
+        toString() { return `${label}: ${this.value}`; }
+      };
+    }
+
+    const Metre = withLabel('m');
+    const Second = withLabel('s');
+    log(String(new Metre(12)), '|', String(new Second(30)));
+  }</script>
+</section>
+
+<section>
+  <h2>A worked example</h2>
+
+  <div class="stage">
+    <input id="item" placeholder="add an item" style="flex:1">
+    <button id="add">add</button>
+    <button id="clear">clear</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    class TodoList {
+      #items = [];
+
+      add(text) {
+        if (!text.trim()) throw new Error('text required');
+        this.#items.push({ text: text.trim(), done: false });
+        return this;
+      }
+
+      toggle(index) {
+        this.#items[index].done = !this.#items[index].done;
+        return this;
+      }
+
+      get remaining() { return this.#items.filter(i => !i.done).length; }
+      get all() { return this.#items.map((i, n) => `${n}. [${i.done ? 'x' : ' '}] ${i.text}`); }
+      clear() { this.#items = []; return this; }
+    }
+
+    const list = new TodoList();
+    list.add('learn classes').add('write examples').toggle(0);
+
+    function render() {
+      log.clear();
+      list.all.forEach(line => log(line));
+      log('');
+      log(list.remaining + ' remaining');
+    }
+
+    $('#add').addEventListener('click', () => {
+      try { list.add($('#item').value); $('#item').value = ''; render(); }
+      catch (err) { log(err.message); }
+    });
+    $('#clear').addEventListener('click', () => { list.clear(); render(); });
+
+    render();
+  }</script>
+</section>
+
+</body>
+</html>

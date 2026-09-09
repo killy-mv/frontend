@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Best Practices — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="best-practices">
+
+<h1>Best Practices</h1>
+<p class="lede">Habits that make code behave the way it looks like it behaves.</p>
+
+<section>
+  <h2>Declare with const, then let</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // const says "this name will always mean this thing" —
+    // one less moving part when you read the function later.
+    const TAX = 0.25;
+    const items = [];
+    items.push('still allowed');
+
+    let total = 0;                  // genuinely reassigned
+    for (const item of items) total += 1;
+
+    log(TAX, items, total);
+    log('rule of thumb: start with const, change to let only when forced');
+  }</script>
+</section>
+
+<section>
+  <h2>Always use ===</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('0 == ""     →', 0 == '', '← surprising');
+    log('0 === ""    →', 0 === '');
+    log('null == undefined  →', null == undefined);
+    log('null === undefined →', null === undefined);
+
+    log('');
+    log('the one accepted use of ==:');
+    const value = undefined;
+    log('  value == null catches both null and undefined →', value == null);
+  }</script>
+</section>
+
+<section>
+  <h2>Avoid globals</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // Anything on window can be overwritten by any other script on the page.
+    window.config = { retries: 3 };
+    window.config = 'clobbered by some other library';
+    log('window.config →', window.config);
+
+    // Keep state inside a module, a closure or a single namespace object:
+    const app = (function () {
+      let clicks = 0;                          // unreachable from outside
+      return {
+        record() { return ++clicks; },
+        get total() { return clicks; }
+      };
+    })();
+
+    app.record(); app.record();
+    log('app.total →', app.total, '| clicks is private:', typeof clicks);
+  }</script>
+</section>
+
+<section>
+  <h2>Give parameters defaults</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function fragile(url, options) {
+      return url + ' timeout=' + options.timeout;      // throws if options is missing
+    }
+
+    function sturdy(url, { timeout = 5000, retries = 0 } = {}) {
+      return `${url} timeout=${timeout} retries=${retries}`;
+    }
+
+    try {
+      fragile('/api');
+    } catch (err) {
+      log('fragile("/api") →', err.name + ':', err.message);
+    }
+
+    log('sturdy("/api")  →', sturdy('/api'));
+    log('sturdy with opts→', sturdy('/api', { retries: 2 }));
+  }</script>
+</section>
+
+<section>
+  <h2>Do not mutate what you were given</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = [3, 1, 2];
+
+    function badSort(arr) {
+      return arr.sort();                 // changes the caller's array
+    }
+
+    function goodSort(arr) {
+      return [...arr].sort();            // works on a copy
+    }
+
+    goodSort(original);
+    log('after goodSort:', original);
+
+    badSort(original);
+    log('after badSort: ', original, '← surprise');
+
+    log('');
+    log('the same for objects: return { ...input, changed: true }');
+  }</script>
+</section>
+
+<section>
+  <h2>Return early, keep functions small</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function priceFor(user, item) {
+      if (!user) return null;
+      if (!item) return null;
+      if (user.isEmployee) return item.cost;
+      if (user.hasDiscount) return item.price * 0.9;
+      return item.price;
+    }
+
+    const item = { price: 100, cost: 60 };
+    log('no user:   ', priceFor(null, item));
+    log('employee:  ', priceFor({ isEmployee: true }, item));
+    log('discounted:', priceFor({ hasDiscount: true }, item));
+    log('normal:    ', priceFor({}, item));
+
+    log('');
+    log('a function should do one thing, and its name should say what.');
+  }</script>
+</section>
+
+<section>
+  <h2>Name your conditions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const user = { age: 22, verified: true, strikes: 0 };
+
+    // Hard to read:
+    if (user.age >= 18 && user.verified && user.strikes < 3) {
+      log('allowed (inline condition)');
+    }
+
+    // Easy to read, and easy to log when it goes wrong:
+    const isAdult = user.age >= 18;
+    const inGoodStanding = user.verified && user.strikes < 3;
+
+    if (isAdult && inGoodStanding) {
+      log('allowed (named conditions)');
+    }
+
+    log({ isAdult, inGoodStanding });
+  }</script>
+</section>
+
+<section>
+  <h2>Handle errors where you can do something</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function parseConfig(text) {
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        // Swallowing an error hides the bug. Either handle it meaningfully…
+        log('config was invalid, falling back to defaults:', err.message);
+        return { theme: 'light' };
+      }
+    }
+
+    log(parseConfig('{"theme":"dark"}'));
+    log(parseConfig('not json'));
+
+    log('');
+    log('what not to do: try { … } catch (e) {}   ← silence');
+  }</script>
+</section>
+
+<section>
+  <h2>The short list</h2>
+  <ul>
+    <li><code>const</code> by default, <code>===</code> always, no globals.</li>
+    <li>Small functions with honest names; return early.</li>
+    <li>Convert types at the boundary, not in the middle of a calculation.</li>
+    <li>Do not mutate arguments; return new values.</li>
+    <li>Handle errors, or let them propagate — never swallow them.</li>
+    <li>Write the code so the comment is unnecessary; then write the comment about
+    <i>why</i>.</li>
+  </ul>
+</section>
+
+</body>
+</html>

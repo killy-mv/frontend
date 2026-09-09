@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Object Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="object-methods">
+
+<h1>Object Methods</h1>
+<p class="lede">Two different things share this name: functions stored on an object, and the
+static helpers on <code>Object</code> itself. Both are here.</p>
+
+<section>
+  <h2>Methods on an object</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const account = {
+      balance: 100,
+
+      deposit(amount) {                    // shorthand — the modern form
+        this.balance += amount;
+        return this;                       // returning this allows chaining
+      },
+
+      withdraw: function (amount) {        // the older form, identical
+        this.balance -= amount;
+        return this;
+      },
+
+      toString() {
+        return 'Balance: ' + this.balance;
+      }
+    };
+
+    log(account.deposit(50).withdraw(20).toString());
+    log('as a string:', `${account}`, '← toString is used automatically');
+  }</script>
+</section>
+
+<section>
+  <h2>keys, values, entries</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const scores = { ada: 95, alan: 88, grace: 99 };
+
+    log('keys:   ', Object.keys(scores));
+    log('values: ', Object.values(scores));
+    log('entries:', Object.entries(scores));
+
+    log('');
+    log('total:  ', Object.values(scores).reduce((a, b) => a + b, 0));
+    log('sorted: ', Object.entries(scores).sort((a, b) => b[1] - a[1]));
+
+    // Transforming an object: entries → map → fromEntries
+    const doubled = Object.fromEntries(
+      Object.entries(scores).map(([k, v]) => [k, v * 2])
+    );
+    log('doubled:', doubled);
+
+    const passing = Object.fromEntries(
+      Object.entries(scores).filter(([, v]) => v >= 90)
+    );
+    log('filtered:', passing);
+  }</script>
+</section>
+
+<section>
+  <h2>assign and spread</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const defaults = { theme: 'light', size: 14 };
+    const custom = { theme: 'dark' };
+
+    // assign MUTATES its first argument:
+    const target = {};
+    Object.assign(target, defaults, custom);
+    log('assign into a new target:', target);
+
+    const mutated = { ...defaults };
+    Object.assign(mutated, custom);
+    log('spread first, then assign:', mutated);
+
+    log('spread only:', { ...defaults, ...custom });
+    log('later sources win:', { ...custom, ...defaults });
+
+    log('');
+    log('both are shallow:');
+    const nested = { inner: { n: 1 } };
+    const copy = { ...nested };
+    copy.inner.n = 99;
+    log('  original.inner.n →', nested.inner.n);
+    log('  structuredClone gives a deep copy');
+  }</script>
+</section>
+
+<section>
+  <h2>freeze, seal, preventExtensions</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const frozen = Object.freeze({ a: 1 });
+    frozen.a = 2; frozen.b = 3;
+    log('frozen:', frozen, '| isFrozen:', Object.isFrozen(frozen));
+
+    const sealed = Object.seal({ a: 1 });
+    sealed.a = 2;                        // allowed
+    sealed.b = 3;                        // not allowed
+    delete sealed.a;                     // not allowed
+    log('sealed:', sealed, '| isSealed:', Object.isSealed(sealed));
+
+    const limited = Object.preventExtensions({ a: 1 });
+    limited.a = 2;                       // allowed
+    delete limited.a;                    // allowed
+    limited.b = 3;                       // not allowed
+    log('preventExtensions:', limited, '| isExtensible:', Object.isExtensible(limited));
+  }</script>
+</section>
+
+<section>
+  <h2>Comparing and cloning</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = { x: 1, nested: { y: 2 } };
+
+    const shallow = { ...a };
+    const deep = structuredClone(a);
+    const viaJson = JSON.parse(JSON.stringify(a));
+
+    a.nested.y = 99;
+
+    log('shallow copy sees the change:', shallow.nested.y);
+    log('structuredClone did not:     ', deep.nested.y);
+    log('JSON round trip did not:     ', viaJson.nested.y);
+
+    log('');
+    log('but JSON loses things:');
+    const rich = { when: new Date(), fn() {}, un: undefined, inf: Infinity };
+    log('  JSON:  ', JSON.parse(JSON.stringify(rich)));
+    log('  clone: ', structuredClone({ when: rich.when, inf: rich.inf }));
+  }</script>
+</section>
+
+<section>
+  <h2>groupBy</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const products = [
+      { name: 'pen', type: 'stationery', price: 2 },
+      { name: 'book', type: 'stationery', price: 15 },
+      { name: 'lamp', type: 'home', price: 40 }
+    ];
+
+    if (typeof Object.groupBy === 'function') {
+      log('by type:', Object.groupBy(products, p => p.type));
+      log('by band:', Object.groupBy(products, p => (p.price > 10 ? 'expensive' : 'cheap')));
+    } else {
+      log('Object.groupBy is not available here — the reduce version:');
+    }
+
+    const manual = products.reduce((acc, p) => {
+      (acc[p.type] ||= []).push(p.name);
+      return acc;
+    }, {});
+    log('by hand:', manual);
+  }</script>
+</section>
+
+<section>
+  <h2>The static methods, at a glance</h2>
+  <table class="ref">
+    <tr><th>Method</th><th>Returns</th></tr>
+    <tr><td><code>Object.keys(o)</code></td><td>own enumerable key names</td></tr>
+    <tr><td><code>Object.values(o)</code></td><td>the matching values</td></tr>
+    <tr><td><code>Object.entries(o)</code></td><td><code>[key, value]</code> pairs</td></tr>
+    <tr><td><code>Object.fromEntries(pairs)</code></td><td>an object built from pairs</td></tr>
+    <tr><td><code>Object.assign(t, …s)</code></td><td>t, with the sources copied in</td></tr>
+    <tr><td><code>Object.hasOwn(o, k)</code></td><td>true if k is an own property</td></tr>
+    <tr><td><code>Object.freeze/seal(o)</code></td><td>o, locked down</td></tr>
+    <tr><td><code>Object.create(proto)</code></td><td>a new object with that prototype</td></tr>
+    <tr><td><code>Object.getPrototypeOf(o)</code></td><td>its prototype</td></tr>
+    <tr><td><code>Object.groupBy(list, fn)</code></td><td>items grouped by a computed key</td></tr>
+  </table>
+</section>
+
+</body>
+</html>

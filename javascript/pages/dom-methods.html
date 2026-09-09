@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DOM Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-methods">
+
+<h1>DOM Methods</h1>
+<p class="lede">A DOM <b>property</b> is a value you read or assign; a DOM <b>method</b> is an
+action you call. Most work happens through a handful of each.</p>
+
+<section>
+  <h2>Property or method?</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const p = document.createElement('p');
+    p.innerHTML = 'Hello <b>world</b>';
+
+    log('property — assign a value:');
+    p.id = 'greeting';
+    p.title = 'a tooltip';
+    log('  ', p.outerHTML);
+
+    log('');
+    log('method — call an action:');
+    p.setAttribute('data-role', 'demo');
+    p.classList.add('highlight');
+    log('  ', p.outerHTML);
+
+    log('');
+    log('many things are available both ways:');
+    log('  p.id            →', p.id);
+    log('  p.getAttribute  →', p.getAttribute('id'));
+  }</script>
+</section>
+
+<section>
+  <h2>The most-used properties</h2>
+
+  <div class="stage">
+    <div id="box">Some <b>bold</b> text</div>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const box = $('#box');
+
+    log('innerHTML  →', JSON.stringify(box.innerHTML));
+    log('textContent→', JSON.stringify(box.textContent));
+    log('innerText  →', JSON.stringify(box.innerText), '← respects CSS, forces a reflow');
+    log('outerHTML  →', JSON.stringify(box.outerHTML));
+    log('');
+    log('tagName    →', box.tagName);
+    log('id         →', box.id);
+    log('className  →', JSON.stringify(box.className));
+    log('children   →', box.children.length, 'elements,',
+        box.childNodes.length, 'nodes');
+  }</script>
+</section>
+
+<section>
+  <h2>The most-used methods</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const list = document.createElement('ul');
+
+    // create → configure → attach
+    ['apples', 'pears', 'plums'].forEach(text => {
+      const li = document.createElement('li');
+      li.textContent = text;
+      li.setAttribute('data-fruit', text);
+      list.appendChild(li);
+    });
+
+    log('built:', list.outerHTML);
+
+    log('');
+    log('querySelector      →', list.querySelector('li').textContent);
+    log('querySelectorAll   →', list.querySelectorAll('li').length, 'items');
+    log('getAttribute       →', list.children[1].getAttribute('data-fruit'));
+    log('hasAttribute       →', list.children[1].hasAttribute('data-fruit'));
+
+    list.children[1].removeAttribute('data-fruit');
+    log('after removeAttribute:', list.children[1].outerHTML);
+
+    list.removeChild(list.lastElementChild);
+    log('after removeChild:    ', list.outerHTML);
+  }</script>
+</section>
+
+<section>
+  <h2>Writing text safely</h2>
+
+  <div class="stage">
+    <input id="user-input" value="&lt;b&gt;hello&lt;/b&gt; &amp; goodbye" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const withHTML = document.createElement('div');
+    const withText = document.createElement('div');
+
+    function render() {
+      const value = $('#user-input').value;
+      withHTML.innerHTML = value;
+      withText.textContent = value;
+
+      log.clear();
+      log('input:              ', value);
+      log('');
+      log('via innerHTML   →', withHTML.innerHTML);
+      log('  children created:', withHTML.children.length, '← markup was executed as markup');
+      log('');
+      log('via textContent →', withText.innerHTML);
+      log('  children created:', withText.children.length, '← escaped, always safe');
+    }
+
+    $('#user-input').addEventListener('input', render);
+    render();
+
+    log('');
+    log('rule: textContent for anything a user typed, innerHTML only for HTML you wrote');
+  }</script>
+  <div class="note warn">If the text above had come from a stranger it could have been
+  <code>&lt;img src=x onerror=…&gt;</code>, and <code>innerHTML</code> would have run it.
+  That is cross-site scripting. <code>textContent</code> cannot do this — it never parses
+  markup.</div>
+</section>
+
+<section>
+  <h2>Attributes vs properties</h2>
+  <p>They are related but not the same object. The attribute is the original HTML; the
+  property is the live value.</p>
+
+  <div class="stage">
+    <input id="field" value="start typing">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const field = $('#field');
+
+    function compare() {
+      log.clear();
+      log('attribute (the HTML) →', JSON.stringify(field.getAttribute('value')));
+      log('property (live)      →', JSON.stringify(field.value));
+      log('');
+      log('type the box above — only the property changes.');
+    }
+
+    field.addEventListener('input', compare);
+    compare();
+  }</script>
+</section>
+
+<section>
+  <h2>A quick reference</h2>
+
+  <table class="ref">
+    <tr><th>Task</th><th>Use</th></tr>
+    <tr><td>find one element</td><td><code>document.querySelector(sel)</code></td></tr>
+    <tr><td>find many</td><td><code>document.querySelectorAll(sel)</code></td></tr>
+    <tr><td>read/write text</td><td><code>el.textContent</code></td></tr>
+    <tr><td>read/write markup</td><td><code>el.innerHTML</code></td></tr>
+    <tr><td>make an element</td><td><code>document.createElement(tag)</code></td></tr>
+    <tr><td>attach it</td><td><code>parent.append(el)</code></td></tr>
+    <tr><td>remove it</td><td><code>el.remove()</code></td></tr>
+    <tr><td>classes</td><td><code>el.classList.add / remove / toggle</code></td></tr>
+    <tr><td>attributes</td><td><code>el.setAttribute / getAttribute</code></td></tr>
+    <tr><td>inline style</td><td><code>el.style.property</code></td></tr>
+    <tr><td>react to something</td><td><code>el.addEventListener(type, fn)</code></td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // The whole reference, exercised in one go:
+    const card = document.createElement('div');
+    card.classList.add('card');
+    card.setAttribute('data-id', '7');
+    card.style.padding = '4px';
+    card.textContent = 'built with every row of the table above';
+
+    log(card.outerHTML);
+    card.remove();
+    log('removing a detached element is harmless:', card.isConnected);
+  }</script>
+</section>
+
+</body>
+</html>

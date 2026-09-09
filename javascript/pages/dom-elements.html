@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finding Elements — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="dom-elements">
+
+<h1>Finding Elements</h1>
+<p class="lede">Six ways to get hold of an element. In new code you almost always want
+<code>querySelector</code> or <code>querySelectorAll</code>.</p>
+
+<section>
+  <h2>The sample markup</h2>
+
+  <div class="stage" id="sample" style="display:block">
+    <ul class="menu" data-side="left">
+      <li class="item active" id="home">Home</li>
+      <li class="item">Products</li>
+      <li class="item" data-badge="new">Blog</li>
+    </ul>
+    <p class="note-text">A paragraph with a <a href="#top" name="jump">link</a>.</p>
+  </div>
+
+  <script class="run">{
+    const { log, $ } = demo();
+
+    log($('#sample').innerHTML.trim().replace(/\n\s+/g, '\n'));
+  }</script>
+</section>
+
+<section>
+  <h2>By id</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const home = document.getElementById('home');
+
+    log('found:', home.textContent, '|', home.tagName, '|', home.className);
+    log('missing id →', document.getElementById('nothing'));
+
+    log('');
+    log('ids must be unique, so this always returns one element or null');
+    log('it is also the fastest lookup, though rarely by enough to matter');
+  }</script>
+</section>
+
+<section>
+  <h2>By class name and tag name</h2>
+
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const byClass = document.getElementsByClassName('item');
+    const byTag = document.getElementById('sample').getElementsByTagName('li');
+
+    log('getElementsByClassName("item") →', byClass.length, 'items');
+    log('  first:', byClass[0].textContent);
+    log('  as an array:', Array.from(byClass, li => li.textContent));
+
+    log('');
+    log('getElementsByTagName("li")     →', byTag.length, 'items');
+    log('two classes at once:', document.getElementsByClassName('item active').length);
+
+    log('');
+    log('both return a live HTMLCollection — no forEach, no map:');
+    log('  typeof byClass.forEach →', typeof byClass.forEach);
+  }</script>
+</section>
+
+<section>
+  <h2>By CSS selector</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const scope = document.getElementById('sample');
+
+    log('#home                →', scope.querySelector('#home').textContent);
+    log('.item                →', scope.querySelector('.item').textContent, '(first only)');
+    log('li.item.active       →', scope.querySelector('li.item.active').textContent);
+    log('[data-badge]         →', scope.querySelector('[data-badge]').textContent);
+    log('ul > li:last-child   →', scope.querySelector('ul > li:last-child').textContent);
+    log('li:nth-child(2)      →', scope.querySelector('li:nth-child(2)').textContent);
+    log('.menu a              →', scope.querySelector('.menu a'));
+    log('p a                  →', scope.querySelector('p a').textContent);
+
+    log('');
+    log('querySelectorAll returns every match, as a static NodeList:');
+    log('  ', Array.from(scope.querySelectorAll('.item'), li => li.textContent));
+    log('  it does have forEach:', typeof scope.querySelectorAll('.item').forEach);
+  }</script>
+</section>
+
+<section>
+  <h2>Searching inside an element</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const sample = document.getElementById('sample');
+    const menu = sample.querySelector('.menu');
+
+    log('document.querySelectorAll("a") →', document.querySelectorAll('a').length,
+        '← the whole page');
+    log('sample.querySelectorAll("a")   →', sample.querySelectorAll('a').length,
+        '← only inside the sample');
+
+    log('');
+    log('a gotcha: you cannot start a selector with a combinator…');
+    try { menu.querySelectorAll('> li'); }
+    catch (err) { log('  menu.querySelectorAll("> li") →', err.name); }
+
+    log('  …use :scope, which stands for the element you called it on:');
+    log('  menu.querySelectorAll(":scope > li").length →',
+        menu.querySelectorAll(':scope > li').length);
+
+    log('');
+    log('and remember the search covers descendants only —');
+    log('menu.querySelector("p") →', menu.querySelector('p'), '(the p is a sibling)');
+  }</script>
+</section>
+
+<section>
+  <h2>Matching and climbing</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const blog = document.querySelector('[data-badge]');
+
+    log('matches(".item")   →', blog.matches('.item'));
+    log('matches(".active") →', blog.matches('.active'));
+    log('closest("ul")      →', blog.closest('ul').className);
+    log('closest("section") →', blog.closest('section').tagName);
+    log('closest(".item")   →', blog.closest('.item').textContent, '← starts with itself');
+    log('closest("table")   →', blog.closest('table'));
+
+    log('');
+    log('these two are the backbone of event delegation:');
+    log('  if (event.target.closest(".item")) { … }');
+  }</script>
+</section>
+
+<section>
+  <h2>The legacy collections</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    log('document.forms      →', document.forms.length);
+    log('document.images     →', document.images.length);
+    log('document.links      →', document.links.length, '← <a href> and <area href>');
+    log('document.scripts    →', document.scripts.length);
+    log('document.anchors    →', document.anchors.length, '← <a name>, ancient');
+    log('document.body.children →', document.body.children.length);
+
+    log('');
+    log('these predate querySelectorAll and are all live collections.');
+    log('document.querySelectorAll("a[href]").length →',
+        document.querySelectorAll('a[href]').length);
+  }</script>
+</section>
+
+<section>
+  <h2>Try a selector</h2>
+
+  <div class="stage">
+    <input id="sel" value="li.item" style="flex:1">
+    <span style="font-size:13px;color:var(--ink-faint)">searched inside the sample above</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const scope = document.getElementById('sample');
+
+    function run() {
+      log.clear();
+      const selector = $('#sel').value;
+      try {
+        const found = scope.querySelectorAll(selector);
+        log(found.length, 'match' + (found.length === 1 ? '' : 'es'), 'for', selector);
+        found.forEach((el, i) =>
+          log('  ' + i + '.', el.tagName.toLowerCase() +
+              (el.className ? '.' + el.className.split(' ').join('.') : ''),
+              '→', el.textContent.trim().slice(0, 40)));
+      } catch (err) {
+        log('invalid selector:', err.name);
+      }
+    }
+
+    $('#sel').addEventListener('input', run);
+    run();
+  }</script>
+</section>
+
+</body>
+</html>

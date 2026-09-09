@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Date Set Methods — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="date-set-methods">
+
+<h1>Date Set Methods</h1>
+<p class="lede">Setters change a Date <b>in place</b> and return the new timestamp. Out of
+range values roll over into the neighbouring unit, which is what makes date arithmetic
+easy.</p>
+
+<section>
+  <h2>The setters</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date('2024-05-17T14:30:00');
+    log('start        ', d.toString());
+
+    d.setFullYear(2030);      log('setFullYear  ', d.toDateString());
+    d.setMonth(11);           log('setMonth(11) ', d.toDateString());
+    d.setDate(25);            log('setDate(25)  ', d.toDateString());
+    d.setHours(9);            log('setHours(9)  ', d.toTimeString().slice(0, 8));
+    d.setMinutes(5);          log('setMinutes(5)', d.toTimeString().slice(0, 8));
+
+    // Several at once — the extra arguments are month and day:
+    d.setFullYear(2025, 0, 1);
+    log('setFullYear(2025, 0, 1) →', d.toDateString());
+
+    log('a setter returns the timestamp:', d.setDate(2));
+  }</script>
+</section>
+
+<section>
+  <h2>Rolling over</h2>
+  <p>Set a day past the end of the month and the date moves into the next month. No error,
+  no invalid date.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const d = new Date(2024, 0, 31);       // 31 January
+    log('start:', d.toDateString());
+
+    d.setDate(d.getDate() + 1);
+    log('+1 day:', d.toDateString());
+
+    const feb = new Date(2024, 1, 1);
+    feb.setDate(30);
+    log('30 February 2024 →', feb.toDateString());
+
+    const back = new Date(2024, 0, 1);
+    back.setDate(0);
+    log('day 0 of January →', back.toDateString());
+  }</script>
+</section>
+
+<section>
+  <h2>Date arithmetic</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function addDays(date, days) {
+      const copy = new Date(date);          // never mutate the caller's date
+      copy.setDate(copy.getDate() + days);
+      return copy;
+    }
+
+    const start = new Date(2024, 4, 17);
+    log('start       ', start.toDateString());
+    log('+ 7 days    ', addDays(start, 7).toDateString());
+    log('- 30 days   ', addDays(start, -30).toDateString());
+    log('+ 365 days  ', addDays(start, 365).toDateString());
+    log('original    ', start.toDateString(), '← unchanged');
+
+    function addMonths(date, months) {
+      const copy = new Date(date);
+      copy.setMonth(copy.getMonth() + months);
+      return copy;
+    }
+
+    log('');
+    log('31 Jan + 1 month →', addMonths(new Date(2024, 0, 31), 1).toDateString());
+    log('…month-end arithmetic is genuinely ambiguous; decide what you want.');
+  }</script>
+</section>
+
+<section>
+  <h2>Useful anchors</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const now = new Date(2024, 4, 17, 14, 30, 45);
+
+    const startOfDay = new Date(now);
+    startOfDay.setHours(0, 0, 0, 0);
+    log('start of day  ', startOfDay.toString());
+
+    const endOfDay = new Date(now);
+    endOfDay.setHours(23, 59, 59, 999);
+    log('end of day    ', endOfDay.toString());
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    log('start of month', startOfMonth.toDateString());
+
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    log('end of month  ', endOfMonth.toDateString());
+
+    const monday = new Date(now);
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+    log('monday of that week', monday.toDateString());
+  }</script>
+</section>
+
+<section>
+  <h2>Mutation is the danger</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const original = new Date(2024, 0, 1);
+    const alias = original;             // not a copy
+
+    alias.setFullYear(1999);
+    log('original:', original.toDateString(), '← changed through the alias');
+
+    const safe = new Date(original);    // a real copy
+    safe.setFullYear(2050);
+    log('original:', original.toDateString());
+    log('copy:    ', safe.toDateString());
+  }</script>
+</section>
+
+<section>
+  <h2>A date calculator</h2>
+  <div class="stage">
+    <input id="from" type="date" value="2024-05-17">
+    <input id="amount" type="number" value="30" style="width:90px">
+    <select id="unit">
+      <option>days</option><option>weeks</option><option>months</option><option>years</option>
+    </select>
+  </div>
+  <script class="run">{
+    const { log, $, $$ } = demo();
+
+    function calculate() {
+      const value = $('#from').value;
+      if (!value) return;
+
+      const [y, m, d] = value.split('-').map(Number);
+      const base = new Date(y, m - 1, d);
+      const n = Number($('#amount').value) || 0;
+      const result = new Date(base);
+
+      switch ($('#unit').value) {
+        case 'days':   result.setDate(result.getDate() + n); break;
+        case 'weeks':  result.setDate(result.getDate() + n * 7); break;
+        case 'months': result.setMonth(result.getMonth() + n); break;
+        case 'years':  result.setFullYear(result.getFullYear() + n); break;
+      }
+
+      log.clear();
+      log('from  ', base.toDateString());
+      log('plus  ', n, $('#unit').value);
+      log('gives ', result.toDateString());
+      log('that is', Math.round((result - base) / 86400000), 'days apart');
+      log('and it is a', result.toLocaleDateString('en', { weekday: 'long' }));
+    }
+
+    $$('input, select').forEach(el => el.addEventListener('input', calculate));
+    calculate();
+  }</script>
+</section>
+
+</body>
+</html>

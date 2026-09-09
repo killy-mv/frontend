@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closures — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="function-closures">
+
+<h1>Closures</h1>
+<p class="lede">A function remembers the variables that were in scope where it was
+<b>written</b> — not where it is called. That memory is a closure, and it is how JavaScript
+does private state.</p>
+
+<section>
+  <h2>The counter problem</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A local variable resets on every call:
+    function badCounter() {
+      let count = 0;
+      count++;
+      return count;
+    }
+    log('local:  ', badCounter(), badCounter(), badCounter());
+
+    // A global survives, but anything can change it:
+    let globalCount = 0;
+    function globalCounter() { return ++globalCount; }
+    log('global: ', globalCounter(), globalCounter(), globalCounter());
+    globalCount = 1000;
+    log('         tampered with →', globalCounter());
+
+    // A closure survives AND is unreachable from outside:
+    function makeCounter() {
+      let count = 0;
+      return function () { return ++count; };
+    }
+    const counter = makeCounter();
+    log('closure:', counter(), counter(), counter());
+  }</script>
+</section>
+
+<section>
+  <h2>Each call makes a new scope</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function makeCounter(start) {
+      let count = start;
+      return () => ++count;
+    }
+
+    const a = makeCounter(0);
+    const b = makeCounter(100);
+
+    log('a:', a(), a(), a());
+    log('b:', b(), b());
+    log('a again:', a(), '← a and b have separate copies of `count`');
+  }</script>
+</section>
+
+<section>
+  <h2>Private state</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function makeAccount(owner, initial) {
+      let balance = initial;                    // no way to reach this from outside
+
+      return {
+        owner,
+        deposit(amount) {
+          if (amount <= 0) throw new RangeError('deposit must be positive');
+          balance += amount;
+          return balance;
+        },
+        withdraw(amount) {
+          if (amount > balance) return 'insufficient funds';
+          balance -= amount;
+          return balance;
+        },
+        get statement() { return `${owner}: ${balance}`; }
+      };
+    }
+
+    const account = makeAccount('Ada', 100);
+
+    log(account.deposit(50));
+    log(account.withdraw(30));
+    log(account.withdraw(1000));
+    log(account.statement);
+
+    log('');
+    log('can you see the balance?', Object.keys(account));
+    account.balance = 999999;
+    log('assigning one does nothing useful:', account.statement);
+  }</script>
+</section>
+
+<section>
+  <h2>Closures share, they do not copy</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function makePair() {
+      let value = 0;
+      return {
+        get: () => value,
+        set: v => { value = v; }
+      };
+    }
+
+    const pair = makePair();
+    log('get →', pair.get());
+    pair.set(42);
+    log('after set(42), get →', pair.get(), '← both functions see the same variable');
+
+    log('');
+    log('a closure captures the variable, not the value at creation time:');
+    let message = 'first';
+    const show = () => message;
+    message = 'second';
+    log('  show() →', show());
+  }</script>
+</section>
+
+<section>
+  <h2>The classic loop trap</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const withVar = [];
+    for (var i = 0; i < 3; i++) {
+      withVar.push(() => i);                    // one shared `i`
+    }
+    log('var: ', withVar.map(f => f()), '← all three see the final i');
+
+    const withLet = [];
+    for (let j = 0; j < 3; j++) {
+      withLet.push(() => j);                    // a fresh `j` per iteration
+    }
+    log('let: ', withLet.map(f => f()));
+
+    // The pre-ES6 fix was an IIFE to create a scope by hand:
+    const withIIFE = [];
+    for (var k = 0; k < 3; k++) {
+      withIIFE.push((function (captured) {
+        return () => captured;
+      })(k));
+    }
+    log('IIFE:', withIIFE.map(f => f()));
+  }</script>
+</section>
+
+<section>
+  <h2>Closures in event handlers</h2>
+
+  <div class="stage">
+    <button data-colour="crimson">crimson</button>
+    <button data-colour="seagreen">seagreen</button>
+    <button data-colour="slateblue">slateblue</button>
+    <span id="swatch" style="padding:4px 14px;border-radius:6px;background:#ddd">&nbsp;</span>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const swatch = $('#swatch');
+
+    $('.stage').querySelectorAll('button[data-colour]').forEach(button => {
+      const colour = button.dataset.colour;     // captured once, per button
+
+      button.addEventListener('click', () => {
+        swatch.style.background = colour;       // still remembered, long after this loop
+        log('clicked', colour);
+      });
+    });
+
+    log('three handlers, three separate closures over `colour`');
+  }</script>
+</section>
+
+<section>
+  <h2>Practical patterns</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // 1. once — run at most one time, remember the result
+    function once(fn) {
+      let called = false, result;
+      return (...args) => {
+        if (!called) { called = true; result = fn(...args); }
+        return result;
+      };
+    }
+    const init = once(() => { log('  initialising…'); return 'ready'; });
+    log('once:', init(), init(), init());
+
+    // 2. memoise — cache by argument
+    function memoise(fn) {
+      const cache = new Map();
+      return n => {
+        if (cache.has(n)) return `${cache.get(n)} (cached)`;
+        const value = fn(n);
+        cache.set(n, value);
+        return value;
+      };
+    }
+    const slowSquare = memoise(n => n * n);
+    log('memoise:', slowSquare(9), '|', slowSquare(9));
+
+    // 3. a private id generator
+    const nextId = (() => {
+      let id = 0;
+      return prefix => `${prefix}-${++id}`;
+    })();
+    log('ids:', nextId('user'), nextId('user'), nextId('post'));
+  }</script>
+</section>
+
+<section>
+  <h2>What it costs</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // A closure keeps its whole scope alive, including things it never uses.
+    function leaky() {
+      const huge = new Array(100000).fill('x');
+      const tiny = huge.length;
+      return () => tiny;                        // `huge` may be retained by the engine
+    }
+
+    function tidy() {
+      const huge = new Array(100000).fill('x');
+      const tiny = huge.length;
+      return (function (n) { return () => n; })(tiny);
+    }
+
+    log('both return', leaky()(), 'and', tidy()());
+    log('but only the second is guaranteed not to hold the big array');
+
+    log('');
+    log('rules of thumb:');
+    log('  • return the smallest thing you can');
+    log('  • remove event listeners you no longer need');
+    log('  • do not create closures inside hot loops if a plain value will do');
+  }</script>
+</section>
+
+<section>
+  <h2>Where else you have met one</h2>
+  <ul>
+    <li>Every <b>callback</b> that uses a variable from the surrounding function.</li>
+    <li>Every <b>module</b> — the module body is a scope, and its exports close over it.</li>
+    <li><code>setTimeout(() =&gt; log(name), 100)</code> — <code>name</code> is captured.</li>
+    <li>Getters and setters returned from a factory, as above.</li>
+  </ul>
+  <div class="note">Closures are not a special feature you turn on. Any function that
+  references an outer variable is one; the term just names what already happens.</div>
+</section>
+
+</body>
+</html>

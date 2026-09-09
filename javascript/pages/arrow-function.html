@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrow Functions — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="arrow-function">
+
+<h1>Arrow Functions</h1>
+<p class="lede">A shorter way to write a function expression — and, more importantly, one
+that has no <code>this</code> of its own.</p>
+
+<section>
+  <h2>The syntax, shrinking</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const a = function (x) { return x * 2; };
+    const b = (x) => { return x * 2; };
+    const c = (x) => x * 2;              // implicit return
+    const d = x => x * 2;                // one parameter needs no parentheses
+
+    log([a, b, c, d].map(fn => fn(21)));
+
+    const noArgs = () => 'no parameters need ()';
+    const twoArgs = (x, y) => x + y;
+    log(noArgs(), '|', twoArgs(1, 2));
+
+    // Returning an object literal needs parentheses,
+    // or the braces look like a function body:
+    const makeUser = name => ({ name, id: 1 });
+    log(makeUser('Ada'));
+  }</script>
+</section>
+
+<section>
+  <h2>Where they shine</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const numbers = [5, 12, 8, 130, 44];
+
+    log('map:   ', numbers.map(n => n * 2));
+    log('filter:', numbers.filter(n => n > 10));
+    log('reduce:', numbers.reduce((a, b) => a + b, 0));
+    log('sort:  ', [...numbers].sort((a, b) => a - b));
+
+    // Chained, they stay readable:
+    log('chained:', numbers
+      .filter(n => n % 2 === 0)
+      .map(n => n / 2)
+      .reduce((a, b) => a + b, 0));
+  }</script>
+</section>
+
+<section>
+  <h2>No this of their own</h2>
+  <p>An arrow uses the <code>this</code> of the scope it was written in. That is the whole
+  reason they exist.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const timerBroken = {
+      seconds: 0,
+      start() {
+        // A regular callback gets its own this:
+        return (function () {
+          return typeof this.seconds;
+        })();
+      }
+    };
+
+    const timerFixed = {
+      seconds: 0,
+      start() {
+        return (() => typeof this.seconds)();
+      }
+    };
+
+    log('regular callback →', timerBroken.start());
+    log('arrow callback   →', timerFixed.start());
+
+    log('');
+    log('the pre-arrow workaround you will still see:');
+    const old = {
+      name: 'old',
+      run() {
+        const self = this;
+        return (function () { return self.name; })();
+      }
+    };
+    log('  var self = this →', old.run());
+  }</script>
+</section>
+
+<section>
+  <h2>Where they are wrong</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    // 1. As an object method — this is not the object:
+    const bad = {
+      name: 'Ada',
+      greet: () => 'Hi ' + (this === bad ? this.name : '[this is not the object]')
+    };
+    log('arrow method →', bad.greet());
+
+    // 2. As a constructor:
+    const Arrow = () => {};
+    try {
+      new Arrow();
+    } catch (err) {
+      log('new on an arrow →', err.name + ':', err.message);
+    }
+
+    // 3. They have no `arguments`:
+    function regular() { return arguments.length; }
+    const arrow = (...args) => args.length;
+    log('regular arguments →', regular(1, 2, 3));
+    log('arrow rest        →', arrow(1, 2, 3));
+
+    // 4. They are not hoisted:
+    log('typeof later →', typeof later);
+    var later = () => {};
+  }</script>
+</section>
+
+<section>
+  <h2>this in DOM handlers</h2>
+
+  <div class="stage">
+    <button id="a">Regular</button>
+    <button id="b">Arrow</button>
+    <button id="c">Arrow + currentTarget</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#a').addEventListener('click', function () {
+      log('regular → this is the button:', this.id);
+    });
+
+    $('#b').addEventListener('click', () => {
+      log('arrow   → this is', this === window ? 'window, not the button' : this);
+    });
+
+    $('#c').addEventListener('click', (event) => {
+      log('arrow   → event.currentTarget is the button:', event.currentTarget.id);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Currying and returning functions</h2>
+  <p>Arrows make chains of single-argument functions readable.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const multiply = a => b => a * b;
+    const double = multiply(2);
+    const triple = multiply(3);
+
+    log('double(5) →', double(5));
+    log('triple(5) →', triple(5));
+    log('multiply(4)(5) →', multiply(4)(5));
+
+    const pipe = (...fns) => value => fns.reduce((acc, fn) => fn(acc), value);
+    const slugify = pipe(
+      s => s.trim(),
+      s => s.toLowerCase(),
+      s => s.replace(/[^a-z0-9]+/g, '-'),
+      s => s.replace(/^-|-$/g, '')
+    );
+    log('slugify →', slugify('  Hello, World! Again  '));
+  }</script>
+</section>
+
+<section>
+  <h2>Which to use</h2>
+  <table class="ref">
+    <tr><th>Situation</th><th>Use</th></tr>
+    <tr><td>callbacks: map, filter, then</td><td>arrow</td></tr>
+    <tr><td>an object method</td><td>shorthand method <code>name() {}</code></td></tr>
+    <tr><td>a class method</td><td>method, or a field arrow when it must stay bound</td></tr>
+    <tr><td>a constructor</td><td><code>class</code> (never an arrow)</td></tr>
+    <tr><td>a DOM handler needing <code>this</code></td><td><code>function</code>, or use <code>currentTarget</code></td></tr>
+  </table>
+</section>
+
+</body>
+</html>

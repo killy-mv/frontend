@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The this Keyword — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="this-keyword">
+
+<h1>The this Keyword</h1>
+<p class="lede"><code>this</code> is decided by <b>how a function is called</b>, not where it
+was written. Five call patterns, five answers.</p>
+
+<section>
+  <h2>The five rules</h2>
+
+  <table class="ref">
+    <tr><th>Called as</th><th><code>this</code> is</th></tr>
+    <tr><td><code>obj.method()</code></td><td><code>obj</code></td></tr>
+    <tr><td><code>fn()</code></td><td>the global object (or <code>undefined</code> in strict mode)</td></tr>
+    <tr><td><code>new Fn()</code></td><td>the newly created object</td></tr>
+    <tr><td><code>fn.call(x)</code> / <code>apply</code> / <code>bind</code></td><td><code>x</code></td></tr>
+    <tr><td>an arrow function</td><td>whatever <code>this</code> was where it was written</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function whoAmI() {
+      return this === window ? 'window' : this === undefined ? 'undefined' : this;
+    }
+
+    const obj = { name: 'obj', whoAmI };
+
+    log('obj.whoAmI()      →', obj.whoAmI().name);
+    log('whoAmI()          →', whoAmI());
+    log('whoAmI.call({a:1})→', whoAmI.call({ a: 1 }));
+    log('new whoAmI()      →', new whoAmI() instanceof whoAmI ? 'a new object' : '?');
+  }</script>
+</section>
+
+<section>
+  <h2>Method calls</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const person = {
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      fullName() {
+        return this.firstName + ' ' + this.lastName;
+      }
+    };
+
+    log('person.fullName() →', person.fullName());
+
+    // this is the object BEFORE THE DOT, at the moment of the call:
+    const other = { firstName: 'Alan', lastName: 'Turing', fullName: person.fullName };
+    log('other.fullName()  →', other.fullName());
+
+    // Detach it and the dot is gone:
+    const loose = person.fullName;
+    log('loose()           →', loose());
+  }</script>
+</section>
+
+<section>
+  <h2>Losing this</h2>
+  <p>The most common bug in the language: passing a method as a callback.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const counter = {
+      count: 0,
+      increment() {
+        this.count++;
+        return this.count;
+      }
+    };
+
+    log('called directly:', counter.increment());
+
+    // Passed as a callback — the caller invokes it plainly:
+    const fns = [counter.increment];
+    try {
+      log('passed along:', fns[0]());
+    } catch (err) {
+      log('passed along →', err.name);
+    }
+    log('counter.count is still', counter.count);
+
+    log('');
+    log('three fixes:');
+    log('  bind:      ', counter.increment.bind(counter)());
+    log('  arrow wrap:', (() => counter.increment())());
+    log('  call:      ', counter.increment.call(counter));
+  }</script>
+</section>
+
+<section>
+  <h2>this in event handlers</h2>
+
+  <div class="stage">
+    <button id="regular">Regular function</button>
+    <button id="arrow">Arrow function</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#regular').addEventListener('click', function (event) {
+      log('regular: this is', this.id, '— the element the handler is on');
+      log('         event.currentTarget is also', event.currentTarget.id);
+    });
+
+    $('#arrow').addEventListener('click', (event) => {
+      log('arrow:   this is', this === window ? 'window' : String(this));
+      log('         so use event.currentTarget:', event.currentTarget.id);
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>this in a nested function</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const team = {
+      name: 'Engineering',
+      members: ['Ada', 'Alan'],
+
+      listBroken() {
+        return this.members.map(function (m) {
+          const lost = this === window || this === undefined;
+          return m + ' (' + (lost ? 'this is lost' : this.name) + ')';
+        });
+      },
+
+      listArrow() {
+        return this.members.map(m => m + ' (' + this.name + ')');
+      },
+
+      listThisArg() {
+        return this.members.map(function (m) {
+          return m + ' (' + this.name + ')';
+        }, this);                       // map takes a thisArg
+      }
+    };
+
+    log('broken: ', team.listBroken());
+    log('arrow:  ', team.listArrow());
+    log('thisArg:', team.listThisArg());
+  }</script>
+</section>
+
+<section>
+  <h2>this in constructors and classes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function Person(name) {
+      this.name = name;                 // `this` is the new object
+    }
+    Person.prototype.greet = function () {
+      return 'I am ' + this.name;
+    };
+
+    const ada = new Person('Ada');
+    log(ada.greet());
+
+    class Modern {
+      constructor(name) { this.name = name; }
+      greet() { return 'I am ' + this.name; }
+      greetBound = () => 'I am still ' + this.name;   // a class field, bound at construction
+    }
+
+    const m = new Modern('Grace');
+    const loose = m.greet;
+    const bound = m.greetBound;
+
+    log('method, detached:', (() => { try { return loose(); } catch (e) { return e.name; } })());
+    log('field,  detached:', bound());
+  }</script>
+</section>
+
+<section>
+  <h2>Forcing this</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function introduce(greeting, punctuation) {
+      return greeting + ', I am ' + this.name + punctuation;
+    }
+
+    const ada = { name: 'Ada' };
+
+    log('call: ', introduce.call(ada, 'Hello', '!'));
+    log('apply:', introduce.apply(ada, ['Hi', '.']));
+
+    const bound = introduce.bind(ada, 'Hey');
+    log('bind: ', bound('?'));
+    log('bind is permanent:', bound.call({ name: 'someone else' }, '!'));
+  }</script>
+</section>
+
+</body>
+</html>

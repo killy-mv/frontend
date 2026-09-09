@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>window.location — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="location">
+
+<h1>window.location</h1>
+<p class="lede">The current URL, broken into parts you can read — and assign to, which
+navigates.</p>
+
+<section>
+  <h2>The parts of this page's URL</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    ['href', 'protocol', 'host', 'hostname', 'port', 'pathname',
+     'search', 'hash', 'origin'].forEach(part =>
+      log(part.padEnd(10), '→', JSON.stringify(location[part])));
+
+    log('');
+    log('this page is on file://, so host, port and origin are empty.');
+    log('On https://example.com:8080/docs/a.html?x=1#top they would be:');
+    log('  protocol "https:"  host "example.com:8080"  hostname "example.com"');
+    log('  port "8080"  pathname "/docs/a.html"  search "?x=1"  hash "#top"');
+  }</script>
+</section>
+
+<section>
+  <h2>Parsing any URL with URL</h2>
+  <p>The same interface, for a string you have not navigated to.</p>
+
+  <div class="stage">
+    <input id="url" style="flex:1"
+           value="https://user:pw@shop.example.com:8443/catalog/shoes?size=42&colour=red#reviews">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function parse() {
+      log.clear();
+      try {
+        const u = new URL($('#url').value);
+        ['protocol', 'username', 'hostname', 'port', 'pathname', 'search', 'hash', 'origin']
+          .forEach(k => log(k.padEnd(10), '→', JSON.stringify(u[k])));
+        log('');
+        log('searchParams:');
+        u.searchParams.forEach((v, k) => log('  ' + k.padEnd(8), v));
+      } catch (err) {
+        log('not a valid URL:', err.message);
+      }
+    }
+
+    $('#url').addEventListener('input', parse);
+    parse();
+
+    log('');
+    log('a relative URL needs a base: new URL("../a.html", location.href)');
+  }</script>
+</section>
+
+<section>
+  <h2>Query strings</h2>
+
+  <div class="stage">
+    <input id="qs" value="?q=shoes&size=42&size=43&sort=price" style="flex:1">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function read() {
+      log.clear();
+      const params = new URLSearchParams($('#qs').value);
+
+      log('get("q")       →', params.get('q'));
+      log('get("missing") →', params.get('missing'));
+      log('has("sort")    →', params.has('sort'));
+      log('getAll("size") →', params.getAll('size'), '← repeated keys');
+      log('');
+      log('as an object   →', Object.fromEntries(params), '← keeps only the last size');
+      log('');
+      params.set('page', '2');
+      params.delete('sort');
+      params.append('size', '44');
+      log('after edits    →', params.toString());
+      log('sorted         →', (params.sort(), params.toString()));
+      log('');
+      log('encoding is automatic:');
+      log('  ', new URLSearchParams({ q: 'a & b', 'name': 'ä ö' }).toString());
+    }
+
+    $('#qs').addEventListener('input', read);
+    read();
+  }</script>
+</section>
+
+<section>
+  <h2>Navigating</h2>
+
+  <div class="note warn">These three all leave the page. The buttons are wired up, so they
+  really will navigate — the "back" link is your way home.</div>
+
+  <div class="stage">
+    <button id="assign">assign (adds history)</button>
+    <button id="replace">replace (no history)</button>
+    <button id="reload">reload</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    const hub = '../index.html';
+
+    $('#assign').addEventListener('click', () => {
+      log('location.assign(…) — same as location.href = …');
+      location.assign(hub);
+    });
+
+    $('#replace').addEventListener('click', () => {
+      log('location.replace(…) — the current entry is overwritten,');
+      log('so Back will skip this page');
+      location.replace(hub);
+    });
+
+    $('#reload').addEventListener('click', () => {
+      log('reloading…');
+      location.reload();
+    });
+
+    log('assign  → new history entry, Back returns here');
+    log('replace → no new entry; use it for redirects after a login');
+    log('reload  → re-request the page');
+    log('');
+    log('assigning location.href is identical to assign():');
+    log('  location.href = "/next"  ≡  location.assign("/next")');
+  }</script>
+</section>
+
+<section>
+  <h2>The hash, without navigating</h2>
+
+  <div class="stage">
+    <button data-hash="#intro">#intro</button>
+    <button data-hash="#details">#details</button>
+    <button data-hash="">clear</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('.stage').querySelectorAll('button[data-hash]').forEach(button =>
+      button.addEventListener('click', () => {
+        const value = button.dataset.hash;
+        location.hash = value;
+        log('hash is now', JSON.stringify(location.hash),
+            value ? '' : '← empty, but the "#" stays in the address bar');
+      }));
+
+    window.addEventListener('hashchange', event => {
+      log('hashchange fired');
+      log('  from', new URL(event.oldURL).hash || '(none)');
+      log('  to  ', new URL(event.newURL).hash || '(none)');
+    });
+
+    log('changing the hash does not reload the page —');
+    log('it fires hashchange and adds a history entry.');
+    log('This was how single-page apps did routing before the History API.');
+  }</script>
+</section>
+
+<section>
+  <h2>Building a URL safely</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const base = 'https://api.example.com/v1/search';
+    const query = { q: 'red shoes & socks', page: 2, tags: 'a,b' };
+
+    // Wrong: manual concatenation breaks on spaces, & and unicode.
+    const naive = base + '?q=' + query.q + '&page=' + query.page;
+
+    // Right: let the URL API encode it.
+    const url = new URL(base);
+    Object.entries(query).forEach(([k, v]) => url.searchParams.set(k, v));
+
+    log('by hand →', naive);
+    log('by URL  →', url.href);
+
+    log('');
+    log('resolving relative paths:');
+    [['page.html', 'https://example.com/docs/guide/'],
+     ['../up.html', 'https://example.com/docs/guide/'],
+     ['/root.html', 'https://example.com/docs/guide/']]
+      .forEach(([rel, from]) => log('  ' + rel.padEnd(12), '→', new URL(rel, from).href));
+  }</script>
+</section>
+
+<section>
+  <h2>Never trust the URL</h2>
+  <div class="note warn">Query strings and hashes are user input. Putting one into
+  <code>innerHTML</code>, or into a redirect target without checking it, is how XSS and
+  open-redirect bugs happen. Validate against a list of values you expect.</div>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const site = 'https://myapp.example';
+    const allowed = ['/dashboard', '/profile', '/settings'];
+
+    function safeRedirect(target) {
+      const url = new URL(target, site);          // resolve against our own origin
+      const sameOrigin = url.origin === site;
+      return sameOrigin && allowed.includes(url.pathname) ? url.pathname : '/';
+    }
+
+    ['/profile', '/settings', '/admin',
+     'https://evil.example/steal', '//evil.example/steal', 'javascript:alert(1)']
+      .forEach(t => log(t.padEnd(30), '→', safeRedirect(t)));
+
+    log('');
+    log('note "//evil.example" — a protocol-relative URL that looks like a path.');
+    log('String checks such as target.startsWith("/") do not catch it; parsing does.');
+  }</script>
+</section>
+
+</body>
+</html>

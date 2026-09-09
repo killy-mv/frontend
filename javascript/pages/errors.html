@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Errors — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="errors">
+
+<h1>Errors</h1>
+<p class="lede"><code>try</code> runs code that might fail, <code>catch</code> handles the
+failure, <code>finally</code> runs either way, and <code>throw</code> raises your own.</p>
+
+<section>
+  <h2>try / catch / finally</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      log('trying…');
+      null.someProperty;
+      log('never reached');
+    } catch (err) {
+      log('caught:', err.name + ':', err.message);
+    } finally {
+      log('finally always runs');
+    }
+
+    log('and execution continues normally');
+  }</script>
+</section>
+
+<section>
+  <h2>The built-in error types</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const attempts = [
+      ['ReferenceError', () => notDefinedAnywhere],
+      ['TypeError', () => null.x],
+      ['TypeError (call)', () => (42)()],
+      ['RangeError', () => new Array(-1)],
+      ['SyntaxError', () => JSON.parse('{oops}')],
+      ['URIError', () => decodeURIComponent('%')]
+    ];
+
+    attempts.forEach(([label, fn]) => {
+      try {
+        fn();
+        log(label.padEnd(17), 'no error');
+      } catch (err) {
+        log(label.padEnd(17), err.constructor.name + ':', err.message.slice(0, 60));
+      }
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>Throwing your own</h2>
+  <p>You can throw any value, but throw an <code>Error</code> — only errors carry a stack
+  trace.</p>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function withdraw(balance, amount) {
+      if (typeof amount !== 'number') throw new TypeError('amount must be a number');
+      if (amount <= 0) throw new RangeError('amount must be positive');
+      if (amount > balance) throw new Error('insufficient funds');
+      return balance - amount;
+    }
+
+    [['abc'], [-5], [500], [30]].forEach(([amount]) => {
+      try {
+        log('withdraw', amount, '→ balance', withdraw(100, amount));
+      } catch (err) {
+        log('withdraw', amount, '→', err.name + ':', err.message);
+      }
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>The error object</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    try {
+      throw new Error('something specific went wrong');
+    } catch (err) {
+      log('name    ', err.name);
+      log('message ', err.message);
+      log('instanceof Error →', err instanceof Error);
+      log('stack   ', String(err.stack).split('\n')[0]);
+      log('as text ', String(err));
+    }
+
+    // Wrapping an error while keeping the original:
+    try {
+      try {
+        JSON.parse('nope');
+      } catch (original) {
+        throw new Error('config file is invalid', { cause: original });
+      }
+    } catch (err) {
+      log('');
+      log('outer:', err.message);
+      log('cause:', err.cause?.name + ':', err.cause?.message);
+    }
+  }</script>
+</section>
+
+<section>
+  <h2>Custom error classes</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    class ValidationError extends Error {
+      constructor(field, message) {
+        super(message);
+        this.name = 'ValidationError';
+        this.field = field;
+      }
+    }
+
+    function validate(user) {
+      if (!user.email) throw new ValidationError('email', 'email is required');
+      if (!user.email.includes('@')) throw new ValidationError('email', 'email looks wrong');
+      return true;
+    }
+
+    [{}, { email: 'nope' }, { email: 'a@b.com' }].forEach(user => {
+      try {
+        validate(user);
+        log(JSON.stringify(user), '→ valid');
+      } catch (err) {
+        if (err instanceof ValidationError) {
+          log(JSON.stringify(user), '→', err.field, 'problem:', err.message);
+        } else {
+          throw err;                    // not ours — let it bubble
+        }
+      }
+    });
+  }</script>
+</section>
+
+<section>
+  <h2>finally, and what it does to return</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    function readResource() {
+      try {
+        log('  opened');
+        throw new Error('read failed');
+      } catch (err) {
+        log('  handled:', err.message);
+        return 'from catch';
+      } finally {
+        log('  closed');                // runs before the function actually returns
+      }
+    }
+
+    log('result:', readResource());
+
+    log('');
+    log('a return inside finally overrides everything — do not do it:');
+    function bad() {
+      try { return 'try'; } finally { return 'finally'; }
+    }
+    log('bad() →', bad());
+  }</script>
+</section>
+
+<section>
+  <h2>Catching what you cannot try</h2>
+  <p>Errors thrown from a timer or an event handler are not caught by a surrounding
+  <code>try</code>. Use a global handler for those.</p>
+
+  <div class="stage">
+    <button id="sync">Throw synchronously</button>
+    <button id="async">Throw in a timeout</button>
+    <button id="promise">Reject a promise</button>
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    $('#sync').onclick = function () {
+      try {
+        throw new Error('caught right here');
+      } catch (err) {
+        log('caught:', err.message);
+      }
+    };
+
+    $('#async').onclick = function () {
+      try {
+        setTimeout(() => {
+          log('the timer callback runs later, outside this try block');
+          // throwing here would reach window.onerror, not the catch below
+        }, 100);
+      } catch (err) {
+        log('never reached');
+      }
+      log('the try block already finished');
+    };
+
+    $('#promise').onclick = function () {
+      Promise.reject(new Error('rejected'))
+        .catch(err => log('promise .catch:', err.message));
+    };
+
+    log('window.addEventListener("error") and "unhandledrejection"');
+    log('are the last line of defence — this page uses one to print failures.');
+  }</script>
+</section>
+
+</body>
+</html>

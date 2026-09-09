@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maps — JavaScript by Example</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<script src="../assets/topics.js"></script>
+<script src="../assets/lesson.js"></script>
+</head>
+<body data-topic="maps">
+
+<h1>Maps</h1>
+<p class="lede">Key/value pairs where the key can be <b>any</b> value — an object, a
+function, <code>NaN</code> — and insertion order is guaranteed.</p>
+
+<section>
+  <h2>Creating one</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const fruit = new Map([
+      ['apples', 500],
+      ['bananas', 300],
+      ['oranges', 200]
+    ]);
+
+    log(fruit);
+    log('size:', fruit.size);
+
+    const built = new Map();
+    built.set('a', 1).set('b', 2);       // set returns the map, so it chains
+    log(built);
+
+    log('from an object:', new Map(Object.entries({ x: 1, y: 2 })));
+  }</script>
+</section>
+
+<section>
+  <h2>Any key type</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const keyObject = { id: 1 };
+    const keyFunction = function handler() {};
+
+    const m = new Map();
+    m.set('string key', 'a');
+    m.set(42, 'b');
+    m.set(true, 'c');
+    m.set(keyObject, 'd');
+    m.set(keyFunction, 'e');
+    m.set(NaN, 'f');
+
+    log('by object:  ', m.get(keyObject));
+    log('by function:', m.get(keyFunction));
+    log('by NaN:     ', m.get(NaN), '← works, unlike an object property');
+    log('42 vs "42": ', m.get(42), 'vs', m.get('42'));
+
+    // An object turns every key into a string:
+    const obj = {};
+    obj[keyObject] = 'x';
+    log('object key becomes:', Object.keys(obj));
+  }</script>
+</section>
+
+<section>
+  <h2>Map vs plain object</h2>
+
+  <table class="ref">
+    <tr><th></th><th>Map</th><th>Object</th></tr>
+    <tr><td>Key types</td><td>anything</td><td>string or symbol</td></tr>
+    <tr><td>Order</td><td>insertion</td><td>integer keys first</td></tr>
+    <tr><td>Size</td><td><code>.size</code></td><td><code>Object.keys(o).length</code></td></tr>
+    <tr><td>Inherited keys</td><td>none</td><td>from the prototype</td></tr>
+    <tr><td>Iterable</td><td>yes</td><td>no, needs Object.entries</td></tr>
+    <tr><td>JSON</td><td>needs conversion</td><td>direct</td></tr>
+  </table>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const obj = {};
+    log('an empty object already answers:', 'toString' in obj, 'to "toString" in obj');
+    log('constructor →', obj.constructor.name);
+
+    const map = new Map();
+    log('an empty Map has:', map.size, 'entries, and has("toString") is', map.has('toString'));
+  }</script>
+</section>
+
+<section>
+  <h2>Looping</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const stock = new Map([['apples', 500], ['bananas', 300]]);
+
+    for (const [key, value] of stock) log(key.padEnd(9), value);
+
+    log('');
+    stock.forEach((value, key) => log('forEach:', key, '=', value));
+
+    log('');
+    log('keys:   ', [...stock.keys()]);
+    log('values: ', [...stock.values()]);
+    log('entries:', [...stock.entries()]);
+    log('total:  ', [...stock.values()].reduce((a, b) => a + b, 0));
+  }</script>
+</section>
+
+<section>
+  <h2>Converting</h2>
+
+  <script class="run">{
+    const { log } = demo();
+
+    const m = new Map([['a', 1], ['b', 2]]);
+
+    log('to an array: ', [...m]);
+    log('to an object:', Object.fromEntries(m));
+    log('to JSON:     ', JSON.stringify(Object.fromEntries(m)));
+    log('JSON of the Map itself:', JSON.stringify(m), '← Maps do not serialise');
+
+    const back = new Map(Object.entries({ a: 1, b: 2 }));
+    log('back again:  ', back);
+  }</script>
+</section>
+
+<section>
+  <h2>A word counter</h2>
+  <div class="stage">
+    <input id="text" style="flex:1" value="the cat sat on the mat the end">
+  </div>
+  <script class="run">{
+    const { log, $ } = demo();
+
+    function count() {
+      const words = $('#text').value.toLowerCase().match(/[a-z']+/g) || [];
+      const counts = new Map();
+
+      for (const word of words) {
+        counts.set(word, (counts.get(word) || 0) + 1);
+      }
+
+      log.clear();
+      log(words.length, 'words,', counts.size, 'unique');
+      [...counts]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .forEach(([word, n]) => log('  ' + word.padEnd(10) + '█'.repeat(n) + ' ' + n));
+    }
+
+    $('#text').addEventListener('input', count);
+    count();
+  }</script>
+</section>
+
+</body>
+</html>
