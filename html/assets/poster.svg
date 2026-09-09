@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360" role="img" aria-label="Video poster placeholder">
+  <rect width="640" height="360" fill="#141a22"/>
+  <circle cx="320" cy="160" r="52" fill="none" stroke="#4d7fa8" stroke-width="3"/>
+  <path d="M303 133 L352 160 L303 187 Z" fill="#4d7fa8"/>
+  <text x="320" y="256" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18"
+        fill="#8ba6bd" text-anchor="middle">poster image</text>
+  <text x="320" y="282" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13"
+        fill="#5d7387" text-anchor="middle">shown until the media plays</text>
+</svg>

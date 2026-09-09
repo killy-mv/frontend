@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Embedded document</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 16px;
+      font: 14px/1.5 ui-sans-serif, system-ui, sans-serif;
+      background: #eef3f8;
+      color: #22303d;
+    }
+    h1 { font-size: 15px; margin: 0 0 6px; }
+    p { margin: 0 0 8px; }
+    code { background: #dbe6f0; padding: 1px 4px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>I am a separate HTML document.</h1>
+  <p>
+    This file was loaded by an <code>&lt;iframe&gt;</code> on <code>elements.html</code>.
+    It has its own <code>&lt;head&gt;</code>, its own <code>&lt;style&gt;</code> and its
+    own document object — the parent page's CSS does not reach me.
+  </p>
+  <p>That isolation is the whole reason iframes exist.</p>
+</body>
+</html>

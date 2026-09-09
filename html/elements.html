@@ -1,0 +1,1916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Every HTML element, demonstrated</title>
+  <meta name="description" content="A live catalogue of the HTML elements: each one rendered as a working example with a paragraph explaining what it does.">
+  <style>
+    :root {
+      --bg: #fbfcfd;
+      --panel: #ffffff;
+      --ink: #1b2733;
+      --ink-soft: #55677a;
+      --line: #dce4ec;
+      --accent: #1f6feb;
+      --accent-soft: #eaf1fd;
+      --demo-bg: #f6f8fb;
+      --code-bg: #1c2733;
+      --code-ink: #d7e3f0;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; scroll-padding-top: 1rem; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+
+    code, pre, kbd, samp, var {
+      font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    }
+
+    /* ---------- page frame ---------- */
+
+    .page {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 40px;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 0 24px 96px;
+    }
+
+    .masthead {
+      grid-column: 1 / -1;
+      padding: 56px 0 32px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 32px;
+    }
+    .masthead h1 { margin: 0 0 12px; font-size: 34px; letter-spacing: -0.02em; }
+    .masthead p { margin: 0 0 10px; max-width: 68ch; color: var(--ink-soft); }
+    .masthead .how { font-size: 14px; }
+
+    /* ---------- table of contents ---------- */
+
+    .toc {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      max-height: calc(100vh - 32px);
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    .toc h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--ink-soft);
+      margin: 0 0 10px;
+    }
+    .toc ol { list-style: none; margin: 0; padding: 0; }
+    .toc li { margin: 0 0 2px; }
+    .toc a {
+      display: block;
+      padding: 5px 10px;
+      border-radius: 6px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+    .toc a:hover { background: var(--accent-soft); color: var(--accent); }
+    .toc .count { color: var(--ink-soft); font-size: 12px; }
+
+    /* ---------- sections ---------- */
+
+    section.group { margin: 0 0 56px; scroll-margin-top: 16px; }
+    section.group > h2 {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin: 0 0 6px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--accent-soft);
+    }
+    section.group > .intro {
+      margin: 12px 0 24px;
+      color: var(--ink-soft);
+      max-width: 72ch;
+    }
+
+    /* ---------- one element entry ---------- */
+
+    .el {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px 6px;
+      margin: 0 0 18px;
+      scroll-margin-top: 16px;
+    }
+    .el > h3 {
+      margin: 0 0 14px;
+      font-size: 15px;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .el > h3 code {
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+    .el > h3 .nick {
+      font-weight: 400;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .el > h3 .flag {
+      font-weight: 500;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #fff4e0;
+      color: #8a5b12;
+      border: 1px solid #f0dcb8;
+    }
+    .el > h3 .flag.void { background: #eef7ee; color: #2f6b3a; border-color: #cfe6d2; }
+
+    /* the description paragraph under every example */
+    .el > p {
+      margin: 14px 0 16px;
+      color: var(--ink-soft);
+      max-width: 74ch;
+      font-size: 15px;
+    }
+    .el > p code {
+      font-size: 13px;
+      background: #eef2f6;
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #33475b;
+    }
+
+    .demo {
+      background: var(--demo-bg);
+      border: 1px dashed var(--line);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .demo > :first-child { margin-top: 0; }
+    .demo > :last-child { margin-bottom: 0; }
+
+    .demo-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-soft);
+      margin: 0 0 6px;
+    }
+
+    pre.code {
+      background: var(--code-bg);
+      color: var(--code-ink);
+      padding: 14px 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0;
+    }
+    pre.code .c { color: #7f9bb3; }   /* comment */
+    pre.code .t { color: #8fd3a0; }   /* tag */
+    pre.code .a { color: #e2c08d; }   /* attribute */
+
+    .note {
+      font-size: 13px;
+      color: var(--ink-soft);
+      background: #fffdf5;
+      border-left: 3px solid #e6cf9a;
+      padding: 8px 12px;
+      margin: 12px 0 16px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* ---------- helpers used inside demos ---------- */
+
+    .demo table { border-collapse: collapse; font-size: 14px; }
+    .demo th, .demo td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; }
+    .demo thead th { background: #eaeff5; }
+    .demo tfoot td { background: #f0f3f7; font-weight: 600; }
+    .demo caption { caption-side: top; text-align: left; padding-bottom: 6px; color: var(--ink-soft); font-size: 13px; }
+
+    .demo fieldset { border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; }
+    .demo label { display: inline-block; }
+    .demo input, .demo select, .demo textarea, .demo button {
+      font: inherit;
+      font-size: 14px;
+      padding: 5px 8px;
+      border: 1px solid #c3d0dd;
+      border-radius: 5px;
+      background: #fff;
+      color: inherit;
+    }
+    .demo button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+    .demo button:hover { filter: brightness(1.08); }
+    .demo textarea { min-height: 68px; width: min(100%, 380px); }
+
+    .stack { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+    .row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+
+    .obsolete-table { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--panel); }
+    .obsolete-table th, .obsolete-table td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; vertical-align: top; }
+    .obsolete-table thead th { background: #eaeff5; }
+    .obsolete-table td:first-child { white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
+
+    @media (max-width: 860px) {
+      .page { grid-template-columns: 1fr; gap: 0; }
+      .toc { position: static; max-height: none; margin-bottom: 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+
+  <header class="masthead">
+    <h1>Every HTML element, demonstrated</h1>
+    <p>
+      A catalogue of the elements in the HTML living standard, grouped by what they are for.
+      Each entry renders a working example, and the paragraph underneath says what the element
+      actually does and when it earns its place.
+    </p>
+    <p class="how">
+      Open this file directly in a browser, or serve the folder
+      (<code>npx serve</code> / <code>python -m http.server</code>) so the audio, captions and
+      iframe demos load without <code>file://</code> restrictions. View source alongside the page —
+      the markup <em>is</em> the lesson.
+    </p>
+  </header>
+
+  <nav class="toc" aria-label="Sections">
+    <h2>Contents</h2>
+    <ol>
+      <li><a href="#doc">1 &middot; Document skeleton</a></li>
+      <li><a href="#sectioning">2 &middot; Content sectioning</a></li>
+      <li><a href="#text">3 &middot; Text blocks</a></li>
+      <li><a href="#inline">4 &middot; Inline semantics</a></li>
+      <li><a href="#edits">5 &middot; Edits</a></li>
+      <li><a href="#embedded">6 &middot; Embedded content</a></li>
+      <li><a href="#tables">7 &middot; Tables</a></li>
+      <li><a href="#forms">8 &middot; Forms</a></li>
+      <li><a href="#interactive">9 &middot; Interactive</a></li>
+      <li><a href="#scripting">10 &middot; Scripting &amp; templates</a></li>
+      <li><a href="#obsolete">11 &middot; Removed elements</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <!-- ================================================================= -->
+    <!-- 1. DOCUMENT SKELETON                                              -->
+    <!-- ================================================================= -->
+    <section class="group" id="doc">
+      <h2>1 &middot; Document skeleton</h2>
+      <p class="intro">
+        These elements cannot be demonstrated in place — there is exactly one of most of them per
+        document, and this page is already using them. So the examples here are markup, not
+        rendering.
+      </p>
+
+      <article class="el" id="el-doctype">
+        <h3><code>&lt;!DOCTYPE html&gt;</code> <span class="nick">document type declaration</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt; … &lt;/html&gt;</pre>
+        <p>
+          Not an element at all — it is a declaration, and it must be the very first thing in the
+          file. Its only job today is to switch the browser into <em>standards mode</em>. Omit it
+          and you get <em>quirks mode</em>, where the browser emulates 1990s layout bugs on purpose
+          and things like the box model change under you.
+        </p>
+      </article>
+
+      <article class="el" id="el-html">
+        <h3><code>&lt;html&gt;</code> <span class="nick">root element</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;html lang="en"&gt;
+  &lt;head&gt; … &lt;/head&gt;
+  &lt;body&gt; … &lt;/body&gt;
+&lt;/html&gt;</pre>
+        <p>
+          The root of the tree; everything else is a descendant. Always set <code>lang</code> — it
+          tells screen readers which voice to use, drives hyphenation and the correct quote glyphs,
+          and lets the browser offer translation.
+        </p>
+      </article>
+
+      <article class="el" id="el-head">
+        <h3><code>&lt;head&gt;</code> <span class="nick">metadata container</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;head&gt;
+  &lt;meta charset="utf-8"&gt;
+  &lt;title&gt;Page title&lt;/title&gt;
+  &lt;link rel="stylesheet" href="app.css"&gt;
+&lt;/head&gt;</pre>
+        <p>
+          Holds information <em>about</em> the document rather than content to display: the title,
+          character encoding, stylesheet and script references, and metadata for search engines and
+          social previews. Nothing in here is rendered, with the single exception of
+          <code>&lt;title&gt;</code>, which appears in the tab.
+        </p>
+      </article>
+
+      <article class="el" id="el-title">
+        <h3><code>&lt;title&gt;</code> <span class="nick">document title</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;title&gt;Every HTML element, demonstrated&lt;/title&gt;</pre>
+        <p>
+          The name of the page. It shows in the browser tab, is what a bookmark is named, is the
+          blue headline in search results, and is the first thing a screen reader announces on
+          load. Required in every document — one per page.
+        </p>
+      </article>
+
+      <article class="el" id="el-meta">
+        <h3><code>&lt;meta&gt;</code> <span class="nick">metadata</span> <span class="flag void">void</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;meta charset="utf-8"&gt;
+&lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+&lt;meta name="description" content="One sentence for search results."&gt;
+&lt;meta property="og:image" content="/preview.png"&gt;</pre>
+        <p>
+          A catch-all for metadata that has no dedicated element. The three that matter on almost
+          every page: <code>charset</code> (put it in the first 1024 bytes or the browser has to
+          guess), <code>viewport</code> (without it a phone pretends to be a 980px desktop and
+          shrinks everything), and <code>description</code>. The <code>og:</code> family drives
+          link previews in chat apps and social feeds.
+        </p>
+      </article>
+
+      <article class="el" id="el-link">
+        <h3><code>&lt;link&gt;</code> <span class="nick">external resource link</span> <span class="flag void">void</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;link rel="stylesheet" href="app.css"&gt;
+&lt;link rel="icon" href="/favicon.svg"&gt;
+&lt;link rel="canonical" href="https://example.com/page"&gt;
+&lt;link rel="preload" href="/font.woff2" as="font" crossorigin&gt;</pre>
+        <p>
+          Declares a relationship between this document and an external resource. The
+          <code>rel</code> attribute is what decides the meaning: load a stylesheet, name the
+          favicon, point at the canonical URL, register a web app manifest, or hint the loader to
+          preconnect and preload. One element, a dozen different jobs.
+        </p>
+      </article>
+
+      <article class="el" id="el-style">
+        <h3><code>&lt;style&gt;</code> <span class="nick">embedded CSS</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;style&gt;
+  body { font-family: system-ui; }
+&lt;/style&gt;</pre>
+        <p>
+          CSS written inline in the document instead of fetched via <code>&lt;link&gt;</code>. Handy
+          for a single-file page like this one and for critical above-the-fold styles; a poor choice
+          for a real site, because embedded CSS cannot be cached across pages.
+        </p>
+      </article>
+
+      <article class="el" id="el-base">
+        <h3><code>&lt;base&gt;</code> <span class="nick">base URL</span> <span class="flag void">void</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;base href="https://example.com/docs/" target="_blank"&gt;</pre>
+        <p>
+          Sets the URL that every relative link and asset path on the page resolves against, and
+          optionally a default <code>target</code> for all links. At most one per document. It is
+          rare and easy to get wrong — it silently rewrites every relative URL, including ones you
+          forgot about.
+        </p>
+      </article>
+
+      <article class="el" id="el-body">
+        <h3><code>&lt;body&gt;</code> <span class="nick">document content</span></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;body&gt;
+  &lt;header&gt; … &lt;/header&gt;
+  &lt;main&gt; … &lt;/main&gt;
+  &lt;footer&gt; … &lt;/footer&gt;
+&lt;/body&gt;</pre>
+        <p>
+          Everything the user actually sees. One per document. It is also where the document-level
+          events land — <code>load</code>, <code>unload</code> and friends fire here.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 2. CONTENT SECTIONING                                             -->
+    <!-- ================================================================= -->
+    <section class="group" id="sectioning">
+      <h2>2 &middot; Content sectioning</h2>
+      <p class="intro">
+        These carve the page into named regions. Visually most of them are just a
+        <code>&lt;div&gt;</code>; the difference is that assistive technology exposes them as
+        landmarks a user can jump between, so choosing the right one is a real accessibility
+        decision rather than a style preference.
+      </p>
+
+      <article class="el" id="el-header">
+        <h3><code>&lt;header&gt;</code></h3>
+        <div class="demo">
+          <header style="background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px 14px;">
+            <strong>Pepper</strong> &mdash; <span style="color:#55677a;">food, fast</span>
+          </header>
+        </div>
+        <p>
+          Introductory content for the page or for the nearest section: a logo, a title, a byline,
+          a search box. A page can contain many — one for the site, and one inside each
+          <code>&lt;article&gt;</code> — but only the top-level one becomes the
+          <code>banner</code> landmark.
+        </p>
+      </article>
+
+      <article class="el" id="el-nav">
+        <h3><code>&lt;nav&gt;</code></h3>
+        <div class="demo">
+          <nav aria-label="Example">
+            <a href="#doc">Skeleton</a> &middot;
+            <a href="#text">Text</a> &middot;
+            <a href="#forms">Forms</a>
+          </nav>
+        </div>
+        <p>
+          A block of major navigation links. Reserve it for the primary sets — main menu, in-page
+          table of contents, breadcrumbs — not for every group of links on the page. If there is
+          more than one, give each an <code>aria-label</code> so they can be told apart.
+        </p>
+      </article>
+
+      <article class="el" id="el-main">
+        <h3><code>&lt;main&gt;</code></h3>
+        <p class="demo-label">Markup &mdash; this page has exactly one, wrapping every section</p>
+        <pre class="code">&lt;body&gt;
+  &lt;header&gt;…&lt;/header&gt;
+  &lt;main&gt;the content unique to this page&lt;/main&gt;
+  &lt;footer&gt;…&lt;/footer&gt;
+&lt;/body&gt;</pre>
+        <p>
+          The dominant content of the document — what is left once the site header, navigation,
+          sidebar and footer are stripped away. One per page, and it must not be nested inside the
+          sectioning elements. It is the target of "skip to content" links and the fastest way for
+          a screen reader user to get past your navigation.
+        </p>
+      </article>
+
+      <article class="el" id="el-section">
+        <h3><code>&lt;section&gt;</code></h3>
+        <div class="demo">
+          <section style="background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px 14px;">
+            <h4 style="margin:0 0 4px;">Delivery areas</h4>
+            <p style="margin:0;">We deliver within 5km of the city centre.</p>
+          </section>
+        </div>
+        <p>
+          A thematic grouping of content, almost always with a heading of its own. The test is
+          simple: if you would list it in the document's outline, it is a
+          <code>&lt;section&gt;</code>; if you are only wrapping things to hang CSS on, it is a
+          <code>&lt;div&gt;</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-article">
+        <h3><code>&lt;article&gt;</code></h3>
+        <div class="demo">
+          <article style="background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px 14px;">
+            <h4 style="margin:0 0 4px;">Why the box model bites</h4>
+            <p style="margin:0 0 6px;">Padding used to be added to width. Then <code>border-box</code> happened.</p>
+            <footer style="font-size:13px;color:#55677a;">Posted <time datetime="2026-09-09">9 Sep 2026</time></footer>
+          </article>
+        </div>
+        <p>
+          A self-contained composition that would still make sense if you lifted it out and put it
+          somewhere else: a blog post, a product card, a comment, a forum reply. The syndication
+          test is the useful one — if it could sensibly appear alone in an RSS reader, it is an
+          article.
+        </p>
+      </article>
+
+      <article class="el" id="el-aside">
+        <h3><code>&lt;aside&gt;</code></h3>
+        <div class="demo">
+          <aside style="background:#fffdf5;border-left:3px solid #e6cf9a;padding:8px 12px;">
+            <strong>Aside:</strong> the browser's default styles come from a built-in stylesheet
+            you can read in DevTools.
+          </aside>
+        </div>
+        <p>
+          Content that is tangential to what surrounds it — a pull quote, a glossary box, a related
+          links panel, an ad. The bar is that removing it should not damage the meaning of the main
+          content.
+        </p>
+      </article>
+
+      <article class="el" id="el-footer">
+        <h3><code>&lt;footer&gt;</code></h3>
+        <div class="demo">
+          <footer style="background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px 14px;font-size:14px;color:#55677a;">
+            &copy; 2026 &middot; <a href="#doc">Back to top</a>
+          </footer>
+        </div>
+        <p>
+          Closing content for its nearest section: authorship, copyright, related links, the date.
+          Like <code>&lt;header&gt;</code> it can appear many times — inside each article as well as
+          once for the page — and only the top-level one is the <code>contentinfo</code> landmark.
+        </p>
+      </article>
+
+      <article class="el" id="el-headings">
+        <h3><code>&lt;h1&gt;</code>&hellip;<code>&lt;h6&gt;</code> <span class="nick">section headings</span></h3>
+        <div class="demo">
+          <div style="line-height:1.3;">
+            <h1 style="font-size:26px;margin:0 0 4px;">h1 &mdash; the page's one true title</h1>
+            <h2 style="font-size:21px;margin:0 0 4px;">h2 &mdash; a major section</h2>
+            <h3 style="font-size:18px;margin:0 0 4px;">h3 &mdash; a subsection</h3>
+            <h4 style="font-size:16px;margin:0 0 4px;">h4 &mdash; deeper still</h4>
+            <h5 style="font-size:14px;margin:0 0 4px;">h5 &mdash; rarely needed</h5>
+            <h6 style="font-size:13px;margin:0;">h6 &mdash; the floor</h6>
+          </div>
+        </div>
+        <p>
+          Six ranks of heading that build the document outline. Screen reader users navigate by
+          jumping heading to heading, so the rule that matters is <em>never skip a level to get a
+          smaller font</em> — pick the rank that reflects the structure and set the size in CSS.
+          One <code>&lt;h1&gt;</code> per page is the safe convention.
+        </p>
+      </article>
+
+      <article class="el" id="el-hgroup">
+        <h3><code>&lt;hgroup&gt;</code> <span class="nick">heading + tagline</span></h3>
+        <div class="demo">
+          <hgroup>
+            <h4 style="margin:0;">Loom</h4>
+            <p style="margin:2px 0 0;color:#55677a;">Shirts that outlive the trend</p>
+          </hgroup>
+        </div>
+        <p>
+          Ties a single heading to its subheading or tagline so the extra line does not appear in
+          the outline as content of its own. Contains exactly one <code>h1</code>–<code>h6</code>
+          plus one or more <code>&lt;p&gt;</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-search">
+        <h3><code>&lt;search&gt;</code> <span class="nick">search landmark</span></h3>
+        <div class="demo">
+          <search>
+            <form role="search" onsubmit="return false;">
+              <label for="demo-q">Find an element</label>
+              <input id="demo-q" type="search" name="q" placeholder="e.g. dialog">
+              <button type="submit">Search</button>
+            </form>
+          </search>
+        </div>
+        <p>
+          A wrapper for search and filtering controls. It is one of the newest elements, and it
+          exists so you can stop writing <code>role="search"</code> by hand — it maps to that
+          landmark natively.
+        </p>
+      </article>
+
+      <article class="el" id="el-address">
+        <h3><code>&lt;address&gt;</code></h3>
+        <div class="demo">
+          <address>
+            Written by <a href="#el-address">Minh</a>.<br>
+            Reach me at <a href="mailto:someone@example.com">someone@example.com</a>.
+          </address>
+        </div>
+        <p>
+          Contact details for the author of the nearest <code>&lt;article&gt;</code> or of the page
+          as a whole. Despite the name it is <em>not</em> for postal addresses in general — a
+          delivery address in a shipping form is just a <code>&lt;p&gt;</code>. Browsers render it
+          italic by default.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 3. TEXT BLOCKS                                                    -->
+    <!-- ================================================================= -->
+    <section class="group" id="text">
+      <h2>3 &middot; Text blocks</h2>
+      <p class="intro">Block-level content: paragraphs, lists, quotes, preformatted text.</p>
+
+      <article class="el" id="el-p">
+        <h3><code>&lt;p&gt;</code> <span class="nick">paragraph</span></h3>
+        <div class="demo">
+          <p>A paragraph is the default unit of prose.</p>
+          <p>Browsers add vertical margin between them automatically, which is why two paragraphs
+             look separated without any CSS at all.</p>
+        </div>
+        <p>
+          The workhorse block of running text. Its closing tag is optional in HTML — a new block
+          element implicitly ends it — but a <code>&lt;p&gt;</code> cannot contain another block
+          element, so nesting a <code>&lt;div&gt;</code> inside one silently splits it in the parsed
+          DOM.
+        </p>
+      </article>
+
+      <article class="el" id="el-hr">
+        <h3><code>&lt;hr&gt;</code> <span class="nick">thematic break</span> <span class="flag void">void</span></h3>
+        <div class="demo">
+          <p style="margin:0;">The end of one topic.</p>
+          <hr>
+          <p style="margin:0;">The start of another.</p>
+        </div>
+        <p>
+          A shift in topic — a scene change in a story, the end of one part of a document. It
+          started life as a decorative "horizontal rule", which is where the name comes from, but it
+          is defined semantically now. If you only want a line, use a CSS border.
+        </p>
+      </article>
+
+      <article class="el" id="el-pre">
+        <h3><code>&lt;pre&gt;</code> <span class="nick">preformatted text</span></h3>
+        <div class="demo">
+<pre style="margin:0;background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px;font-size:13px;">select id, name
+  from users
+ where active = true;</pre>
+        </div>
+        <p>
+          Text whose whitespace and line breaks are significant, rendered in a monospace font
+          exactly as written. Everything between the tags is preserved, including the newline right
+          after <code>&lt;pre&gt;</code> — which is why the opening tag is usually jammed against
+          the content. For source code, nest a <code>&lt;code&gt;</code> inside it.
+        </p>
+      </article>
+
+      <article class="el" id="el-blockquote">
+        <h3><code>&lt;blockquote&gt;</code></h3>
+        <div class="demo">
+          <blockquote cite="https://www.w3.org/People/Berners-Lee/" style="margin:0;border-left:3px solid #c3d0dd;padding-left:14px;color:#3d4f61;">
+            <p style="margin:0 0 6px;">The Web does not just connect machines, it connects people.</p>
+            <footer style="font-size:13px;color:#55677a;">&mdash; <cite>Tim Berners-Lee</cite></footer>
+          </blockquote>
+        </div>
+        <p>
+          An extended quotation from another source, set off as its own block. The
+          <code>cite</code> attribute takes a URL for the source — machines can read it, but
+          browsers do not display it, so put a visible attribution in a
+          <code>&lt;footer&gt;</code> with <code>&lt;cite&gt;</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-ul">
+        <h3><code>&lt;ul&gt;</code> <span class="nick">unordered list</span></h3>
+        <div class="demo">
+          <ul style="margin:0;">
+            <li>HTML gives it meaning</li>
+            <li>CSS gives it looks</li>
+            <li>JavaScript gives it behaviour</li>
+          </ul>
+        </div>
+        <p>
+          A list whose order does not carry meaning — shuffle the items and nothing is lost. Its
+          only permitted children are <code>&lt;li&gt;</code>, <code>&lt;script&gt;</code> and
+          <code>&lt;template&gt;</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-ol">
+        <h3><code>&lt;ol&gt;</code> <span class="nick">ordered list</span></h3>
+        <div class="demo">
+          <ol start="3" style="margin:0;">
+            <li>Parse HTML into the DOM</li>
+            <li>Parse CSS into the CSSOM</li>
+            <li>Combine them into a render tree</li>
+          </ol>
+        </div>
+        <p>
+          A list where sequence is part of the meaning: steps, rankings, instructions. Attributes
+          worth knowing — <code>start</code> to begin at another number (as above),
+          <code>reversed</code> to count down, and <code>type</code> to switch to letters or roman
+          numerals.
+        </p>
+      </article>
+
+      <article class="el" id="el-li">
+        <h3><code>&lt;li&gt;</code> <span class="nick">list item</span></h3>
+        <div class="demo">
+          <ol style="margin:0;">
+            <li value="10">an item forced to number 10</li>
+            <li>the next one continues from there</li>
+          </ol>
+        </div>
+        <p>
+          One entry in a <code>&lt;ul&gt;</code>, <code>&lt;ol&gt;</code> or
+          <code>&lt;menu&gt;</code>. Inside an ordered list, <code>value</code> overrides its
+          number and every following item counts on from that.
+        </p>
+      </article>
+
+      <article class="el" id="el-menu">
+        <h3><code>&lt;menu&gt;</code> <span class="nick">toolbar list</span></h3>
+        <div class="demo">
+          <menu style="margin:0;padding:0;list-style:none;display:flex;gap:8px;">
+            <li><button type="button">Copy</button></li>
+            <li><button type="button">Cut</button></li>
+            <li><button type="button">Paste</button></li>
+          </menu>
+        </div>
+        <p>
+          Semantically identical to <code>&lt;ul&gt;</code> — the spec defines it that way — but
+          intended for a list of commands or a toolbar. An earlier version of the spec tried to
+          make it build real context menus; that was dropped, and what remains is a naming choice.
+        </p>
+      </article>
+
+      <article class="el" id="el-dl">
+        <h3><code>&lt;dl&gt;</code> <code>&lt;dt&gt;</code> <code>&lt;dd&gt;</code> <span class="nick">description list</span></h3>
+        <div class="demo">
+          <dl style="margin:0;">
+            <dt style="font-weight:600;">DOM</dt>
+            <dd style="margin:0 0 8px 20px;">The live object tree the browser builds from your HTML.</dd>
+            <dt style="font-weight:600;">CSSOM</dt>
+            <dd style="margin:0 0 0 20px;">The same idea for stylesheets.</dd>
+          </dl>
+        </div>
+        <p>
+          Name/value pairs: <code>&lt;dt&gt;</code> is the term, <code>&lt;dd&gt;</code> the
+          description. Good for glossaries, metadata tables and FAQ pairs. One term may have several
+          descriptions and vice versa — the grouping is by adjacency, not by nesting.
+        </p>
+      </article>
+
+      <article class="el" id="el-figure">
+        <h3><code>&lt;figure&gt;</code> <code>&lt;figcaption&gt;</code></h3>
+        <div class="demo">
+          <figure style="margin:0;">
+            <img src="assets/photo.svg" alt="A stylised sunrise over hills" width="240" style="display:block;border-radius:6px;">
+            <figcaption style="font-size:13px;color:#55677a;margin-top:6px;">
+              Figure 1. Self-contained content plus its caption.
+            </figcaption>
+          </figure>
+        </div>
+        <p>
+          Self-contained referenced content — an image, a diagram, a code listing, a table — bundled
+          with its caption. The point is the association: the <code>&lt;figcaption&gt;</code> is
+          programmatically tied to the content, and the whole unit can be moved elsewhere in the
+          document without breaking the prose that refers to it.
+        </p>
+      </article>
+
+      <article class="el" id="el-div">
+        <h3><code>&lt;div&gt;</code> <span class="nick">generic container</span></h3>
+        <div class="demo">
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:8px;">column</div>
+            <div style="flex:1;background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:8px;">column</div>
+          </div>
+        </div>
+        <p>
+          A block container with no meaning whatsoever. That is the feature: it is the right choice
+          when you need a box purely for layout or styling. It is the wrong choice when a
+          meaningful element exists, and reaching for it by default is how pages end up as a stack
+          of anonymous boxes that assistive technology cannot navigate.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 4. INLINE SEMANTICS                                               -->
+    <!-- ================================================================= -->
+    <section class="group" id="inline">
+      <h2>4 &middot; Inline semantics</h2>
+      <p class="intro">
+        Elements that mark up a phrase inside a line of text. Several pairs look identical on
+        screen and differ only in meaning — that difference is what screen readers, search engines
+        and translation tools act on.
+      </p>
+
+      <article class="el" id="el-a">
+        <h3><code>&lt;a&gt;</code> <span class="nick">anchor</span></h3>
+        <div class="demo stack">
+          <span>An <a href="#el-a">in-page link</a>, an <a href="https://developer.mozilla.org/en-US/docs/Web/HTML/Element" target="_blank" rel="noopener noreferrer">external one</a>, and a <a href="mailto:hi@example.com">mailto:</a> link.</span>
+          <a href="assets/photo.svg" download="sunrise.svg">A download link</a>
+        </div>
+        <p>
+          A hyperlink — the element the entire Web is built on. <code>href</code> can point at
+          another page, a fragment on this one, an email address, a phone number or a file.
+          <code>target="_blank"</code> opens a new tab and should be paired with
+          <code>rel="noopener noreferrer"</code>, and <code>download</code> saves the resource
+          instead of navigating to it.
+        </p>
+      </article>
+
+      <article class="el" id="el-span">
+        <h3><code>&lt;span&gt;</code> <span class="nick">generic inline container</span></h3>
+        <div class="demo">
+          Temperature: <span style="color:#b4443c;font-weight:600;">38&deg;C</span>
+        </div>
+        <p>
+          The inline twin of <code>&lt;div&gt;</code>: no meaning, exists so you can attach styles,
+          a class or a <code>lang</code> attribute to a run of text. Use it only when no semantic
+          element fits.
+        </p>
+      </article>
+
+      <article class="el" id="el-br">
+        <h3><code>&lt;br&gt;</code> <span class="nick">line break</span> <span class="flag void">void</span></h3>
+        <div class="demo">
+          Roses are red,<br>
+          violets are blue,<br>
+          this line break is meaningful.
+        </div>
+        <p>
+          A line break that is part of the content — addresses, poetry, song lyrics. It is not a
+          spacing tool: if you are stacking two <code>&lt;br&gt;</code> to push things apart, you
+          want CSS margin instead.
+        </p>
+      </article>
+
+      <article class="el" id="el-wbr">
+        <h3><code>&lt;wbr&gt;</code> <span class="nick">word break opportunity</span> <span class="flag void">void</span></h3>
+        <div class="demo">
+          <div style="width:170px;border:1px solid #dce4ec;background:#fff;border-radius:6px;padding:8px;font-size:13px;">
+            https://example.com/<wbr>a/<wbr>very/<wbr>long/<wbr>path/<wbr>that/<wbr>needs/<wbr>somewhere/<wbr>to/<wbr>break
+          </div>
+        </div>
+        <p>
+          Marks a spot where the browser <em>may</em> break a line if it needs to, and does nothing
+          otherwise. Made for long URLs and compound words that would otherwise overflow their
+          container. Unlike a hyphen, it leaves no visible character behind.
+        </p>
+      </article>
+
+      <article class="el" id="el-em">
+        <h3><code>&lt;em&gt;</code> <span class="nick">emphasis</span></h3>
+        <div class="demo">
+          I said <em>you</em> should read the spec.
+        </div>
+        <p>
+          Stress emphasis — the word a speaker would lean on, which can change the meaning of a
+          sentence. Renders italic and screen readers may alter their intonation. Nest it for
+          heavier stress.
+        </p>
+      </article>
+
+      <article class="el" id="el-strong">
+        <h3><code>&lt;strong&gt;</code> <span class="nick">strong importance</span></h3>
+        <div class="demo">
+          <strong>Warning:</strong> this deletes the branch permanently.
+        </div>
+        <p>
+          Marks content as important, serious or urgent — not merely loud. Renders bold. The
+          contrast with <code>&lt;em&gt;</code> is importance versus vocal stress.
+        </p>
+      </article>
+
+      <article class="el" id="el-i">
+        <h3><code>&lt;i&gt;</code> <span class="nick">idiomatic text</span></h3>
+        <div class="demo">
+          The word <i lang="la">terra</i> is Latin, and HMS <i>Beagle</i> is a ship's name.
+        </div>
+        <p>
+          Text set apart from the surrounding prose for a reason with no more specific element:
+          a foreign phrase, a technical term, a taxonomic name, a ship's name, a thought.
+          Historically "italic", now defined by that idiomatic role — reach for
+          <code>&lt;em&gt;</code> when you actually mean emphasis.
+        </p>
+      </article>
+
+      <article class="el" id="el-b">
+        <h3><code>&lt;b&gt;</code> <span class="nick">bring attention to</span></h3>
+        <div class="demo">
+          The following ingredients are <b>keywords</b> in the product listing.
+        </div>
+        <p>
+          Draws attention to a span of text without implying extra importance — product names in a
+          review, the lead-in of an article. It is the fallback when nothing more meaningful
+          applies; if the text is genuinely important, use <code>&lt;strong&gt;</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-u">
+        <h3><code>&lt;u&gt;</code> <span class="nick">unarticulated annotation</span></h3>
+        <div class="demo">
+          He wrote <u style="text-decoration-style:wavy;text-decoration-color:#b4443c;">recieve</u> on the form.
+        </div>
+        <p>
+          A non-textual annotation, most usefully a spelling error or a proper name in Chinese. It
+          is genuinely risky to use, because underlined text reads as a link — style it differently,
+          as above, or pick another element.
+        </p>
+      </article>
+
+      <article class="el" id="el-s">
+        <h3><code>&lt;s&gt;</code> <span class="nick">no longer accurate</span></h3>
+        <div class="demo">
+          <s>$79.00</s> <strong>$49.00</strong>
+        </div>
+        <p>
+          Content that is no longer relevant or accurate — an old price, a cancelled item. For
+          edits to a document that are being tracked, use <code>&lt;del&gt;</code> instead: that one
+          says <em>who</em> removed it and <em>when</em>.
+        </p>
+      </article>
+
+      <article class="el" id="el-small">
+        <h3><code>&lt;small&gt;</code> <span class="nick">side comment</span></h3>
+        <div class="demo">
+          Subscribe for $5/month. <small>Cancel any time. Terms apply.</small>
+        </div>
+        <p>
+          Small print: legal disclaimers, licensing notes, attributions. It carries the meaning of
+          "fine print", and reducing the font size is the browser's default rendering of that — not
+          the reason to use it.
+        </p>
+      </article>
+
+      <article class="el" id="el-mark">
+        <h3><code>&lt;mark&gt;</code> <span class="nick">highlight</span></h3>
+        <div class="demo">
+          Results for "cascade": the <mark>cascade</mark> resolves conflicting declarations.
+        </div>
+        <p>
+          Text highlighted for reference in the current context — search-result hits, the line an
+          explanation is talking about. The relevance comes from the reader's activity, not from the
+          document itself.
+        </p>
+      </article>
+
+      <article class="el" id="el-abbr">
+        <h3><code>&lt;abbr&gt;</code> <span class="nick">abbreviation</span></h3>
+        <div class="demo">
+          Styling is done with <abbr title="Cascading Style Sheets" style="border-bottom:1px dotted #55677a;cursor:help;">CSS</abbr>. <span style="color:#55677a;font-size:13px;">(hover it)</span>
+        </div>
+        <p>
+          An abbreviation or acronym, with the expansion in <code>title</code>. Browsers show that
+          as a tooltip on hover, which touch devices cannot do — so spell the term out in the prose
+          the first time as well, and treat the element as machine-readable backup.
+        </p>
+      </article>
+
+      <article class="el" id="el-cite">
+        <h3><code>&lt;cite&gt;</code> <span class="nick">title of a work</span></h3>
+        <div class="demo">
+          I keep going back to <cite>The Design of Everyday Things</cite>.
+        </div>
+        <p>
+          The title of a creative work — a book, film, paper, song, exhibition. It refers to the
+          <em>work</em>, not the person; a name goes in plain text or a <code>&lt;span&gt;</code>.
+          Renders italic.
+        </p>
+      </article>
+
+      <article class="el" id="el-q">
+        <h3><code>&lt;q&gt;</code> <span class="nick">inline quotation</span></h3>
+        <div class="demo">
+          She said <q cite="https://example.com/interview">the hard part is naming things</q> and moved on.
+        </div>
+        <p>
+          A short quotation that sits inside a sentence. The browser adds the quotation marks for
+          you — and picks the right ones for the language, so a <code>lang="fr"</code> ancestor
+          produces guillemets. Do not type your own quotes around it.
+        </p>
+      </article>
+
+      <article class="el" id="el-dfn">
+        <h3><code>&lt;dfn&gt;</code> <span class="nick">definition</span></h3>
+        <div class="demo">
+          A <dfn title="Document Object Model">DOM</dfn> is the live tree a browser builds from HTML.
+        </div>
+        <p>
+          Marks the one place in the document where a term is <em>defined</em>, as opposed to merely
+          used. The nearest ancestor paragraph or section is taken to contain the definition.
+        </p>
+      </article>
+
+      <article class="el" id="el-code">
+        <h3><code>&lt;code&gt;</code></h3>
+        <div class="demo">
+          Call <code>array.at(-1)</code> to read the last item.
+        </div>
+        <p>
+          A fragment of computer code — a function name, a filename, a snippet. Renders monospace.
+          For a multi-line block, wrap it in <code>&lt;pre&gt;</code>, since
+          <code>&lt;code&gt;</code> alone does not preserve whitespace.
+        </p>
+      </article>
+
+      <article class="el" id="el-kbd">
+        <h3><code>&lt;kbd&gt;</code> <span class="nick">keyboard input</span></h3>
+        <div class="demo">
+          Press <kbd style="background:#fff;border:1px solid #c3d0dd;border-bottom-width:2px;border-radius:4px;padding:1px 6px;font-size:13px;">Ctrl</kbd> + <kbd style="background:#fff;border:1px solid #c3d0dd;border-bottom-width:2px;border-radius:4px;padding:1px 6px;font-size:13px;">K</kbd> to open the palette.
+        </div>
+        <p>
+          Input the user is expected to type or a key they should press. Nesting it inside
+          <code>&lt;samp&gt;</code> means "input echoed back by the system"; the default rendering is
+          plain monospace, so the key-cap look above is CSS.
+        </p>
+      </article>
+
+      <article class="el" id="el-samp">
+        <h3><code>&lt;samp&gt;</code> <span class="nick">sample output</span></h3>
+        <div class="demo">
+          The command prints <samp>2 files changed, 41 insertions(+)</samp>.
+        </div>
+        <p>
+          Output <em>from</em> a program or system — the counterpart to <code>&lt;kbd&gt;</code>.
+          Useful in documentation to distinguish what you type from what the machine says back.
+        </p>
+      </article>
+
+      <article class="el" id="el-var">
+        <h3><code>&lt;var&gt;</code> <span class="nick">variable</span></h3>
+        <div class="demo">
+          The area is <var>w</var> &times; <var>h</var>.
+        </div>
+        <p>
+          A variable name in a mathematical expression or a programming context, including
+          placeholders in prose. Renders italic.
+        </p>
+      </article>
+
+      <article class="el" id="el-sub-sup">
+        <h3><code>&lt;sub&gt;</code> <code>&lt;sup&gt;</code> <span class="nick">subscript / superscript</span></h3>
+        <div class="demo">
+          H<sub>2</sub>O &middot; E = mc<sup>2</sup> &middot; 4<sup>th</sup> &middot; Kelvin<sup><a href="#el-sub-sup">1</a></sup>
+        </div>
+        <p>
+          Typographical subscript and superscript where the position carries meaning: chemical
+          formulas, exponents, ordinal suffixes, footnote markers. Not for stylistic raising or
+          lowering of text — CSS <code>vertical-align</code> handles that.
+        </p>
+      </article>
+
+      <article class="el" id="el-time">
+        <h3><code>&lt;time&gt;</code></h3>
+        <div class="demo">
+          Published <time datetime="2026-09-09T10:30:00+07:00">this morning</time>,
+          and the doors open at <time datetime="19:00">7pm</time>.
+        </div>
+        <p>
+          A date, time or duration, with a machine-readable version in <code>datetime</code> while
+          the visible text stays human. This is what lets calendars offer "add to calendar" and
+          search engines show event times.
+        </p>
+      </article>
+
+      <article class="el" id="el-data">
+        <h3><code>&lt;data&gt;</code></h3>
+        <div class="demo">
+          <data value="398">Three hundred and ninety-eight</data> subscribers.
+        </div>
+        <p>
+          The general version of <code>&lt;time&gt;</code>: human-readable text with a
+          machine-readable <code>value</code> attached. Product IDs, quantities, prices — anything
+          a script or a scraper should read differently from how a person reads it.
+        </p>
+      </article>
+
+      <article class="el" id="el-bdi">
+        <h3><code>&lt;bdi&gt;</code> <span class="nick">bidirectional isolate</span></h3>
+        <div class="demo stack">
+          <span>Without isolation: user إيان: 3 posts</span>
+          <span>With isolation: user <bdi>إيان</bdi>: 3 posts</span>
+        </div>
+        <p>
+          Isolates a run of text whose direction is unknown — typically a username or other
+          user-supplied string — so that right-to-left content cannot reorder the punctuation and
+          numbers around it. Essential anywhere you interpolate untrusted names into a sentence.
+        </p>
+      </article>
+
+      <article class="el" id="el-bdo">
+        <h3><code>&lt;bdo&gt;</code> <span class="nick">bidirectional override</span></h3>
+        <div class="demo">
+          <bdo dir="rtl">This text is forced right-to-left.</bdo>
+        </div>
+        <p>
+          Forces a direction rather than letting the algorithm decide. <code>dir</code> is required.
+          It is a blunt instrument used mainly to demonstrate or repair bidi behaviour — for
+          ordinary multilingual content, set <code>dir</code> on a normal element instead.
+        </p>
+      </article>
+
+      <article class="el" id="el-ruby">
+        <h3><code>&lt;ruby&gt;</code> <code>&lt;rt&gt;</code> <code>&lt;rp&gt;</code> <span class="nick">ruby annotations</span></h3>
+        <div class="demo" style="font-size:22px;">
+          <ruby>漢 <rp>(</rp><rt style="font-size:11px;">kan</rt><rp>)</rp> 字 <rp>(</rp><rt style="font-size:11px;">ji</rt><rp>)</rp></ruby>
+        </div>
+        <p>
+          Small pronunciation or meaning annotations printed above East Asian characters.
+          <code>&lt;rt&gt;</code> holds the annotation; <code>&lt;rp&gt;</code> holds fallback
+          parentheses that only appear in browsers with no ruby support, so the text degrades to
+          <em>漢(kan)字(ji)</em> instead of becoming unreadable.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 5. EDITS                                                          -->
+    <!-- ================================================================= -->
+    <section class="group" id="edits">
+      <h2>5 &middot; Edits</h2>
+      <p class="intro">Two elements for showing that a document changed, and when.</p>
+
+      <article class="el" id="el-ins">
+        <h3><code>&lt;ins&gt;</code> <span class="nick">inserted text</span></h3>
+        <div class="demo">
+          The meeting is at <del>2pm</del> <ins datetime="2026-09-09T09:00" cite="#changelog" style="background:#e6f4ea;text-decoration:none;">4pm</ins>.
+        </div>
+        <p>
+          Content added to the document since a previous version. <code>datetime</code> records when
+          the edit happened and <code>cite</code> links to an explanation. Renders underlined by
+          default.
+        </p>
+      </article>
+
+      <article class="el" id="el-del">
+        <h3><code>&lt;del&gt;</code> <span class="nick">deleted text</span></h3>
+        <div class="demo">
+          <del datetime="2026-09-09T09:00" style="background:#fdeceb;">This paragraph was removed in the September revision.</del>
+        </div>
+        <p>
+          Content removed from the document, with the same <code>datetime</code> and
+          <code>cite</code> attributes. Its cousin <code>&lt;s&gt;</code> means "no longer
+          accurate"; <code>&lt;del&gt;</code> specifically means "edited out", which is why it is
+          the right one in changelogs and tracked revisions.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 6. EMBEDDED CONTENT                                               -->
+    <!-- ================================================================= -->
+    <section class="group" id="embedded">
+      <h2>6 &middot; Embedded content</h2>
+      <p class="intro">
+        Elements that pull something else into the page — an image, another document, a media
+        stream, a drawing surface.
+      </p>
+
+      <article class="el" id="el-img">
+        <h3><code>&lt;img&gt;</code> <span class="nick">image</span> <span class="flag void">void</span></h3>
+        <div class="demo">
+          <img src="assets/photo.svg" alt="A stylised sunrise over green hills" width="260" height="195" loading="lazy" style="display:block;border-radius:6px;">
+        </div>
+        <p>
+          Embeds an image. <code>alt</code> is required — descriptive text for anyone who cannot see
+          it, and an empty <code>alt=""</code> for purely decorative images so screen readers skip
+          them. Always set <code>width</code> and <code>height</code>: the browser reserves the space
+          before the file arrives, which stops the page from jumping as it loads.
+        </p>
+      </article>
+
+      <article class="el" id="el-picture">
+        <h3><code>&lt;picture&gt;</code> <code>&lt;source&gt;</code></h3>
+        <div class="demo">
+          <picture>
+            <source media="(min-width: 700px)" srcset="assets/photo-wide.svg">
+            <img src="assets/photo.svg" alt="A stylised sunrise, cropped to suit the viewport" style="display:block;max-width:100%;border-radius:6px;">
+          </picture>
+          <p class="demo-label" style="margin:8px 0 0;">Resize the window past 700px &mdash; the crop changes.</p>
+        </div>
+        <p>
+          Lets the browser choose between several image files. Each <code>&lt;source&gt;</code>
+          offers a candidate with conditions — a media query for art direction, or a
+          <code>type</code> for modern formats like AVIF with a JPEG fallback — and the first match
+          wins. The <code>&lt;img&gt;</code> at the end is mandatory: it is the fallback and the
+          element that actually renders.
+        </p>
+      </article>
+
+      <article class="el" id="el-audio">
+        <h3><code>&lt;audio&gt;</code></h3>
+        <div class="demo">
+          <audio controls src="assets/tone.wav" style="width:min(100%,340px);"></audio>
+        </div>
+        <p>
+          Embeds sound with a native player. Without <code>controls</code> it renders nothing at
+          all, which is a common first surprise. Browsers block <code>autoplay</code> with sound
+          until the user has interacted with the page — a deliberate policy, not a bug.
+        </p>
+      </article>
+
+      <article class="el" id="el-video">
+        <h3><code>&lt;video&gt;</code> <code>&lt;track&gt;</code></h3>
+        <div class="demo">
+          <video controls width="360" poster="assets/poster.svg" style="border-radius:6px;max-width:100%;">
+            <source src="assets/tone.wav" type="audio/wav">
+            <track kind="captions" src="assets/captions.vtt" srclang="en" label="English" default>
+            Your browser cannot play this media. <a href="assets/tone.wav">Download it instead.</a>
+          </video>
+          <p class="note" style="margin-bottom:0;">
+            The repo ships no video file, so this player is pointed at the same short audio clip —
+            the poster stays up while it plays. Press play with captions on: everything about the
+            element except the moving pictures is real. Turn captions on via the player's CC menu.
+          </p>
+        </div>
+        <p>
+          Embeds video with a native player. Multiple <code>&lt;source&gt;</code> children let you
+          offer several codecs and the browser picks the first it can play; anything after them is
+          fallback content for browsers that support none. <code>&lt;track&gt;</code> attaches a
+          WebVTT file of captions, subtitles or chapters, and <code>poster</code> is the still shown
+          before playback.
+        </p>
+      </article>
+
+      <article class="el" id="el-iframe">
+        <h3><code>&lt;iframe&gt;</code> <span class="nick">inline frame</span></h3>
+        <div class="demo">
+          <iframe src="assets/embedded.html" title="A small embedded document"
+                  height="170" loading="lazy"
+                  sandbox="allow-same-origin"
+                  style="width:100%;border:1px solid #dce4ec;border-radius:6px;background:#fff;"></iframe>
+        </div>
+        <p>
+          Embeds an entire separate browsing context — another whole document with its own DOM,
+          styles and scripts. That isolation is the point, and it is what makes third-party embeds
+          (maps, videos, payment forms) safe to include. <code>sandbox</code> tightens the box
+          further by removing capabilities unless you opt each one back in, and <code>title</code>
+          is required for accessibility.
+        </p>
+      </article>
+
+      <article class="el" id="el-object">
+        <h3><code>&lt;object&gt;</code></h3>
+        <div class="demo">
+          <object data="assets/photo.svg" type="image/svg+xml" width="240" style="border-radius:6px;">
+            <p style="margin:0;">Fallback: your browser could not render the embedded resource.</p>
+          </object>
+        </div>
+        <p>
+          A generic external resource, handled by the browser or a plugin according to
+          <code>type</code>. Its distinguishing feature is that its child content is fallback,
+          shown when the resource fails. It dates from the plugin era and is largely superseded by
+          <code>&lt;img&gt;</code>, <code>&lt;video&gt;</code> and <code>&lt;iframe&gt;</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-embed">
+        <h3><code>&lt;embed&gt;</code> <span class="flag void">void</span></h3>
+        <div class="demo">
+          <embed src="assets/photo.svg" type="image/svg+xml" title="A stylised sunrise over hills" width="240" height="180" style="border-radius:6px;">
+        </div>
+        <p>
+          The same idea as <code>&lt;object&gt;</code> but void, so it has no fallback content at
+          all. It exists mostly for historical compatibility; with plugins gone from the Web there
+          is rarely a reason to pick it over a purpose-built element.
+        </p>
+      </article>
+
+      <article class="el" id="el-canvas">
+        <h3><code>&lt;canvas&gt;</code></h3>
+        <div class="demo">
+          <canvas id="demo-canvas" width="320" height="110" style="border-radius:6px;background:#fff;border:1px solid #dce4ec;max-width:100%;">
+            A bar chart drawn with the canvas API.
+          </canvas>
+        </div>
+        <p>
+          A blank bitmap you draw on from JavaScript, in 2D or through WebGL/WebGPU. The element
+          itself is only a rectangle of pixels — nothing you paint exists in the DOM, so it is
+          invisible to screen readers and search engines. Put fallback content between the tags and
+          think hard before using it for anything text-based.
+        </p>
+      </article>
+
+      <article class="el" id="el-svg">
+        <h3><code>&lt;svg&gt;</code> <span class="nick">inline vector graphics</span></h3>
+        <div class="demo">
+          <svg width="150" height="80" viewBox="0 0 150 80" role="img" aria-label="A blue circle and a green square">
+            <circle cx="40" cy="40" r="28" fill="#1f6feb"/>
+            <rect x="82" y="16" width="48" height="48" rx="8" fill="#2f8f5b"/>
+          </svg>
+        </div>
+        <p>
+          Vector graphics written directly in the markup, in their own XML namespace. Unlike
+          <code>&lt;canvas&gt;</code> every shape is a real DOM node, so it can be styled with CSS,
+          animated, and given <code>aria</code> labels. This is the right way to ship icons and
+          diagrams that must stay crisp at any size.
+        </p>
+      </article>
+
+      <article class="el" id="el-math">
+        <h3><code>&lt;math&gt;</code> <span class="nick">MathML</span></h3>
+        <div class="demo" style="font-size:20px;">
+          <math display="block">
+            <mrow>
+              <mi>a</mi><mo>=</mo>
+              <mfrac><mrow><mo>-</mo><mi>b</mi></mrow><mrow><mn>2</mn><mi>c</mi></mrow></mfrac>
+            </mrow>
+          </math>
+        </div>
+        <p>
+          Mathematical notation, again in its own namespace, with elements for fractions, roots,
+          scripts and matrices. Core MathML is supported in all current browsers now, so formulas
+          can be real accessible markup rather than an image or a JavaScript renderer.
+        </p>
+      </article>
+
+      <article class="el" id="el-map">
+        <h3><code>&lt;map&gt;</code> <code>&lt;area&gt;</code> <span class="nick">image map</span></h3>
+        <div class="demo">
+          <img src="assets/photo.svg" alt="Sunrise scene with clickable regions" width="320" height="240" usemap="#scene" style="display:block;border-radius:6px;">
+          <map name="scene">
+            <area shape="circle" coords="160,150,38" href="#el-map" alt="The sun">
+            <area shape="poly" coords="95,190,185,115,275,190" href="#el-map" alt="The large hill">
+          </map>
+          <p class="demo-label" style="margin:8px 0 0;">Hover the sun or the big hill &mdash; the cursor changes.</p>
+        </div>
+        <p>
+          Divides a single image into clickable regions. <code>&lt;map&gt;</code> is referenced by
+          an image's <code>usemap</code>, and each <code>&lt;area&gt;</code> defines a shape with
+          pixel coordinates and its own link and <code>alt</code>. Those coordinates do not scale
+          with responsive images, which is why image maps are now rare — overlaying positioned
+          links is usually better.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 7. TABLES                                                         -->
+    <!-- ================================================================= -->
+    <section class="group" id="tables">
+      <h2>7 &middot; Tables</h2>
+      <p class="intro">
+        For tabular data — two dimensions of related values — and nothing else. Everything below
+        appears in one worked example first, then element by element.
+      </p>
+
+      <article class="el" id="el-table">
+        <h3><code>&lt;table&gt;</code> and its whole family</h3>
+        <div class="demo">
+          <table>
+            <caption>Bundle sizes, September 2026</caption>
+            <colgroup>
+              <col>
+              <col style="background:#fdfdfe;">
+              <col style="background:#fdfdfe;">
+            </colgroup>
+            <thead>
+              <tr><th scope="col">Bundler</th><th scope="col">Cold build</th><th scope="col">Output</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">esbuild</th><td>0.9s</td><td>142 KB</td></tr>
+              <tr><th scope="row">Rollup</th><td>3.4s</td><td>138 KB</td></tr>
+              <tr><th scope="row">webpack</th><td>7.1s</td><td>151 KB</td></tr>
+            </tbody>
+            <tfoot>
+              <tr><td colspan="3">Measured on the same project, three runs each.</td></tr>
+            </tfoot>
+          </table>
+        </div>
+        <p>
+          The container for tabular data. Everything else in this group is a child of it, and the
+          order the spec requires is <code>caption</code>, <code>colgroup</code>,
+          <code>thead</code>, <code>tbody</code>, <code>tfoot</code>. Tables were abused for page
+          layout for a decade; that is what <code>&lt;div&gt;</code> and CSS grid are for now.
+        </p>
+      </article>
+
+      <article class="el" id="el-caption">
+        <h3><code>&lt;caption&gt;</code></h3>
+        <p class="demo-label">Markup &mdash; rendered above the table in the example above</p>
+        <pre class="code">&lt;table&gt;
+  &lt;caption&gt;Bundle sizes, September 2026&lt;/caption&gt;
+  …</pre>
+        <p>
+          The table's title. It must be the first child, and it is announced when a screen reader
+          user lands on the table — which makes it the cheapest accessibility win a data table has.
+          Move it visually with CSS <code>caption-side</code>.
+        </p>
+      </article>
+
+      <article class="el" id="el-colgroup">
+        <h3><code>&lt;colgroup&gt;</code> <code>&lt;col&gt;</code></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;colgroup&gt;
+  &lt;col&gt;
+  &lt;col span="2" style="background: #fdfdfe;"&gt;
+&lt;/colgroup&gt;</pre>
+        <p>
+          Styles or attributes applied down whole columns without touching every cell. Columns cut
+          across the row-based structure of a table, so this is the only way to reach them; only a
+          few properties (background, border, width, visibility) actually apply.
+        </p>
+      </article>
+
+      <article class="el" id="el-thead">
+        <h3><code>&lt;thead&gt;</code> <code>&lt;tbody&gt;</code> <code>&lt;tfoot&gt;</code></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;thead&gt;&lt;tr&gt;&lt;th scope="col"&gt;Bundler&lt;/th&gt;…&lt;/tr&gt;&lt;/thead&gt;
+&lt;tbody&gt;&lt;tr&gt;&lt;th scope="row"&gt;esbuild&lt;/th&gt;…&lt;/tr&gt;&lt;/tbody&gt;
+&lt;tfoot&gt;&lt;tr&gt;&lt;td colspan="3"&gt;Notes&lt;/td&gt;&lt;/tr&gt;&lt;/tfoot&gt;</pre>
+        <p>
+          Row groups: the header, the data, and the summary row. Splitting them out lets the browser
+          repeat the header when a long table is printed across pages, and lets you scroll the body
+          under a fixed header. <code>&lt;tbody&gt;</code> is inserted automatically by the parser
+          even when you leave it out.
+        </p>
+      </article>
+
+      <article class="el" id="el-tr">
+        <h3><code>&lt;tr&gt;</code> <code>&lt;th&gt;</code> <code>&lt;td&gt;</code></h3>
+        <div class="demo">
+          <table>
+            <thead>
+              <tr><th scope="col">Cell type</th><th scope="col">Meaning</th></tr>
+            </thead>
+            <tbody>
+              <tr><th scope="row">th</th><td>a header for its row or column</td></tr>
+              <tr><th scope="row">td</th><td>an ordinary data cell</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          <code>&lt;tr&gt;</code> is a row; <code>&lt;th&gt;</code> and <code>&lt;td&gt;</code> are
+          the cells inside it. The attribute that matters is <code>scope</code> on every
+          <code>&lt;th&gt;</code> — it tells assistive technology whether a header labels its column
+          or its row, which is what lets a screen reader announce "esbuild, cold build, 0.9s"
+          instead of a bare number. <code>colspan</code> and <code>rowspan</code> merge cells.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 8. FORMS                                                          -->
+    <!-- ================================================================= -->
+    <section class="group" id="forms">
+      <h2>8 &middot; Forms</h2>
+      <p class="intro">
+        How a page collects input. Forms are where HTML gives you the most for free — validation,
+        keyboard behaviour, mobile keyboards, autofill — and where hand-rolled replacements most
+        often throw all of it away.
+      </p>
+
+      <article class="el" id="el-form">
+        <h3><code>&lt;form&gt;</code></h3>
+        <div class="demo">
+          <form action="#el-form" method="get" onsubmit="return false;" class="stack">
+            <div class="row">
+              <label for="f-name">Name</label>
+              <input id="f-name" type="text" name="name" required>
+            </div>
+            <button type="submit">Submit</button>
+            <p class="demo-label" style="margin:0;">Submitting empty triggers the browser's own validation message.</p>
+          </form>
+        </div>
+        <p>
+          Groups controls and defines where their values go: <code>action</code> is the URL,
+          <code>method</code> is <code>get</code> (values in the query string) or <code>post</code>
+          (values in the body). It also turns on native validation and lets Enter submit. Forms
+          cannot be nested.
+        </p>
+      </article>
+
+      <article class="el" id="el-label">
+        <h3><code>&lt;label&gt;</code></h3>
+        <div class="demo stack">
+          <div><label for="lbl-a">Explicit label (click the text)</label> <input id="lbl-a" type="checkbox"></div>
+          <label>Implicit label, wrapping the control <input type="checkbox"></label>
+        </div>
+        <p>
+          The visible name of a control, tied to it either by <code>for</code> pointing at the
+          control's <code>id</code> or by wrapping it. This is not optional decoration: it is what a
+          screen reader announces, and it makes the label itself a click target, which matters a lot
+          for small checkboxes on touch screens.
+        </p>
+      </article>
+
+      <article class="el" id="el-input">
+        <h3><code>&lt;input&gt;</code> <span class="nick">the many-headed one</span> <span class="flag void">void</span></h3>
+        <div class="demo">
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;font-size:14px;">
+            <label for="i-text">text</label><input id="i-text" type="text" placeholder="anything">
+            <label for="i-pw">password</label><input id="i-pw" type="password" autocomplete="current-password" value="hunter2">
+            <label for="i-email">email</label><input id="i-email" type="email" placeholder="you@example.com">
+            <label for="i-num">number</label><input id="i-num" type="number" min="0" max="10" step="1" value="3">
+            <label for="i-range">range</label><input id="i-range" type="range" min="0" max="100" value="60">
+            <label for="i-date">date</label><input id="i-date" type="date" value="2026-09-09">
+            <label for="i-time">time</label><input id="i-time" type="time" value="19:00">
+            <label for="i-color">color</label><input id="i-color" type="color" value="#1f6feb">
+            <label for="i-file">file</label><input id="i-file" type="file">
+            <label for="i-search">search</label><input id="i-search" type="search" placeholder="search…">
+            <label for="i-tel">tel</label><input id="i-tel" type="tel" placeholder="+84 …">
+            <label for="i-url">url</label><input id="i-url" type="url" placeholder="https://">
+            <label for="i-check">checkbox</label><span><input id="i-check" type="checkbox" checked> many of many</span>
+            <label>radio</label>
+            <span>
+              <label><input type="radio" name="r" checked> one</label>
+              <label style="margin-left:10px;"><input type="radio" name="r"> of many</label>
+            </span>
+            <span>hidden</span><span style="color:#55677a;">renders nothing, and cannot be labelled &mdash; it just carries a value through submission</span>
+            <input type="hidden" name="token" value="token-123">
+          </div>
+        </div>
+        <p>
+          One element with more than twenty behaviours, chosen by <code>type</code>. Picking the
+          right type is worth real effort: it selects the mobile keyboard, enables free validation
+          (<code>email</code>, <code>url</code>), provides native pickers for dates and colours, and
+          drives autofill. Constraints come from <code>required</code>, <code>min</code>,
+          <code>max</code>, <code>pattern</code> and <code>maxlength</code> — no JavaScript needed.
+        </p>
+      </article>
+
+      <article class="el" id="el-button">
+        <h3><code>&lt;button&gt;</code></h3>
+        <div class="demo row">
+          <button type="submit">submit</button>
+          <button type="reset">reset</button>
+          <button type="button">button (does nothing on its own)</button>
+          <button type="button" disabled>disabled</button>
+        </div>
+        <p>
+          A clickable control. The trap is <code>type</code>: inside a form it defaults to
+          <code>submit</code>, so a button meant to open a menu will reload the page unless you write
+          <code>type="button"</code>. Prefer it to a clickable <code>&lt;div&gt;</code> — you get
+          focus, Enter and Space, and screen reader semantics for free.
+        </p>
+      </article>
+
+      <article class="el" id="el-select">
+        <h3><code>&lt;select&gt;</code> <code>&lt;optgroup&gt;</code> <code>&lt;option&gt;</code></h3>
+        <div class="demo row">
+          <label for="s-1">Framework</label>
+          <select id="s-1">
+            <optgroup label="Libraries">
+              <option value="react">React</option>
+              <option value="preact">Preact</option>
+            </optgroup>
+            <optgroup label="Frameworks">
+              <option value="next" selected>Next.js</option>
+              <option value="astro">Astro</option>
+              <option value="svelte" disabled>Svelte (unavailable)</option>
+            </optgroup>
+          </select>
+        </div>
+        <p>
+          A dropdown of predefined choices. <code>&lt;option&gt;</code> is one choice — its
+          <code>value</code> is submitted while its text is displayed — and
+          <code>&lt;optgroup&gt;</code> puts them under non-selectable headings. Add
+          <code>multiple</code> to turn the dropdown into a scrolling multi-select list.
+        </p>
+      </article>
+
+      <article class="el" id="el-datalist">
+        <h3><code>&lt;datalist&gt;</code></h3>
+        <div class="demo row">
+          <label for="d-1">Browser</label>
+          <input id="d-1" type="text" list="browsers" placeholder="start typing…">
+          <datalist id="browsers">
+            <option value="Chrome"></option>
+            <option value="Firefox"></option>
+            <option value="Safari"></option>
+            <option value="Edge"></option>
+          </datalist>
+        </div>
+        <p>
+          Suggestions for a text input, wired up with <code>list</code> pointing at the datalist's
+          <code>id</code>. Unlike <code>&lt;select&gt;</code> the user can still type anything —
+          this is autocomplete, not a constraint.
+        </p>
+      </article>
+
+      <article class="el" id="el-textarea">
+        <h3><code>&lt;textarea&gt;</code></h3>
+        <div class="demo">
+          <textarea rows="3" maxlength="200" placeholder="Multi-line input. Drag the corner to resize.">Whitespace inside a textarea is preserved exactly.</textarea>
+        </div>
+        <p>
+          Multi-line free text. Its value is the content between the tags, not a
+          <code>value</code> attribute, so whitespace and the first newline matter.
+          <code>rows</code> sets the visible height, and CSS <code>resize</code> controls whether
+          the user may drag it larger.
+        </p>
+      </article>
+
+      <article class="el" id="el-fieldset">
+        <h3><code>&lt;fieldset&gt;</code> <code>&lt;legend&gt;</code></h3>
+        <div class="demo">
+          <fieldset>
+            <legend>Delivery speed</legend>
+            <label><input type="radio" name="ship" checked> Standard</label>
+            <label style="margin-left:12px;"><input type="radio" name="ship"> Express</label>
+          </fieldset>
+        </div>
+        <p>
+          Groups related controls under a shared caption. It is the correct way to label a set of
+          radio buttons, because each radio's own label only names one option — the
+          <code>&lt;legend&gt;</code> names the question. Setting <code>disabled</code> on the
+          fieldset disables everything inside it at once.
+        </p>
+      </article>
+
+      <article class="el" id="el-output">
+        <h3><code>&lt;output&gt;</code></h3>
+        <div class="demo">
+          <form id="calc" class="row" onsubmit="return false;">
+            <input type="number" name="a" value="12" style="width:80px;"> +
+            <input type="number" name="b" value="30" style="width:80px;"> =
+            <output name="sum" for="a b" style="font-weight:600;">42</output>
+          </form>
+        </div>
+        <p>
+          The result of a calculation or user action. It is an ARIA live region by default, so
+          updating its text makes a screen reader announce the new value — which is exactly what you
+          want for a running total, and what a plain <code>&lt;span&gt;</code> would not do.
+        </p>
+      </article>
+
+      <article class="el" id="el-progress">
+        <h3><code>&lt;progress&gt;</code></h3>
+        <div class="demo stack">
+          <progress value="0.7" max="1" style="width:260px;">70%</progress>
+          <progress style="width:260px;">working…</progress>
+          <span class="demo-label" style="margin:0;">The second has no value &mdash; an indeterminate task.</span>
+        </div>
+        <p>
+          How far along a task is: a file upload, an install step. Omit <code>value</code> and it
+          renders as an indeterminate spinner or barber pole. It is about <em>completion over
+          time</em> — not a gauge.
+        </p>
+      </article>
+
+      <article class="el" id="el-meter">
+        <h3><code>&lt;meter&gt;</code></h3>
+        <div class="demo stack">
+          <label>Disk used <meter value="0.3" min="0" max="1" high="0.8" optimum="0.2" style="width:200px;"></meter> 30%</label>
+          <label>Disk used <meter value="0.92" min="0" max="1" high="0.8" optimum="0.2" style="width:200px;"></meter> 92%</label>
+        </div>
+        <p>
+          A scalar measurement inside a known range — disk usage, a score, a temperature. The
+          <code>low</code>, <code>high</code> and <code>optimum</code> attributes let the browser
+          colour it green, amber or red on its own, as the second bar shows. Use
+          <code>&lt;progress&gt;</code> for tasks and <code>&lt;meter&gt;</code> for gauges.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 9. INTERACTIVE                                                    -->
+    <!-- ================================================================= -->
+    <section class="group" id="interactive">
+      <h2>9 &middot; Interactive</h2>
+      <p class="intro">
+        Two widgets the browser implements for you — both replacing a pile of JavaScript that used
+        to be written by hand on every project.
+      </p>
+
+      <article class="el" id="el-details">
+        <h3><code>&lt;details&gt;</code> <code>&lt;summary&gt;</code></h3>
+        <div class="demo">
+          <details style="background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px 14px;">
+            <summary style="cursor:pointer;font-weight:600;">Why is this collapsed by default?</summary>
+            <p style="margin:8px 0 0;">
+              Because <code>&lt;details&gt;</code> is closed unless it has the <code>open</code>
+              attribute. Add <code>name="group"</code> to several of them and they behave as an
+              accordion where only one can be open at a time.
+            </p>
+          </details>
+          <details open style="background:#fff;border:1px solid #dce4ec;border-radius:6px;padding:10px 14px;margin-top:8px;">
+            <summary style="cursor:pointer;font-weight:600;">And this one has <code>open</code></summary>
+            <p style="margin:8px 0 0;">So it starts expanded.</p>
+          </details>
+        </div>
+        <p>
+          A native disclosure widget: <code>&lt;summary&gt;</code> is the always-visible label and
+          everything else shows when it is expanded. Keyboard support, ARIA state and in-page find
+          all work without a line of script. It is also the honest way to do FAQs and "show more"
+          panels.
+        </p>
+      </article>
+
+      <article class="el" id="el-dialog">
+        <h3><code>&lt;dialog&gt;</code></h3>
+        <div class="demo">
+          <button type="button" id="open-dialog">Open the modal</button>
+          <dialog id="demo-dialog" style="border:1px solid #dce4ec;border-radius:8px;padding:20px 24px;max-width:420px;">
+            <h4 style="margin:0 0 8px;">A real modal dialog</h4>
+            <p style="margin:0 0 14px;color:#55677a;font-size:15px;">
+              Focus is trapped inside, the page behind is inert, and <kbd>Esc</kbd> closes it —
+              all from the browser. The dimmed backdrop is the <code>::backdrop</code> pseudo-element.
+            </p>
+            <form method="dialog" style="margin:0;">
+              <button type="submit" value="ok">Close</button>
+            </form>
+          </dialog>
+        </div>
+        <p>
+          A modal or non-modal dialog. Opened with <code>showModal()</code> from JavaScript, it gets
+          focus trapping, <kbd>Esc</kbd>-to-close, inert background content and a styleable backdrop
+          for free — the things hand-built modals almost always get wrong. A
+          <code>&lt;form method="dialog"&gt;</code> inside closes it and reports which button was
+          used.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 10. SCRIPTING & TEMPLATES                                         -->
+    <!-- ================================================================= -->
+    <section class="group" id="scripting">
+      <h2>10 &middot; Scripting &amp; templates</h2>
+      <p class="intro">Elements that carry behaviour, or markup that is deliberately not rendered.</p>
+
+      <article class="el" id="el-script">
+        <h3><code>&lt;script&gt;</code></h3>
+        <p class="demo-label">Markup</p>
+        <pre class="code">&lt;script src="app.js" defer&gt;&lt;/script&gt;
+&lt;script type="module"&gt;import { init } from './app.js';&lt;/script&gt;
+&lt;script type="application/json" id="data"&gt;{"ok": true}&lt;/script&gt;</pre>
+        <p>
+          Embeds or references executable code. Parsing stops while a plain script loads and runs,
+          which is why <code>defer</code> (run after parsing, in order) and <code>async</code> (run
+          as soon as it arrives) exist. <code>type="module"</code> gives you ES modules and is
+          deferred automatically; an unknown <code>type</code> is not executed at all, which is the
+          standard way to smuggle JSON into a page.
+        </p>
+      </article>
+
+      <article class="el" id="el-noscript">
+        <h3><code>&lt;noscript&gt;</code></h3>
+        <div class="demo">
+          <noscript>
+            <strong>You are seeing this because JavaScript is disabled.</strong>
+          </noscript>
+          <p style="margin:0;color:#55677a;font-size:14px;">
+            Nothing appears above unless you turn JavaScript off and reload.
+          </p>
+        </div>
+        <p>
+          Content shown only when scripting is unavailable — a fallback message, or a
+          <code>&lt;noscript&gt;</code> image for analytics. With JavaScript enabled its contents are
+          parsed but never rendered.
+        </p>
+      </article>
+
+      <article class="el" id="el-template">
+        <h3><code>&lt;template&gt;</code></h3>
+        <div class="demo">
+          <template id="row-template">
+            <li>A cloned row</li>
+          </template>
+          <ul id="template-target" style="margin:0;"></ul>
+          <p class="demo-label" style="margin:8px 0 0;">
+            The template above holds one <code>&lt;li&gt;</code>; the script cloned it three times
+            into this list.
+          </p>
+        </div>
+        <p>
+          Markup that is parsed but inert: not rendered, images not fetched, scripts not run. You
+          clone its <code>.content</code> from JavaScript to stamp out repeated structures. It is
+          how you keep a component's HTML in HTML instead of in a template string.
+        </p>
+      </article>
+
+      <article class="el" id="el-slot">
+        <h3><code>&lt;slot&gt;</code></h3>
+        <div class="demo">
+          <template id="card-template">
+            <style>
+              .card { border:1px solid #dce4ec; border-radius:6px; background:#fff; padding:10px 14px; }
+              .card h5 { margin:0 0 4px; font:600 15px/1.4 system-ui, sans-serif; }
+              .card p { margin:0; font:14px/1.5 system-ui, sans-serif; color:#55677a; }
+            </style>
+            <div class="card">
+              <h5><slot name="title">Untitled</slot></h5>
+              <p><slot>No body supplied.</slot></p>
+            </div>
+          </template>
+
+          <demo-card>
+            <span slot="title">Light DOM goes in</span>
+            This sentence was written in the page, but rendered inside the component's shadow DOM.
+          </demo-card>
+        </div>
+        <p>
+          A placeholder inside a shadow DOM where the component's own children get projected. A
+          named slot takes elements with a matching <code>slot</code> attribute; the unnamed one
+          takes everything else; the content between the tags is the default when nothing is passed.
+          This is how web components accept children.
+        </p>
+      </article>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- 11. OBSOLETE                                                      -->
+    <!-- ================================================================= -->
+    <section class="group" id="obsolete">
+      <h2>11 &middot; Removed elements</h2>
+      <p class="intro">
+        Worth recognising in old code, never worth writing. Most were presentational — HTML doing
+        CSS's job — and some, like the frameset family, were architecturally harmful. Browsers still
+        render several of them for compatibility; that is not permission.
+      </p>
+
+      <table class="obsolete-table">
+        <thead>
+          <tr><th>Element</th><th>What it did</th><th>What to use instead</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>&lt;font&gt;</td><td>Set face, size and colour inline</td><td>CSS <code>font-family</code>, <code>font-size</code>, <code>color</code></td></tr>
+          <tr><td>&lt;center&gt;</td><td>Centred a block</td><td>CSS <code>text-align</code> or <code>margin-inline: auto</code></td></tr>
+          <tr><td>&lt;big&gt;</td><td>Larger text</td><td>CSS <code>font-size</code></td></tr>
+          <tr><td>&lt;strike&gt;, &lt;s&gt; (old sense)</td><td>Struck-through text</td><td><code>&lt;del&gt;</code> or <code>&lt;s&gt;</code> in its modern meaning</td></tr>
+          <tr><td>&lt;tt&gt;</td><td>Teletype/monospace text</td><td><code>&lt;code&gt;</code>, <code>&lt;kbd&gt;</code>, <code>&lt;samp&gt;</code></td></tr>
+          <tr><td>&lt;nobr&gt;</td><td>Prevented wrapping</td><td>CSS <code>white-space: nowrap</code></td></tr>
+          <tr><td>&lt;marquee&gt;</td><td>Scrolled text across the screen</td><td>CSS animation — and usually, nothing at all</td></tr>
+          <tr><td>&lt;blink&gt;</td><td>Flashed text on and off</td><td>Nothing. It was an accessibility hazard.</td></tr>
+          <tr><td>&lt;acronym&gt;</td><td>Marked acronyms</td><td><code>&lt;abbr&gt;</code></td></tr>
+          <tr><td>&lt;dir&gt;</td><td>A directory listing</td><td><code>&lt;ul&gt;</code></td></tr>
+          <tr><td>&lt;frameset&gt;, &lt;frame&gt;, &lt;noframes&gt;</td><td>Split the window into independent documents</td><td><code>&lt;iframe&gt;</code>, or real layout with CSS</td></tr>
+          <tr><td>&lt;applet&gt;, &lt;param&gt;</td><td>Embedded Java applets and their settings</td><td><code>&lt;object&gt;</code>, <code>&lt;iframe&gt;</code>, WebAssembly</td></tr>
+          <tr><td>&lt;keygen&gt;</td><td>Generated a key pair in a form</td><td>WebCrypto, WebAuthn</td></tr>
+          <tr><td>&lt;menuitem&gt;</td><td>An entry in a native context menu</td><td>Never shipped broadly; build your own menu</td></tr>
+          <tr><td>&lt;rb&gt;, &lt;rtc&gt;</td><td>Extra structure for ruby annotations</td><td><code>&lt;ruby&gt;</code> with <code>&lt;rt&gt;</code></td></tr>
+          <tr><td>&lt;plaintext&gt;, &lt;xmp&gt;</td><td>Rendered the rest of the file literally</td><td><code>&lt;pre&gt;</code> with escaped entities</td></tr>
+          <tr><td>&lt;spacer&gt;</td><td>Inserted blank space</td><td>CSS margin, padding, <code>gap</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  // ---- <canvas>: nothing is drawn until script draws it -------------------
+  (function drawCanvas() {
+    const canvas = document.getElementById('demo-canvas');
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d');
+    const bars = [34, 58, 22, 79, 46, 91, 63];
+    const w = 30, gap = 14, base = canvas.height - 12;
+    bars.forEach((value, i) => {
+      const x = 16 + i * (w + gap);
+      const h = value * 0.85;
+      ctx.fillStyle = '#1f6feb';
+      ctx.globalAlpha = 0.35 + (value / 200);
+      ctx.fillRect(x, base - h, w, h);
+    });
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#c3d0dd';
+    ctx.beginPath();
+    ctx.moveTo(8, base + 0.5);
+    ctx.lineTo(canvas.width - 8, base + 0.5);
+    ctx.stroke();
+  })();
+
+  // ---- <output>: recompute the sum as the inputs change -------------------
+  (function wireOutput() {
+    const form = document.getElementById('calc');
+    if (!form) return;
+    const update = () => {
+      form.sum.value = (form.a.valueAsNumber || 0) + (form.b.valueAsNumber || 0);
+    };
+    form.addEventListener('input', update);
+    update();
+  })();
+
+  // ---- <dialog>: showModal() is what makes it modal -----------------------
+  (function wireDialog() {
+    const button = document.getElementById('open-dialog');
+    const dialog = document.getElementById('demo-dialog');
+    if (!button || !dialog) return;
+    button.addEventListener('click', () => dialog.showModal());
+  })();
+
+  // ---- <template>: clone .content to stamp out repeated markup ------------
+  (function useTemplate() {
+    const template = document.getElementById('row-template');
+    const list = document.getElementById('template-target');
+    if (!template || !list) return;
+    for (let i = 1; i <= 3; i++) {
+      const clone = template.content.cloneNode(true);
+      clone.querySelector('li').textContent = 'Cloned row ' + i;
+      list.append(clone);
+    }
+  })();
+
+  // ---- <slot>: a minimal custom element with a shadow root ----------------
+  (function defineCard() {
+    const template = document.getElementById('card-template');
+    if (!template || !window.customElements) return;
+    customElements.define('demo-card', class extends HTMLElement {
+      connectedCallback() {
+        if (this.shadowRoot) return;
+        this.attachShadow({ mode: 'open' })
+            .append(template.content.cloneNode(true));
+      }
+    });
+  })();
+</script>
+
+</body>
+</html>
