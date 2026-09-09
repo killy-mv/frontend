@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+
+    // The whole point. Most of TypeScript's value lives behind this flag.
+    "strict": true,
+
+    // These examples are never compiled to JS — Node strips the types itself.
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
+  },
+  "include": ["examples"]
+}
